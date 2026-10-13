@@ -12,7 +12,7 @@
 
 ## 云端恢复与开发
 
-需要 Node.js 24（最低 22.13）。代码仓库创建并同步后：
+需要 Node.js 24（最低 22.13）。完整源码已进入 main；在新的云端环境执行：
 
 ```bash
 git clone https://github.com/cosmos-zhan/anisong-learning-app.git
@@ -22,7 +22,7 @@ npm run check
 npm run dev
 ```
 
-目标仓库已创建并授权；首次实现通过 feature/p0 PR 上传，合并前请检出 feature/p0。实际交付状态见 [docs/delivery.md](docs/delivery.md)。`npm run dev` 是云端开发用，不是长期手机预览。默认端口 4173，正式网页使用静态 `dist/`，无需后台服务。
+目标仓库已创建并授权，PR #1 已在网页与 Android CI 通过后合并 main。实际交付状态见 [docs/delivery.md](docs/delivery.md)。`npm run dev` 是云端开发用，不是长期手机预览。默认端口 4173，正式网页使用静态 `dist/`，无需后台服务。
 
 - `npm run typecheck`：TypeScript 严格类型检查。
 - `npm run lint`：ESLint。
