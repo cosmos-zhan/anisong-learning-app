@@ -32,3 +32,5 @@ Pages 的构建自动读取 CF_PAGES_COMMIT_SHA、CF_PAGES_BRANCH 写入页面�
 Android debug APK workflow 在手动 workflow_dispatch、android-test-* tag、或PR修改Android/原生桥/构建配置时执行；日常歌词和UI push 不强制构建 APK。JDK21、Node24、SDK36、Gradle wrapper 一起固定；npm ci 后 check、cap sync、testDebugUnitTest 与 assembleDebug。产物 retention 30天，登录 GitHub 在成功 run 下载。不要填写并未存在的 run/artifact链接。
 
 运行没有涉及 Cloudflare付费服务、Firebase邀请、商用录音或正式发布签名。
+
+SDK动作使用setup-android@v3，显式packages: platform-tools；不要使用旧默认tools包。初次Actions已经证明该包不再可安装。后续将platforms;android-36和build-tools;36.0.0单独安装。

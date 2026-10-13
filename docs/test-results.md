@@ -29,3 +29,5 @@ Android首次构建：安装JDK21/SDK36/Gradle8.14.3后，Gradle testDebugUnitTe
 最终Android包构建：限定:app:testDebugUnitTest :app:assembleDebug，离线缓存构建实际BUILD SUCCESSFUL，79任务（10执行、69 up-to-date），原生2项0失败0跳过。签名验证成功；aapt验证包名/versionCode/minSdk/targetSdk；APK内version.json为d2d656fb3308，与构建提交一致；WAV字节与源文件一致；原生插件在DEX中。保留android-build.log.txt、android-test-results.xml、apk-signature.log.txt。
 
 最终前端交付测试再次30/30通过，见web-tests-delivery.log.txt。APK编译及签名成功只意味着生成合法测试包，尚不能称真机安装、发声或原生循环延迟验收通过。
+
+GitHub首次导入后：push Web checks run38375814752与PR Web checks run38375904941实际success，包含npm ci、类型检查、Lint、30测试、production build及测试/网页产物上传。Android run38375905014在setup-android安装tools步骤失败（应用构建尚未开始），已经针对日志修正packages为platform-tools，等待新run。
