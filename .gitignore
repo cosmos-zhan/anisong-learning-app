@@ -1,0 +1,16 @@
+node_modules/
+dist/
+coverage/
+.openai/*local*
+.openai/*.env*
+*.log
+.env*
+apps/android/.gradle/
+apps/android/**/build/
+apps/android/local.properties
+apps/android/app/src/main/assets/public/
+*.jks
+*.keystore
+apps/web/src/version.json
+public/version.json
+apps/android/.kotlin/

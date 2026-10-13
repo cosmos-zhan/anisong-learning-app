@@ -1,0 +1,47 @@
+name: Android debug APK
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'apps/android/**'
+      - 'packages/audio-native/**'
+      - 'capacitor.config.ts'
+      - '.github/workflows/android.yml'
+  push:
+    tags: ['android-test-*']
+permissions:
+  contents: read
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+      - run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+      - run: npm ci
+      - run: npm run check
+      - run: npx cap sync android
+      - run: chmod +x apps/android/gradlew
+      - name: Build debug APK and native unit tests
+        env:
+          VERSION_CODE: ${{ github.run_number }}
+        run: apps/android/gradlew -p apps/android :app:testDebugUnitTest :app:assembleDebug --stacktrace
+      - uses: actions/upload-artifact@v4
+        with:
+          name: anisong-debug-${{ github.sha }}
+          path: apps/android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-build-reports
+          path: apps/android/app/build/reports

@@ -1,0 +1,43 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> anisong-learning-app@0.1.0 check
+> npm run typecheck && npm run lint && npm test && npm run build
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> anisong-learning-app@0.1.0 typecheck
+> node scripts/version.mjs && tsc --noEmit
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> anisong-learning-app@0.1.0 lint
+> eslint apps packages tests
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> anisong-learning-app@0.1.0 test
+> node scripts/version.mjs && vitest run
+
+
+ RUN  v4.1.0 /workspace/scratch/b08676c07bad/anisong-learning-app
+
+
+ Test Files  3 passed (3)
+      Tests  30 passed (30)
+   Start at  11:45:21
+   Duration  10.79s (transform 733ms, setup 2.42s, import 1.18s, tests 5.95s, environment 7.26s)
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> anisong-learning-app@0.1.0 build
+> node scripts/version.mjs && vite build
+
+vite v8.0.13 building client environment for production...
+[2Ktransforming...✓ 24 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.56 kB │ gzip:  0.44 kB
+dist/assets/index-C38hdwG9.css    8.07 kB │ gzip:  2.59 kB
+dist/assets/index-MObcz6et.js   220.42 kB │ gzip: 70.79 kB
+
+✓ built in 1.42s
