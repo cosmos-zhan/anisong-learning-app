@@ -31,3 +31,5 @@ Android首次构建：安装JDK21/SDK36/Gradle8.14.3后，Gradle testDebugUnitTe
 最终前端交付测试再次30/30通过，见web-tests-delivery.log.txt。APK编译及签名成功只意味着生成合法测试包，尚不能称真机安装、发声或原生循环延迟验收通过。
 
 GitHub首次导入后：push Web checks run38375814752与PR Web checks run38375904941实际success，包含npm ci、类型检查、Lint、30测试、production build及测试/网页产物上传。Android run38375905014在setup-android安装tools步骤失败（应用构建尚未开始），已经针对日志修正packages为platform-tools，等待新run。
+
+GitHub SDK修复后的实际结果：Web push38376312396与PR38376318734均success；Android PR38376318729 success（Gradle BUILD SUCCESSFUL in 1m28s）。已下载android-build-reports artifact11801721549并读取HTML汇总：2测试、0失败、0跳过。APK artifact11800669480实际生成，链接见delivery.md。当前GitHub完整源码已合并main；此前“无远程CI”是仓库创建前的历史状态。

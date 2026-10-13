@@ -1,68 +1,49 @@
-# 本次交付记录（2026-10-13）
+# P0 实际交付记录（2026-10-13）
 
-阶段A：真实网页播放实现、完整源码、30项本地自动测试及production构建完成；尚未完成实际浏览器试听和Android16手机验收。
+## 当前状态
 
-阶段B：版本信息、反馈快照/复制/Issue预填、Issue与PR模板、CI、部署与维护文档完成。GitHub源码已提交feature/p0并创建PR #1，网页push/PR CI均成功；Cloudflare尚未授权，Pages PR预览未部署。
-
-阶段C：Capacitor Android、Kotlin/Media3、原生坐标测试与手动/tag触发APK Actions配置已生成。Android最终本地debug APK构建成功（79任务，10执行），原生单元测试2/2通过，APK v2签名验证通过；设备安装/试听待手测。
-
-## 账号阻塞
-
-GitHub独立仓库cosmos-zhan/anisong-learning-app已就绪并授权，完整109个文件已上传feature/p0。Aria未修改。
-
-Cloudflare需手机登录并授权Pages连接GitHub目标仓库，production main，build npm run build，output dist，Node24。平台真实URL产生后再记录，当前Cloudflare为未部署。
-
-网页GitHub Actions已运行成功。Android首次run在SDK动作请求废弃tools包时失败，现显式指定platform-tools，待修复后的实际运行结果。
-
-## 已部署网页
-
-https://anisong-learning-lab.woolly-mochi-2205.chatgpt.site
-
-Sites发布操作实际返回succeeded，私有访问，同一ChatGPT账号登录。初始发布源码提交23218184a47a2d4bf740e6dd15a08fa38f58591f；不是Cloudflare Pages/PR预览。最终修复会更新此网页，页面底部显示对应版本。
-
-
-## 最终 APK
-
-文件 anisong-p0-debug.apk，8,584,234 字节（约8.2MiB）；包名io.github.cosmoszhan.anisong，versionName0.1.0，versionCode1，minSdk24，target/compileSdk36。
-
-源码与APK内版本：d2d656fb33080987f70a34eb97019f792f714da2（main）；内置版本时间2026-10-13T08:55:47.595Z。APK内真实WAV的SHA256与源文件一致，DEX含AnisongAudioPlugin。签名验证返回Verifies，使用v2 scheme。
-
-APK SHA256：32af2eb83846af7c2ccc638e9a6adc247d356381f6055411c187698b86a6c416。
-
-这是本次云端本地构建，**不是GitHub Actions Artifact**；没有远程Actions run / Artifact链接。
-
-## 实际源码提交历史
-
-- 23218184a47a2d4bf740e6dd15a08fa38f58591f：完整P0源码、反馈、测试与原生桥。
-- 334d972：媒体中断竞态、全新检出构建、交接文档与回归测试。
-- d2d656fb33080987f70a34eb97019f792f714da2：原生中断处理、最终APK构建任务范围；APK对应提交。
-
-以上为实际本地Git/Sites源码历史，**尚未推送cosmos-zhan GitHub**。最终交付文档另有docs提交，网页底部显示实际部署提交。源码ZIP包含完整源码；Git bundle保留提交历史。目标GitHub需要创建/授权后，通过feature/p0和真实PR同步。
-
-## 待用户手机完成
-
-1. 打开实际测试网页并试听，或下载APK安装，在Android16按mobile-testing.md操作验证。
-2. GitHub仓库创建与授权已完成；通过PR #1查看当前源码和Checks。
-3. 源码进入GitHub后登录Cloudflare，按deployment.md授权GitHub集成与main/PR部署。
-4. GitHub Actions手动运行Android debug APK，取得真实run/Artifact链接，完成后续分发闭环。
-
-优先下一步：仓库/Pages闭环；Android16真实音频体验反馈；增加自制真实演唱音频与精确歌词。没有额外商用歌曲、密钥、正式签名或付费服务。
-
-
-## GitHub同步更新（2026-10-13 17:13后）
-
-目标仓库https://github.com/cosmos-zhan/anisong-learning-app已创建并授权，main初始化提交2ec0c0365b55c9aa34624577eb8da075be259963。原“未建立GitHub”描述为首次交付时的历史状态，已经解除。完整工程正在通过feature/p0导入并建立真实PR；CI与Actions产物结果将在读取实际run后记录。Cloudflare仍未授权。
-
-Android工作流新增按路径过滤的pull_request触发：只针对Android容器、原生桥、Capacitor或构建配置改动自动构建APK；一般歌词/UI改动不触发。保留手动/tag方式。这样首次实现可在合并前提供真实APK用于手机验收。
-
-
-## 已确认的GitHub结果
+完整工程已进入 GitHub main，109 个文件，包含真实媒体播放源码、React/TypeScript、Kotlin/Media3、锁文件、Gradle wrapper、原创音频、测试、CI 和使用文档。Aria未修改。
 
 - 仓库：https://github.com/cosmos-zhan/anisong-learning-app
-- PR：https://github.com/cosmos-zhan/anisong-learning-app/pull/1
-- 首次完整源码提交：355bca52ba660a0e96f053e1b961a8380e636893，109个文件，保留main的用户初始化历史。
-- 网页push CI成功：https://github.com/cosmos-zhan/anisong-learning-app/actions/runs/38375814752
-- 网页PR CI成功：https://github.com/cosmos-zhan/anisong-learning-app/actions/runs/38375904941
-- Android首次run失败：https://github.com/cosmos-zhan/anisong-learning-app/actions/runs/38375905014；setup-android@v3默认安装tools，但SDK源中无此包。配置修复为packages: platform-tools，继续重新构建。
+- 实现PR #1（已合并）：https://github.com/cosmos-zhan/anisong-learning-app/pull/1
+- 完整导入提交：355bca52ba660a0e96f053e1b961a8380e636893
+- SDK构建修复提交：68614f69d96c2bf8da4b1a736448502b67cc3035
+- 首次main基线合并：e2564e1d9282b32f0181a42bdddd8624c264d7e0
 
-当前PR尚未合并；main仍保留初始化README，完整源码在feature/p0。下一次Work应克隆feature/p0或读取PR #1。Cloudflare未部署，手机可继续使用现有私有测试网页。
+## CI与真实APK产物
+
+- 网页PR CI成功：https://github.com/cosmos-zhan/anisong-learning-app/actions/runs/38376318734
+- 网页push CI成功：https://github.com/cosmos-zhan/anisong-learning-app/actions/runs/38376312396
+- Android CI成功：https://github.com/cosmos-zhan/anisong-learning-app/actions/runs/38376318729
+- APK下载（需登录GitHub）：https://github.com/cosmos-zhan/anisong-learning-app/actions/runs/38376318729/artifacts/11800669480
+- 原生测试报告：https://github.com/cosmos-zhan/anisong-learning-app/actions/runs/38376318729/artifacts/11801721549
+
+远程网页检查包含npm ci、类型、Lint、30/30测试、production build及产物上传。Android完成同样前端检查、Capacitor同步、Gradle :app:testDebugUnitTest与:app:assembleDebug，BUILD SUCCESSFUL。已下载并检查原生报告：2测试、0失败、0跳过。
+
+APK artifact名anisong-debug-4c8b659dd3354be228edb7cc348f7284a024ae11，ZIP约7.98MB，内含app-debug.apk；保留到2026-11-12。4c8b659是GitHub PR测试合并提交的SHA，PR源码头是68614f6。不要将PR合并测试SHA误当成正式main合并SHA。包名io.github.cosmoszhan.anisong，versionName0.1.0，SDK36。手机下载ZIP、解压、点APK安装；签名为测试debug签名。
+
+首次Android CI在setup-android@v3请求废弃tools包时失败，已明确设置packages: platform-tools并实际重跑成功。配置只对原生相关PR、手动workflow_dispatch或android-test-* tag构建APK，一般歌词/UI变更不强制构建。
+
+## 网页预览
+
+已部署可用的私有测试页：https://anisong-learning-lab.woolly-mochi-2205.chatgpt.site
+
+同一ChatGPT账号登录。当前发布源码版本c6abd5b456f8（本地/Sites首次交付历史），播放器代码对应此次GitHub导入；GitHub同步后仅改CI和交接文档，没有播放器行为改动。此网址不是Cloudflare Pages，也没有GitHub PR自动预览。
+
+Cloudflare仍未授权、未部署。现在只需在手机登录Cloudflare，按deployment.md把已就绪的GitHub仓库连接Pages，production main，build npm run build，output dist，NODE_VERSION24，开启feature/*和fix/*预览。真实部署成功后记录平台返回URL。
+
+## 阶段与验收边界
+
+A：真实网页媒体播放实现、自动测试、production构建、持久测试网址、GitHub源码已完成。
+B：版本与非敏感反馈报告/Issue预填、Issue模板、PR、远程CI已完成；Cloudflare main/PR预览待账号接入。提交Issue仍由用户确认，App不持有GitHub Token。
+C：Capacitor/Media3源码与GitHub自动debug APK、原生单元测试和真实下载链接已完成。
+
+未做实际浏览器试听、Android16物理手机安装、音高听感、循环停顿、SAF文件选择、来电/蓝牙/后台、手机缓存切换验收。不能把jsdom、编译和原生坐标测试称为真机播放验收。演示为35.5秒原创器乐，第2行日文为界面示例，没有对应人声；真实歌曲请本地导入匹配LRC。
+
+## 手机下一步
+
+1. 打开测试页或下载GitHub APK，按mobile-testing.md手测，反馈中包含版本和复现步骤。
+2. 登录Cloudflare并按deployment.md连接该仓库，建立main稳定网址和PR预览。
+3. 后续Work默认克隆main，修复走feature/fix分支及PR，查看CI后继续迭代。
+
+首次本地APK仍可用：源码d2d656fb3308、8,584,234字节、v2签名验证通过；SHA256为32af2eb83846af7c2ccc638e9a6adc247d356381f6055411c187698b86a6c416。它与本节GitHub构建产物为两次不同的debug构建，签名可能不同。

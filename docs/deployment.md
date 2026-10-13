@@ -4,8 +4,8 @@
 
 无需把 Cloudflare API Token 写进源码，也无需给客户端 GitHub Token。最少手机步骤：
 
-1. 在 GitHub 新建 `anisong-learning-app`，建议 Public，勾选 README 初始化默认 main。
-2. 在 ChatGPT GitHub 连接的仓库权限中包含这个新仓库。之后让 Work 上传已完成源码，并通过 feature 分支 / PR 交付。
+1. 已完成：GitHub仓库 `cosmos-zhan/anisong-learning-app`、main完整源码、ChatGPT仓库授权和CI。
+2. 查看docs/delivery.md中的现有测试页、PR和APK链接，然后继续Cloudflare接入。
 3. 登录 Cloudflare Dashboard→Workers & Pages→Create application→Pages→Connect to Git，授权 GitHub，仅选择这个仓库。
 4. Production branch=`main`，Framework preset=React(Vite)，Root directory=仓库根，Build command=`npm run build`，Build output directory=`dist`；构建环境 Node.js 24（`NODE_VERSION=24`）。
 5. Preview branch control 包含 feature/* 和 fix/*。等待首次成功，复制平台实际给出的 Production URL。非 main 分支 / PR 使用平台返回的预览 URL，不根据分支名猜测。
