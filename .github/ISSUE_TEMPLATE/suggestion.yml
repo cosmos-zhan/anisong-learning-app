@@ -1,0 +1,13 @@
+name: 交互建议
+description: 告诉我们哪一步不方便
+body:
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: 使用场景与建议
+    validations:
+      required: true
+  - type: textarea
+    id: version
+    attributes:
+      label: 版本与设备
