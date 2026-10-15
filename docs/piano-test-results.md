@@ -5,7 +5,7 @@
 - 本地 `npm run check` 实际通过：严格 TypeScript、ESLint、65 项 Vitest、Vite 生产构建。
 - 对应 [GitHub push run 38676322672](https://github.com/cosmos-zhan/anisong-learning-app/actions/runs/38676322672) 和 [PR run 38676347258](https://github.com/cosmos-zhan/anisong-learning-app/actions/runs/38676347258) 均为 success。
 - 后续硬化增加同谱多歌曲隔离、共享关联和刷新恢复测试；最终数量与对应 CI 见 [交付记录](piano-delivery.md) / PR #3 的最新检查。CI 每次 push / PR 都执行，JUnit 与 dist 是运行附件。
-- 本地最终硬化版 `npm run check` 实际通过：9 个测试文件、**69 项测试**（原学唱 30 项 + 钢琴 39 项）、TypeScript、ESLint 和生产构建全部成功。最终 GitHub run 和发布 SHA 映射更新在 PR #3 正文，便于新会话恢复。
+- 本地最终硬化版 `npm run check` 实际通过：9 个测试文件、**70 项测试**（原学唱 30 项 + 钢琴 40 项）、TypeScript、ESLint 和生产构建全部成功。最终 GitHub run 和发布 SHA 映射更新在 PR #3 正文，便于新会话恢复。
 
 ## 覆盖内容与证据边界
 

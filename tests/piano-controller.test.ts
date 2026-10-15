@@ -207,3 +207,5 @@ describe("Piano state and audio scheduling", () => {
     });
   });
 });
+
+it("defaults to a playable pitched melody when the first part has only unsupported chords",()=>{const {c}=setup(fixture([note()+note("E",480,"<chord/>")],"",`<part id="P2"><measure number="1"><attributes><divisions>480</divisions></attributes>${note("G")}</measure></part>`));expect(c.part?.id).toBe("P2");expect(c.track?.blocked).toHaveLength(0);});

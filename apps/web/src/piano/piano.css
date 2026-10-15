@@ -585,3 +585,5 @@
 }
 
 .piano-download{display:block;color:#b2e5d4;text-decoration:underline;line-height:1.6;padding:8px 0;font-size:12px}
+
+.piano-eyebrow{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

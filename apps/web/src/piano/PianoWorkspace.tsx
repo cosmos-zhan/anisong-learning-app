@@ -332,7 +332,9 @@ export function PianoWorkspace({
     <main className="piano-workspace" aria-label="钢琴学谱">
       <div className="piano-heading">
         <div>
-          <span className="piano-eyebrow">PIANO LAB · {song.title}</span>
+          <span className="piano-eyebrow" aria-label="当前练习声部" title={`${song.title} · ${part?.name ?? ''} · 谱表 ${track?.staff ?? '—'} / 声部 ${track?.voice ?? '—'}`}>
+            {part?.name ?? 'PIANO LAB'} · 谱表 {track?.staff ?? '—'} / 声部 {track?.voice ?? '—'}
+          </span>
           <h1>{score?.title ?? "导入你的旋律"}</h1>
         </div>
         <div className="piano-heading-actions">

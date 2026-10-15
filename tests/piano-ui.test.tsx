@@ -68,6 +68,7 @@ it("bar 5, reverse range, relative speed, wait judgement, snapshot feedback and 
   await user.click(screen.getByRole("button", { name: "第 5 小节" }));
   await waitFor(() => expect(controller.getSnapshot().phase).toBe("playing"));
   expect(controller.getSnapshot().range).toEqual([4, 4]);
+  expect(screen.getByLabelText("当前练习声部")).toHaveTextContent("钢琴旋律 · 谱表 1 / 声部 1");
   await user.click(screen.getByRole("button", { name: "选择范围" }));
   await user.click(screen.getByRole("button", { name: "第 8 小节" }));
   await user.click(screen.getByRole("button", { name: "第 5 小节" }));
