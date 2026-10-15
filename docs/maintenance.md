@@ -10,3 +10,6 @@
 8. 每次修复更新已知问题和实际测试证据，标明未执行的检查，不能继承上一会话未经证实的验收结论。
 
 工程没有服务器状态。版本文件在构建时生成并忽略，避免构建改变源提交。依赖锁文件提交；demo.wav 可由 Python generator 完全重建。Gradle wrapper 已纳入工程，无需本机 Gradle。系统文件 URI 生命周期不跨会话持久化。
+
+
+钢琴模块：继续开发前先读 [正式任务书](piano-requirements.md)、[架构与恢复](piano-architecture.md)、[手机验收](piano-mobile-testing.md)、[交付/已知问题](piano-delivery.md)。两模块共享歌曲/反馈/CI，时间模型分别使用原曲秒数与谱面 ticks。

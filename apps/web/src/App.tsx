@@ -63,7 +63,7 @@ export function App({controller:provided,autoLoad=true,active=true,onSong,onPian
    <details className="fine-tune"><summary>片段边界微调 <span>± 0.1s</span></summary>{(['start','end'] as const).map(edge=><div className="edge" key={edge}><label>{edge==='start'?'起点':'终点'}<strong>{range?format(range[edge]):'—'}</strong></label><button disabled={disabled} aria-label={`${edge==='start'?'起点':'终点'}提前 0.1 秒`} onClick={()=>void controller.adjust(edge,-0.1)}>−0.1</button><button disabled={disabled} aria-label={`${edge==='start'?'起点':'终点'}延后 0.1 秒`} onClick={()=>void controller.adjust(edge,0.1)}>＋0.1</button></div>)}<p>微调后从新起点练习；关闭循环会在本片段结束时停止。</p></details>
    {state.error&&<p className="error" role="alert">{state.error}</p>}{state.warnings.map(w=><p className="warning" key={w}>{w}</p>)}
   </section>
-  <footer><p>{isNative()?'原生裁剪与单项重复；后台主动暂停。':'保持音高 · 网页循环可能有短暂停顿，后台主动暂停。'}</p><p>v0.1.0 · {version.sha} · {version.branch}</p><small>构建于 {version.builtAt} · 本地文件刷新后需重新导入</small></footer>
+  <footer><p>{isNative()?'原生裁剪与单项重复；后台主动暂停。':'保持音高 · 网页循环可能有短暂停顿，后台主动暂停。'}</p><p>v0.2.0 · {version.sha} · {version.branch}</p><small>构建于 {version.builtAt} · 本地文件刷新后需重新导入</small></footer>
   {feedback&&<Feedback state={feedback} onClose={closeFeedback}/>}
  </main>;
 }

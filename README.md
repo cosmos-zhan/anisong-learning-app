@@ -1,8 +1,10 @@
 # Anisong Learning App · P0
 
-一个面向 Android 手机的歌词片段练习播放器。React + TypeScript + Vite，共享前端，浏览器 AudioEngine 与 Android Kotlin / Media3 AudioEngine。
+面向 Android 手机的歌词片段练习与钢琴学谱 App。React + TypeScript + Vite，共享歌曲、版本、反馈与 CI；学唱使用音频片段，学谱使用结构化乐谱生成真实声音。
 
-**需求与验收依据：** [docs/requirements.md](docs/requirements.md)。不包含钢琴、AI 识别、语法分析或商业曲库。
+**正式验收依据：** [歌词任务书](docs/requirements.md) · [钢琴模块任务书 Piano P0 v1.0](docs/piano-requirements.md)。AI 识别、简谱、外接 MIDI 与商业曲库不在本轮范围。
+
+**钢琴手机入口：** [现有测试站](https://anisong-learning-lab.woolly-mochi-2205.chatgpt.site/#piano)（同一 ChatGPT 账号）。先点击「启用声音」，可直接练习八小节 CC0 原创谱；也可导入 `.musicxml` / `.xml` / `.mxl`。详见 [钢琴手机验收](docs/piano-mobile-testing.md)、[架构与恢复](docs/piano-architecture.md)、[交付记录](docs/piano-delivery.md)。
 
 ## 开始练习
 
@@ -22,6 +24,8 @@ npm run check
 npm run dev
 ```
 
+钢琴 PR #3 尚待手机验收时，克隆后先执行 `git switch --track origin/feature/piano-p0`；合并后直接使用 main。
+
 目标仓库已创建并授权，PR #1 已在网页与 Android CI 通过后合并 main。实际交付状态见 [docs/delivery.md](docs/delivery.md)。`npm run dev` 是云端开发用，不是长期手机预览。默认端口 4173，正式网页使用静态 `dist/`，无需后台服务。
 
 - `npm run typecheck`：TypeScript 严格类型检查。
@@ -39,6 +43,7 @@ npm run dev
 | --- | --- |
 | `apps/web/src` | React 手机界面、导入、反馈 |
 | `packages/core` | LRC 解析、范围校验、Controller、诊断报告 |
+| `packages/piano` | MusicXML/MXL、PPQ 时间线、练习控制、Web Audio 合成钢琴、本地乐谱保存 |
 | `packages/audio-web` | HTMLAudioElement 真实播放与独立边界计时 |
 | `packages/audio-native` | Capacitor JS 桥接 |
 | `apps/android` | Capacitor Android、Media3 插件、Gradle wrapper |
@@ -49,4 +54,4 @@ npm run dev
 
 阅读：[架构](docs/architecture.md) · [手机测试](docs/mobile-testing.md) · [反馈](docs/feedback.md) · [部署](docs/deployment.md) · [维护与交接](docs/maintenance.md) · [已知问题](docs/known-issues.md) · [测试证据](docs/test-results.md)。
 
-源码 MIT；自制演示音频 CC0。无需客户端密钥，不包含音频上传、录音或云账号。
+源码 MIT；自制演示音频与八小节钢琴谱 CC0；OSMD 为 BSD-3-Clause，fflate 为 MIT，见 [第三方许可](docs/piano-third-party.md)。无需客户端密钥，不包含音频上传、录音或云账号。
