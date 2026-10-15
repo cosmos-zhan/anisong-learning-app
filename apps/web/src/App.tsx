@@ -3,11 +3,11 @@ import { LoopController } from '../../../packages/core/controller';
 import { WebAudioEngine } from '../../../packages/audio-web';
 import { NativeAudioEngine,isNative,bridge } from '../../../packages/audio-native';
 import { parseLrc } from '../../../packages/core/lrc';
-import { feedbackReport,issueUrl } from '../../../packages/core/feedback';
+import { Feedback } from './components/Feedback';
 import type { PlayerState } from '../../../packages/core/types';
 import version from './version.json';
 const format=(v:number)=>`${Math.floor(v/60).toString().padStart(2,'0')}:${(v%60).toFixed(2).padStart(5,'0')}`;
-export function App({controller:provided,autoLoad=true}:{controller?:LoopController;autoLoad?:boolean}){
+export function App({controller:provided,autoLoad=true,active=true,onSong,onPiano}:{controller?:LoopController;autoLoad?:boolean;active?:boolean;onSong?:(title:string,demo:boolean)=>void;onPiano?:()=>void}){
  const [controller]=useState(()=>provided??new LoopController(isNative()?new NativeAudioEngine():new WebAudioEngine()));
  const state=useSyncExternalStore(controller.subscribe,controller.getSnapshot);
  const [title,setTitle]=useState('小小的练习曲');const [demo,setDemo]=useState(true);const [notice,setNotice]=useState('');
@@ -25,6 +25,8 @@ export function App({controller:provided,autoLoad=true}:{controller?:LoopControl
   return ()=>{++loadToken.current;document.removeEventListener('visibilitychange',hidden);if(!provided)controller.dispose();if(fileUrl.current)URL.revokeObjectURL(fileUrl.current);};
  // Controller is created once; demo is loaded once, without autoplay.
  },[]);
+ useEffect(()=>{if(!active)controller.pause();},[active,controller]);
+ useEffect(()=>{onSong?.(title,demo);},[title,demo]);
  const importAudio=async(file?:File)=>{const token=++loadToken.current;setAnchor(null);setNotice('正在读取本地音频…');let url:string|undefined;
   try {let source:string;let name:string;
    if(isNative()){const picked=await bridge.pickAudio();source=picked.source;name=picked.name;}else{if(!file)return;url=URL.createObjectURL(file);source=url;name=file.name;}
@@ -44,6 +46,7 @@ export function App({controller:provided,autoLoad=true}:{controller?:LoopControl
   <section className="song-card" aria-label="音频导入"><div className="song-top"><div className="cover" aria-hidden="true"><span>♪</span><i/><i/><i/></div><div className="song-info"><span className="eyebrow">{demo?'原创旋律 · 可直接试听':'本地音频 · 留在设备上'}</span><h1>{title}</h1><p>{state.duration>0?`${format(state.duration)} · ${isNative()?'Media3 原生音频':'浏览器真实音频'}`:'准备你的第一段练习'}</p></div></div>
    <div className="imports">{isNative()?<button onClick={()=>void importAudio()}>＋ 导入音频</button>:<label className="file-button">＋ 导入音频<input aria-label="导入音频" type="file" accept="audio/*,.mp3,.m4a,.wav" onChange={e=>{const file=e.target.files?.[0];if(file)void importAudio(file);e.target.value='';}}/></label>}
     <label className={`file-button ${state.duration?'':'disabled'}`}>＋ 导入 LRC<input aria-label="导入 LRC" type="file" accept=".lrc,.txt,text/plain" disabled={!state.duration||state.phase==='loading'} onChange={e=>{const file=e.target.files?.[0];if(file)void importLyrics(file);e.target.value='';}}/></label><button onClick={()=>void loadDemo()}>演示曲</button></div>
+   {onPiano&&<button className="song-piano-entry" onClick={onPiano}>♩ 钢琴学谱 · 关联当前歌曲</button>}
    <p className="notice" role="status">{notice||'音频与歌词只在此设备处理，不上传。'}</p>
   </section>
   {demo&&<p className="demo-note">演示是原创器乐旋律；日文句仅用于界面示例，音频没有人声。</p>}
@@ -63,17 +66,4 @@ export function App({controller:provided,autoLoad=true}:{controller?:LoopControl
   <footer><p>{isNative()?'原生裁剪与单项重复；后台主动暂停。':'保持音高 · 网页循环可能有短暂停顿，后台主动暂停。'}</p><p>v0.1.0 · {version.sha} · {version.branch}</p><small>构建于 {version.builtAt} · 本地文件刷新后需重新导入</small></footer>
   {feedback&&<Feedback state={feedback} onClose={closeFeedback}/>}
  </main>;
-}
-function Feedback({state,onClose}:{state:PlayerState;onClose:()=>void}){
- const [fields,setFields]=useState({kind:'功能 Bug',description:'',steps:'',expected:''});const [diagnostics,setDiagnostics]=useState(true);const [report,setReport]=useState('');const [copied,setCopied]=useState(false);const textArea=useRef<HTMLTextAreaElement>(null);
- useEffect(()=>{setReport(feedbackReport(fields,state,version,navigator.userAgent,diagnostics));setCopied(false);},[fields,state,diagnostics]);
- useEffect(()=>{const focus=document.activeElement as HTMLElement|null;const escape=(e:KeyboardEvent)=>{if(e.key==='Escape')onClose();};document.addEventListener('keydown',escape);textArea.current?.focus();return ()=>{document.removeEventListener('keydown',escape);focus?.focus();};},[onClose]);
- const copy=async()=>{try{await navigator.clipboard.writeText(report);setCopied(true);}catch{textArea.current?.focus();textArea.current?.select();}};
- return <div className="modal-backdrop"><section className="feedback-modal" role="dialog" aria-modal="true" aria-labelledby="feedback-title"><div className="section-title"><h2 id="feedback-title">把问题留下来</h2><button aria-label="关闭反馈" onClick={onClose}>✕</button></div><p>不会附带音频、歌词文本或文件路径。报告可编辑；GitHub 需要你确认后提交。</p>
- <label>反馈类型<select value={fields.kind} onChange={e=>setFields({...fields,kind:e.target.value})}><option>功能 Bug</option><option>交互建议</option></select></label>
- {(['description','steps','expected'] as const).map(key=><label key={key}>{key==='description'?'问题描述 / 实际行为':key==='steps'?'复现步骤':'预期行为'}<textarea aria-label={key==='description'?'问题描述':key==='steps'?'复现步骤':'预期行为'} value={fields[key]} onChange={e=>setFields({...fields,[key]:e.target.value})} maxLength={1000}/></label>)}
- <label className="check"><input type="checkbox" checked={diagnostics} onChange={e=>setDiagnostics(e.target.checked)}/>包含版本、设备和播放器设置（点击反馈时的快照）</label>
- <label>完整报告（可删除任意信息）<textarea aria-label="完整反馈报告" ref={textArea} className="report" value={report} onChange={e=>setReport(e.target.value)}/></label>
- <div className="feedback-actions"><button onClick={()=>void copy()}>{copied?'已复制 ✓':'复制完整报告'}</button><a href={issueUrl(report,fields.kind)} target="_blank" rel="noreferrer">打开 GitHub Issue ↗</a></div><small>仓库需先创建并启用 Issues。截图可在 GitHub 提交页面添加；复制失败时可长按报告全选。</small>
- </section></div>;
 }
