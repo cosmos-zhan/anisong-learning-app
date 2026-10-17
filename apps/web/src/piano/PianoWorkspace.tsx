@@ -17,7 +17,9 @@ import {
 import { pitchLabel } from "../../../../packages/piano/timeline";
 import type { Labels, Score } from "../../../../packages/piano/types";
 import { rememberSong, type Song } from "../../../../packages/core/song";
+import { isHaruhikage } from "../../../../packages/core/presets";
 import { Feedback } from "../components/Feedback";
+import { OfficialReference } from "../components/OfficialReference";
 import { Keyboard } from "./Keyboard";
 import { ScoreView } from "./ScoreView";
 import version from "../version.json";
@@ -161,7 +163,14 @@ export function PianoWorkspace({
   };
   useEffect(() => {
     const loadToken = ++token.current;
+    flush();
     controller.pause();
+    controller.clear();
+    setScore(undefined);
+    setRecent([]);
+    setAnchor(null);
+    setRangeMode(false);
+    setAck(false);
     setBusy(true);
     void (async () => {
       try {
@@ -177,6 +186,14 @@ export function PianoWorkspace({
         }
       } catch {
         /* IndexedDB denied: still provide the built-in score. */
+      }
+      if (loadToken !== token.current) return;
+      if (isHaruhikage(song)) {
+        setBusy(false);
+        setNotice(
+          "已选 CRYCHIC 版。导入这版的 MusicXML/MXL 后开始小节练习；琴键可先自由试音。",
+        );
+        return;
       }
       try {
         const response = await fetch(
@@ -332,10 +349,20 @@ export function PianoWorkspace({
     <main className="piano-workspace" aria-label="钢琴学谱">
       <div className="piano-heading">
         <div>
-          <span className="piano-eyebrow" aria-label="当前练习声部" title={`${song.title} · ${part?.name ?? ''} · 谱表 ${track?.staff ?? '—'} / 声部 ${track?.voice ?? '—'}`}>
-            {part?.name ?? 'PIANO LAB'} · 谱表 {track?.staff ?? '—'} / 声部 {track?.voice ?? '—'}
+          <span
+            className="piano-eyebrow"
+            aria-label="当前练习声部"
+            title={`${song.title} · ${part?.name ?? ""} · 谱表 ${track?.staff ?? "—"} / 声部 ${track?.voice ?? "—"}`}
+          >
+            {part
+              ? `${part.name} · 谱表 ${track?.staff} / 声部 ${track?.voice}`
+              : isHaruhikage(song)
+                ? "CRYCHIC · 待导入曲谱"
+                : "PIANO LAB"}
           </span>
-          <h1>{score?.title ?? "导入你的旋律"}</h1>
+          <h1>
+            {score?.title ?? (isHaruhikage(song) ? song.title : "导入你的旋律")}
+          </h1>
         </div>
         <div className="piano-heading-actions">
           <label className="piano-file">
@@ -351,7 +378,23 @@ export function PianoWorkspace({
               }}
             />
           </label>
-          <button onClick={() => void demo()}>示例</button>
+          <button
+            onClick={() => {
+              if (isHaruhikage(song)) {
+                location.assign("?song=demo-original#piano");
+                return;
+              }
+              void demo();
+            }}
+          >
+            原创示例
+          </button>
+          {isHaruhikage(song) && (
+            <OfficialReference
+              active={active}
+              onOpen={() => controller.pause()}
+            />
+          )}
           <button aria-expanded={details} onClick={() => setDetails(!details)}>
             谱面设置
           </button>
@@ -464,7 +507,13 @@ export function PianoWorkspace({
             </select>
           </label>
           <p>清理浏览器站点数据会删除练习记录；原始谱文件请自行保留。</p>
-          <a className="piano-download" href={`${import.meta.env.BASE_URL}demo/piano-demo.musicxml`} download="anisong-original-8-bars.musicxml">下载合法示例 MusicXML，供手机重新导入测试 ↗</a>
+          <a
+            className="piano-download"
+            href={`${import.meta.env.BASE_URL}demo/piano-demo.musicxml`}
+            download="anisong-original-8-bars.musicxml"
+          >
+            下载合法示例 MusicXML，供手机重新导入测试 ↗
+          </a>
         </section>
       )}
       {score?.needsWrittenOrder && !ack && (
@@ -500,19 +549,38 @@ export function PianoWorkspace({
           />
         ) : (
           <div className="piano-empty">
-            {busy ? "正在载入乐谱…" : "导入 MusicXML 或点击“示例”开始。"}
+            {busy ? (
+              "正在载入乐谱…"
+            ) : isHaruhikage(song) ? (
+              <>
+                <strong>春日影 · CRYCHIC</strong>
+                <span>待导入这版的 MusicXML / MXL 乐谱</span>
+                <small>
+                  先点“官方试听（片段）”听歌，或启用声音自由试琴。PDF/图片尚不支持。
+                </small>
+              </>
+            ) : (
+              "导入 MusicXML 或点击“原创示例”开始。"
+            )}
           </div>
         )}
       </section>
       <div className="bar-controls">
         <strong>
-          练习 {state.range[0] + 1}
-          {state.range[1] !== state.range[0]
-            ? `–${state.range[1] + 1}`
-            : ""}{" "}
-          小节
+          {!score ? (
+            "尚未导入乐谱"
+          ) : (
+            <>
+              练习 {state.range[0] + 1}
+              {state.range[1] !== state.range[0]
+                ? `–${state.range[1] + 1}`
+                : ""}{" "}
+              小节
+            </>
+          )}
         </strong>
         <button
+          disabled={!score}
           aria-pressed={rangeMode}
           onClick={() => {
             controller.pause();
@@ -547,6 +615,7 @@ export function PianoWorkspace({
           {(["listen", "wait", "free"] as const).map((mode) => (
             <button
               key={mode}
+              disabled={!score && mode !== "free"}
               aria-pressed={state.mode === mode}
               onClick={() => {
                 controller.mode(mode);
@@ -621,9 +690,11 @@ export function PianoWorkspace({
           低八度
         </button>
         <span>
-          {state.mode === "free"
-            ? "自由弹奏 · 无自动推进"
-            : `第 ${currentMeasure ? currentMeasure.index + 1 : state.range[1] + 1} 小节 · ${target?.pitch ? pitchLabel(target.pitch) : "休止"}${target?.pitch ? ` / ${pitchLabel(target.pitch, true)}` : ""}`}
+          {!score
+            ? "自由试音 · 待导入曲谱"
+            : state.mode === "free"
+              ? "自由弹奏 · 无自动推进"
+              : `第 ${currentMeasure ? currentMeasure.index + 1 : state.range[1] + 1} 小节 · ${target?.pitch ? pitchLabel(target.pitch) : "休止"}${target?.pitch ? ` / ${pitchLabel(target.pitch, true)}` : ""}`}
           {state.phase === "waiting" ? " · 等你触键" : ""}
         </span>
         {state.mode === "wait" &&

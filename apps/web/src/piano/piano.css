@@ -587,3 +587,13 @@
 .piano-download{display:block;color:#b2e5d4;text-decoration:underline;line-height:1.6;padding:8px 0;font-size:12px}
 
 .piano-eyebrow{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.preset-link{font-size:11px;color:#c4e8da;white-space:nowrap;padding:4px 7px;border:1px solid #4b685f;border-radius:6px}
+.piano-empty strong,.piano-empty span,.piano-empty small{display:block;margin-bottom:4px}.piano-empty strong{font-size:15px}.piano-empty small{font-size:11px;color:#52637b}
+.piano-heading-actions{max-width:100%;overflow-x:auto}
+.reference-modal{width:min(760px,100%);max-height:94dvh;overflow:auto;padding:14px;background:#1e2b42;border:1px solid #687e9c;border-radius:12px;color:#e4ecfa;box-shadow:0 14px 60px #030a1b}
+.reference-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px;font-size:13px}.reference-heading button{padding:4px 14px;min-height:32px}
+.reference-modal iframe{display:block;width:100%;min-width:200px;height:min(45dvh,400px);min-height:200px;border:0;background:#080c13}
+.reference-modal p{font-size:11px;color:#b9cce5;margin:9px 0 0;line-height:1.6}.reference-modal a{color:#b9e6d4;text-decoration:underline}
+.imports{flex-wrap:wrap}
+@media(max-height:430px) and (orientation:landscape){.piano-empty{padding:9px 14px}.piano-empty strong{font-size:13px}.piano-empty small{font-size:10px}}

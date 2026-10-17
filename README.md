@@ -4,7 +4,9 @@
 
 **正式验收依据：** [歌词任务书](docs/requirements.md) · [钢琴模块任务书 Piano P0 v1.0](docs/piano-requirements.md)。AI 识别、简谱、外接 MIDI 与商业曲库不在本轮范围。
 
-**钢琴手机入口：** [现有测试站](https://anisong-learning-lab.woolly-mochi-2205.chatgpt.site/#piano)（同一 ChatGPT 账号）。先点击「启用声音」，可直接练习八小节 CC0 原创谱；也可导入 `.musicxml` / `.xml` / `.mxl`。详见 [钢琴手机验收](docs/piano-mobile-testing.md)、[架构与恢复](docs/piano-architecture.md)、[交付记录](docs/piano-delivery.md)。
+**默认试用歌曲：** [春日影（CRYCHIC ver.）](https://anisong-learning-lab.woolly-mochi-2205.chatgpt.site/?song=haruhikage-crychic#piano)。可打开官方片段、自由试琴；按谱练习需导入自己的 MusicXML/MXL，学唱需音频和匹配 LRC。当前未内置该曲录音或曲谱。[素材状态与操作](docs/haruhikage-trial.md)。
+
+**钢琴手机入口：** [现有测试站](https://anisong-learning-lab.woolly-mochi-2205.chatgpt.site/#piano)（同一 ChatGPT 账号）。默认《春日影》待导入曲谱；点「原创示例」可直接练习八小节 CC0 谱，也可导入 `.musicxml` / `.xml` / `.mxl`。详见 [钢琴手机验收](docs/piano-mobile-testing.md)、[架构与恢复](docs/piano-architecture.md)、[交付记录](docs/piano-delivery.md)。
 
 ## 开始练习
 

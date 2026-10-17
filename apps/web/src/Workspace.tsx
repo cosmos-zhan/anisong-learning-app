@@ -2,11 +2,12 @@ import { useCallback, useState } from "react";
 import { App } from "./App";
 import { PianoWorkspace } from "./piano/PianoWorkspace";
 import {
-  currentSong,
+  initialSong,
   DEMO_SONG,
   rememberSong,
   type Song,
 } from "../../../packages/core/song";
+import { HARUHIKAGE } from "../../../packages/core/presets";
 import { scoreHash } from "../../../packages/piano/musicxml";
 export function Workspace() {
   const [module, setModule] = useState<"lyrics" | "piano">(() =>
@@ -16,13 +17,7 @@ export function Workspace() {
     lyrics: module === "lyrics",
     piano: module === "piano",
   });
-  const [song, setSong] = useState<Song>(() => {
-    try {
-      return currentSong();
-    } catch {
-      return DEMO_SONG;
-    }
-  });
+  const [song, setSong] = useState<Song>(() => initialSong(location.search));
   const navigate = (next: "lyrics" | "piano") => {
     setVisited((v) => ({ ...v, [next]: true }));
     setModule(next);
@@ -30,7 +25,11 @@ export function Workspace() {
   };
   const onSong = useCallback((title: string, demo: boolean) => {
     setSong((previous) => {
-      const id = demo ? DEMO_SONG.id : `song-${scoreHash(title)}`;
+      const id = demo
+        ? DEMO_SONG.id
+        : title === HARUHIKAGE.title
+          ? HARUHIKAGE.id
+          : `song-${scoreHash(title)}`;
       const song: Song = {
         id,
         title,
@@ -70,10 +69,14 @@ export function Workspace() {
         >
           钢琴学谱
         </button>
+        <a className="preset-link" href="?song=haruhikage-crychic#piano">
+          春日影
+        </a>
       </nav>
       {visited.lyrics && (
         <div hidden={module !== "lyrics"}>
           <App
+            initialSong={song}
             active={module === "lyrics"}
             onSong={onSong}
             onPiano={() => navigate("piano")}

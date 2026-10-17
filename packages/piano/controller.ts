@@ -79,8 +79,33 @@ export class PianoController {
         this.state.range,
       );
   }
-  private melody(part: ScorePart,track: Track) {
-    return !track.blocked.length && part.measures.some(m=>m.events.some(e=>e.staff===track.staff&&e.voice===track.voice&&e.pitch));
+  clear() {
+    this.cancel();
+    this.score = undefined;
+    this.part = undefined;
+    this.track = undefined;
+    this.steps = [];
+    this.writtenOrderAccepted = false;
+    this.update({
+      mode: "free",
+      phase: "ready",
+      range: [0, 0],
+      tick: 0,
+      step: 0,
+      rounds: 0,
+      error: "",
+      message: "",
+    });
+  }
+  private melody(part: ScorePart, track: Track) {
+    return (
+      !track.blocked.length &&
+      part.measures.some((m) =>
+        m.events.some(
+          (e) => e.staff === track.staff && e.voice === track.voice && e.pitch,
+        ),
+      )
+    );
   }
   load(
     score: Score,
@@ -92,11 +117,11 @@ export class PianoController {
     this.score = score;
     this.part =
       score.parts.find((p) => p.id === (partId ?? session?.partId)) ??
-      score.parts.find(p=>p.tracks.some(t=>this.melody(p,t))) ??
+      score.parts.find((p) => p.tracks.some((t) => this.melody(p, t))) ??
       score.parts[0];
     this.track =
       this.part.tracks.find((t) => t.id === (trackId ?? session?.trackId)) ??
-      this.part.tracks.find((t) => this.melody(this.part!,t)) ??
+      this.part.tracks.find((t) => this.melody(this.part!, t)) ??
       this.part.tracks[0];
     this.writtenOrderAccepted = false;
     const find = (id?: string) =>
@@ -145,7 +170,7 @@ export class PianoController {
     this.part = selected;
     this.track =
       selected.tracks.find((t) => t.id === trackId) ??
-      selected.tracks.find((t) => this.melody(selected,t)) ??
+      selected.tracks.find((t) => this.melody(selected, t)) ??
       selected.tracks[0];
     const range = rangeIndices(selected, ...old.range);
     this.update({

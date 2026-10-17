@@ -1,4 +1,5 @@
 /** Shared song identity; audio, lyrics and score practice retain independent timing. */
+import { HARUHIKAGE } from "./presets";
 export interface Song {
   id: string;
   title: string;
@@ -41,5 +42,25 @@ export function rememberSong(song: Song) {
 }
 export function currentSong() {
   const id = localStorage.getItem("anisong:currentSong");
-  return songs().find((s) => s.id === id) ?? DEMO_SONG;
+  return songs().find((s) => s.id === id) ?? HARUHIKAGE;
+}
+/** Explicit links choose a song; otherwise migrate only the old built-in default once. */
+export function initialSong(search: string): Song {
+  const requested = new URLSearchParams(search).get("song");
+  try {
+    const current = currentSong();
+    const first = !localStorage.getItem("anisong:defaultSong:crychic-v1");
+    const selected =
+      requested === HARUHIKAGE.id
+        ? HARUHIKAGE
+        : requested === DEMO_SONG.id
+          ? DEMO_SONG
+          : first && current.id === DEMO_SONG.id
+            ? HARUHIKAGE
+            : current;
+    localStorage.setItem("anisong:defaultSong:crychic-v1", "1");
+    return rememberSong(selected);
+  } catch {
+    return requested === DEMO_SONG.id ? DEMO_SONG : HARUHIKAGE;
+  }
 }
