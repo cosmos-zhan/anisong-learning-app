@@ -1,7 +1,7 @@
 import type { PlayerState } from './types';
 export interface Version {sha:string;branch:string;builtAt:string}
 export function feedbackReport(fields:{kind:string;description:string;steps:string;expected:string},state:PlayerState,version:Version,platform:string,includeDiagnostics:boolean){
- return diagnosticReport(fields,{version,platform,phase:state.phase,speed:state.speed,loop:state.loop,selection:state.selection?.map(i=>i+1),range:state.range,rounds:state.rounds,errors:state.logs.slice(-12)},includeDiagnostics);
+ return diagnosticReport(fields,{version,platform,phase:state.phase,speed:state.speed,loop:state.loop,selection:state.selection?.map(i=>i+1)??null,range:state.range,rounds:state.rounds,errors:state.logs.slice(-12)},includeDiagnostics);
 }
 export function diagnosticReport(fields:{kind:string;description:string;steps:string;expected:string},context:Record<string,unknown>,includeDiagnostics:boolean){
  const sections=[`## ${fields.kind}`,`### 问题描述\n${fields.description}`,`### 复现步骤\n${fields.steps}`,`### 预期行为\n${fields.expected}`,`### 实际行为\n${fields.description}`,'### 截图（可选）\n请在 GitHub 编辑器中添加截图。'];

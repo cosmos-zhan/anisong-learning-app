@@ -28,6 +28,9 @@ it('loads the configured recording, defaults to original speed, and can play wit
  expect(engine.position).toBe(123.4);
  await user.click(screen.getByRole('button',{name:'0.5×'}));
  expect(engine.speed).toBe(.5);
+ await user.click(screen.getByRole('button',{name:'反馈问题 ↗'}));
+ const report=(screen.getByRole('textbox',{name:'完整反馈报告'}) as HTMLTextAreaElement).value;
+ expect(report).toContain('"selection": null');expect(report).toContain('257.880816');expect(report).not.toContain(bundledAudio.src);
  ui.unmount();c.dispose();
 });
 it('a missing private build input remains importable and never substitutes an unrelated audio', () => {
