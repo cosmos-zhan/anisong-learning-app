@@ -37,3 +37,10 @@ it('restores a saved projection without fetching or starting audio',async()=>{
  const audio=new PianoTestAudio(),restored=new PianoController(audio),next=render(<PianoWorkspace song={HARUHIKAGE} active controller={restored} bundledScore={asset}/>);
  await screen.findByRole('button',{name:'第 2 小节'});expect(restored.track?.projection).toBe('highest');expect(audio.calls).toHaveLength(0);expect(fetch).not.toHaveBeenCalled();next.unmount();restored.dispose();
 });
+
+it('a new built-in revision replaces the old default once while preserving the old saved score',async()=>{
+ const {scoreStore,scoreKey}=await import('../packages/piano/storage');const {parseMusicXml}=await import('../packages/piano/musicxml');const old=parseMusicXml(xml.replace('Melody','Old saved fixture')),key=scoreKey(HARUHIKAGE.id,old.id);
+ await scoreStore.put({id:key,scoreId:old.id,songId:HARUHIKAGE.id,xml:old.xml,format:old.format,title:old.title,savedAt:''});localStorage.setItem(`anisong:lastScore:${HARUHIKAGE.id}`,key);localStorage.setItem(`anisong:bundledScore:${HARUHIKAGE.id}`,'old-revision');
+ const c=new PianoController(new PianoTestAudio()),ui=render(<PianoWorkspace song={HARUHIKAGE} active controller={c} bundledScore={{...asset,sha256:'new-revision'}}/>);
+ await screen.findByRole('button',{name:'第 2 小节'});expect(c.score?.xml).toBe(xml);expect(fetch).toHaveBeenCalledOnce();expect((await scoreStore.get(key))?.xml).toBe(old.xml);expect(localStorage.getItem(`anisong:bundledScore:${HARUHIKAGE.id}`)).toBe('new-revision');ui.unmount();c.dispose();
+});

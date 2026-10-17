@@ -19,7 +19,7 @@ export function App({controller:provided,autoLoad=true,active=true,onSong,onPian
  const [title,setTitle]=useState(initialSong?.title??'小小的练习曲');const [demo,setDemo]=useState(!initialSong||initialSong.id==='demo-original');const [notice,setNotice]=useState(isHaruhikage(initialSong)?bundledAudio.available?'正在载入你提供的春日影 MP3…':'此部署未包含内置音频。可导入本地 MP3 试听，再导入匹配 LRC 进行逐句循环。':'');
  const [multi,setMulti]=useState(false);const [anchor,setAnchor]=useState<number|null>(null);
  const [feedback,setFeedback]=useState<PlayerState|null>(null);const closeFeedback=useCallback(()=>setFeedback(null),[]);const fileUrl=useRef<string|null>(null);const loadToken=useRef(0);const lyricsToken=useRef(0);
- const loadPreset=async()=>{if(!bundledAudio.available)return;const token=++loadToken.current;const lyricToken=++lyricsToken.current;setAnchor(null);setNotice('正在载入你提供的春日影 MP3 和歌词…');
+ const loadPreset=async()=>{if(!bundledAudio.available)return;const token=++loadToken.current;const lyricToken=++lyricsToken.current;setAnchor(null);setNotice('正在完整缓冲春日影 MP3（约 10 MB）与歌词，完成后可按句跳转…');
   const lyricsPromise=bundledAudio.lyrics?(async()=>{const abort=new AbortController();const timeout=setTimeout(()=>abort.abort(),10000);try{
    const response=await fetch(`${import.meta.env.BASE_URL}${bundledAudio.lyrics!.src}`,{signal:abort.signal});if(!response.ok)throw new Error('LRC');return {parsed:parseLrc(await response.text())};
   }catch{return {failed:true};}finally{clearTimeout(timeout);}})():Promise.resolve(null);

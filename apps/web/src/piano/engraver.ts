@@ -21,7 +21,7 @@ export interface NoteBox {
   event: NoteEvent;
   x: number;
   y: number;
-  graphic: GraphicalNote;
+  graphic: Pick<GraphicalNote,'setColor'>;
 }
 export async function engrave(
   container: HTMLElement,
@@ -29,6 +29,7 @@ export async function engrave(
   part: ScorePart,
   track: Track,
   zoom = 0.65,
+  window?:[number,number],
 ) {
   const osmd = new OpenSheetMusicDisplay(container, {
     backend: "svg",
@@ -46,12 +47,13 @@ export async function engrave(
     newSystemFromXML: false,
   });
   osmd.Zoom = zoom;
-  await osmd.load(partXml(score, part.id));
+  await osmd.load(partXml(score, part.id,window));
   osmd.render();
   const bars: BarBox[] = [],
     notes: NoteBox[] = [],
     factor = 10 * zoom;
-  osmd.GraphicSheet.MeasureList.forEach((staffMeasures, index) => {
+  osmd.GraphicSheet.MeasureList.forEach((staffMeasures, offset) => {
+    const index=offset+(window?.[0]??0);
     const boxes = staffMeasures.filter(Boolean).map((m) => m.PositionAndShape);
     if (!boxes.length) return;
     const x =

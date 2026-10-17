@@ -9,7 +9,9 @@ const output = join('public', 'private-media');
 const available = existsSync(input);
 const lyricsInput = join('private-media', 'haruhikage-crychic.lrc');
 const lyricsAvailable = available && existsSync(lyricsInput);
-const scoreInput=join('private-media','haruhikage-crychic.musicxml');
+const mxlInput=join('private-media','haruhikage-crychic.mxl');
+const scoreIsMxl=existsSync(mxlInput);
+const scoreInput=scoreIsMxl?mxlInput:join('private-media','haruhikage-crychic.musicxml');
 const scoreAvailable=existsSync(scoreInput);
 if (!available && process.env.ANISONG_REQUIRE_BUNDLED_AUDIO === '1') {
   throw new Error('Restore private-media/haruhikage-crychic.mp3 before publishing this private Site. See docs/private-audio.md.');
@@ -42,10 +44,10 @@ if (lyricsAvailable) {
 }
 let score=null;
 if(scoreAvailable){
- const content=readFileSync(scoreInput);if(!content.length||content.length>2*1024*1024)throw new Error('Private score must be between 1 byte and 2 MB.');
- new TextDecoder('utf-8',{fatal:true}).decode(content);
- const hash=createHash('sha256').update(content).digest('hex');const name=`haruhikage-crychic-${hash.slice(0,12)}.musicxml`;
- writeFileSync(join(output,name),content);score={src:`private-media/${name}`,sha256:hash,bytes:content.length};
+ const content=readFileSync(scoreInput);if(!content.length||content.length>(scoreIsMxl?4:8)*1024*1024)throw new Error('Private score exceeds its size limit.');
+ if(!scoreIsMxl)new TextDecoder('utf-8',{fatal:true}).decode(content);
+ const hash=createHash('sha256').update(content).digest('hex');const name=`haruhikage-crychic-${hash.slice(0,12)}.${scoreIsMxl?'mxl':'musicxml'}`;
+ writeFileSync(join(output,name),content);score={src:`private-media/${name}`,sha256:hash,bytes:content.length,...(scoreIsMxl?{preferredPartId:'P2',preferredTrackId:'1:1'}:{})};
 }
 writeFileSync('apps/web/src/bundled-audio.json', JSON.stringify({
   available,

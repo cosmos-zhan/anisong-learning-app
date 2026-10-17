@@ -9,7 +9,7 @@ import {
   type Tempo,
 } from "./types";
 
-const LIMIT = 2 * 1024 * 1024;
+const LIMIT = 8 * 1024 * 1024;
 const CHORD = '含和弦，P0 仅练习单音旋律，请选择其他轨道或导出旋律。';
 const OVERLAP = '同一轨道有重叠音符，P0 不自动演奏。';
 const children = (node: Element, name: string) =>
@@ -31,7 +31,7 @@ export function scoreHash(xml: string) {
 }
 export function xmlDocument(xml: string): Document {
   if (xml.length > LIMIT)
-    throw new Error("乐谱 XML 超过 2 MB，请导出较小的旋律声部。");
+    throw new Error("乐谱 XML 超过 8 MB，请导出较小的旋律声部。");
   if (/<!ENTITY/i.test(xml)) throw new Error("不支持含自定义实体的 XML。");
   const doc = new DOMParser().parseFromString(
     xml.replace(/<!DOCTYPE[^>]*>/gi, ""),
@@ -59,7 +59,7 @@ export async function readScore(
           expanded += info.originalSize;
           count++;
           if (
-            expanded > 8 * 1024 * 1024 ||
+            expanded > 16 * 1024 * 1024 ||
             count > 256 ||
             info.originalSize > LIMIT
           )
@@ -370,21 +370,35 @@ export function parseMusicXml(
   };
 }
 
-export function partXml(score: Score, partId: string) {
-  const doc = xmlDocument(score.xml);
+const partXmlCache=new WeakMap<Score,Map<string,string>>();
+export function partXml(score: Score, partId: string, window?:[number,number]) {
+  if(!window){const cached=partXmlCache.get(score)?.get(partId);if(cached)return cached;}
+  const doc = xmlDocument(window?partXml(score,partId):score.xml);
   for (const part of Array.from(doc.documentElement.children).filter(
     (e) => e.localName === "part",
   ))
     if (part.getAttribute("id") !== partId) part.remove();
   for (const def of Array.from(doc.getElementsByTagName("score-part")))
     if (def.getAttribute("id") !== partId) def.remove();
+  if(window){
+    const part=Array.from(doc.getElementsByTagName('part')).find(p=>p.getAttribute('id')===partId);
+    if(part){
+      const measures=children(part,'measure');const start=Math.max(0,window[0]),end=Math.min(measures.length-1,window[1]);
+      const attrs=new Map<string,Element>();
+      for(const measure of measures.slice(0,start+1))for(const a of children(measure,'attributes'))for(const field of Array.from(a.children))attrs.set(`${field.localName}:${field.getAttribute('number')??''}`,field.cloneNode(true) as Element);
+      if(measures[start]&&attrs.size){for(const a of children(measures[start],'attributes'))a.remove();const a=doc.createElement('attributes');for(const field of attrs.values())a.append(field);measures[start].prepend(a);}
+      measures.forEach((m,i)=>{if(i<start||i>end)m.remove();});
+    }
+  }
   // Remote credits/images are not needed for learning, and must not fetch assets from imported XML.
   for (const node of Array.from(
     doc.querySelectorAll("credit, defaults, part-group, link, opus, image"),
   ))
     node.remove();
-  return (
+  const result=(
     '<?xml version="1.0" encoding="UTF-8"?>\n' +
     new XMLSerializer().serializeToString(doc)
   );
+  if(!window){if(!partXmlCache.has(score))partXmlCache.set(score,new Map());partXmlCache.get(score)!.set(partId,result);}
+  return result;
 }

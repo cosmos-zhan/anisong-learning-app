@@ -1,3 +1,9 @@
+# 当前内置总谱与历史素材
+
+当前默认已按用户要求换为 7 声部、140 小节 MXL，♩97；源文件、边界、渲染修复与手机复测见 [mobile-bugfixes.md](mobile-bugfixes.md)。恢复路径为忽略的 `private-media/haruhikage-crychic.mxl`，优先于旧 `.musicxml`。三份素材仍只随私有部署分发，恢复引用在私有 `.openai/private-media-sources.json`。
+
+下文是已被替换的 63 小节旧文件记录，其缺速度/113.4秒结论仅适用于旧文件。
+
 # 春日影用户曲谱试用与恢复
 
 用户提供 `haruhikage-crychic-piano-only.musicxml`，268,868 字节，SHA-256 `8314e166ec561ad8ef9066909b68dfc158b3d0a3f5a1638744042cc82b46a379`。仅随原私有 Sites 分发，不进入 GitHub 或 Sites 源码 Git。原上传不修改。

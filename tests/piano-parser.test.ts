@@ -210,9 +210,19 @@ describe("MusicXML and musical timeline", () => {
     await expect(
       readScore(
         asFile(
-          zipSync({ "huge.xml": strToU8(" ".repeat(2 * 1024 * 1024 + 1)) }),
+          zipSync({ "huge.xml": strToU8(" ".repeat(8 * 1024 * 1024 + 1)) }),
         ),
       ),
     ).rejects.toThrow("过大");
   });
+});
+
+it('opens compressed full scores above the old 2 MB expanded limit',async()=>{
+ const xml=demoXml.replace('<score-partwise','<!--'+' '.repeat(3*1024*1024)+'--><score-partwise');
+ const bytes=zipSync({'META-INF/container.xml':strToU8('<container><rootfiles><rootfile full-path="score.xml"/></rootfiles></container>'),'score.xml':strToU8(xml)});
+ const score=await readScore({name:'full.mxl',size:bytes.length,arrayBuffer:async()=>bytes.buffer as ArrayBuffer});expect(score.parts[0].measures).toHaveLength(8);
+});
+it('render windows carry active attributes and retain original written measure numbers',()=>{
+ const s=parseMusicXml(fixture(Array.from({length:12},()=>note('D'))));const doc=new DOMParser().parseFromString(partXml(s,'P1',[8,11]),'application/xml');
+ expect(doc.querySelectorAll('measure')).toHaveLength(4);expect(doc.querySelector('measure')?.getAttribute('number')).toBe('9');expect(doc.querySelector('measure attributes divisions')?.textContent).toBe('480');expect(doc.querySelector('measure attributes key fifths')?.textContent).toBe('-2');
 });

@@ -24,7 +24,7 @@ import { Keyboard } from "./Keyboard";
 import { ScoreView } from "./ScoreView";
 import version from "../version.json";
 import bundledMedia from '../bundled-audio.json';
-export interface BundledScore {src:string;sha256:string;bytes:number}
+export interface BundledScore {src:string;sha256:string;bytes:number;preferredPartId?:string;preferredTrackId?:string}
 import "./piano.css";
 
 export function PianoWorkspace({
@@ -47,6 +47,7 @@ export function PianoWorkspace({
   );
   const [score, setScore] = useState<Score>(),
     [labels, setLabels] = useState<Labels>("name");
+  const [renderStatus,setRenderStatus]=useState({backend:'loading',code:''});
   const labelRef = useRef(labels);
   labelRef.current = labels;
   const [notice, setNotice] = useState("正在恢复练习…"),
@@ -130,13 +131,13 @@ export function PianoWorkspace({
         );
     }
   };
-  const install = (next: Score, loadToken: number, restore: boolean) => {
+  const install = (next: Score, loadToken: number, restore: boolean, presetSource=false) => {
     if (loadToken !== token.current) return;
     loadedSongId.current = currentSong.current.id;
     const saved = restore
       ? readSession(scoreKey(loadedSongId.current, next.id))
       : undefined;
-    controller.load(next, undefined, undefined, saved);
+    controller.load(next, saved?undefined:presetSource?bundledScore?.preferredPartId:undefined, saved?undefined:presetSource?bundledScore?.preferredTrackId:undefined, saved);
     setLabels(saved?.labels ?? "name");
     setScore(next);
     setAck(false);
@@ -171,8 +172,10 @@ export function PianoWorkspace({
     try{
       const response=await fetch(`${import.meta.env.BASE_URL}${bundledScore.src}`);
       if(!response.ok)throw new Error('内置曲谱读取失败，可点“内置曲谱”重试或导入 MusicXML。');
-      const xml=await response.text();if(loadToken!==token.current)return;
-      install(parseMusicXml(xml),loadToken,true);
+      const next=bundledScore.src.endsWith('.mxl')?await (async()=>{const buffer=await response.arrayBuffer();return readScore({name:'preset.mxl',size:buffer.byteLength,arrayBuffer:async()=>buffer});})():parseMusicXml(await response.text());
+      if(loadToken!==token.current)return;
+      install(next,loadToken,true,true);
+      try{localStorage.setItem(`anisong:bundledScore:${currentSong.current.id}`,bundledScore.sha256);}catch{/* Playback still works without local storage. */}
     }catch(error){if(loadToken===token.current){setBusy(false);setNotice((error as Error).message);}}
   };
   const reloadBuiltIn=()=>{const loadToken=++token.current;flush();controller.pause();setBusy(true);void readBuiltIn(loadToken);};
@@ -189,7 +192,8 @@ export function PianoWorkspace({
     setBusy(true);
     void (async () => {
       try {
-        const id = localStorage.getItem(`anisong:lastScore:${song.id}`);
+        const updatedPreset=isHaruhikage(song)&&bundledScore&&localStorage.getItem(`anisong:bundledScore:${song.id}`)!==bundledScore.sha256;
+        const id = updatedPreset?null:localStorage.getItem(`anisong:lastScore:${song.id}`);
         const saved = id ? await scoreStore.get(id) : undefined;
         if (saved) {
           install(
@@ -345,6 +349,7 @@ export function PianoWorkspace({
     staff:track?.staff,
     voice:track?.voice,
     practiceTrack:track?.projection??'original',
+    renderer:renderStatus,
     bars: state.range.map((n) => n + 1),
     mode: state.mode,
     speed: state.speed,
@@ -569,6 +574,8 @@ export function PianoWorkspace({
             activeId={state.mode === "free" ? undefined : currentSegment?.id}
             labels={labels}
             onSelect={choose}
+            active={active}
+            onRenderStatus={setRenderStatus}
           />
         ) : (
           <div className="piano-empty">
