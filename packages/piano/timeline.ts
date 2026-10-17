@@ -78,7 +78,9 @@ export function buildSteps(
   const notes=track.projection==='highest'?highestNotes(sourceNotes):sourceNotes;
   const result: Step[] = [];
   let cursor = start;
-  for (const [index, note] of notes.entries()) {
+  // Chord tones have independent ties; adjacent XML order is not tie identity.
+  const ties = new Map<number, Step>();
+  for (const note of notes) {
     if (note.tick > cursor + 0.01)
       result.push({
         tick: cursor,
@@ -87,12 +89,10 @@ export function buildSteps(
         noteIds: [],
         segments: [],
       });
-    const previous = result.at(-1);
-    const prevNote = notes[index - 1];
+    const previous = note.pitch ? ties.get(note.pitch.midi) : undefined;
     if (
       previous &&
       note.tieStop &&
-      prevNote?.tieStart &&
       previous.pitch?.midi === note.pitch?.midi &&
       note.pitch &&
       Math.abs(previous.end - note.tick) < 0.01
@@ -105,8 +105,8 @@ export function buildSteps(
         end: note.tick + note.duration,
         measure: note.measure,
       });
-    } else
-      result.push({
+    } else {
+      const next: Step = {
         tick: note.tick,
         end: note.tick + note.duration,
         pitch: note.pitch,
@@ -119,7 +119,11 @@ export function buildSteps(
             measure: note.measure,
           },
         ],
-      });
+      };
+      result.push(next);
+      if (note.pitch && note.tieStart) ties.set(note.pitch.midi, next);
+    }
+    if (note.pitch && !note.tieStart) ties.delete(note.pitch.midi);
     cursor = Math.max(cursor, note.tick + note.duration);
   }
   if (cursor < end - 0.01)

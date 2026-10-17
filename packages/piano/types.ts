@@ -35,6 +35,8 @@ export interface Track {
   staff: string;
   voice: string;
   blocked: string[];
+  /** Separate from single-note judgement limits: original chords can be auditioned. */
+  listenBlocked?: string[];
   projection?: "highest";
 }
 export interface ScorePart {

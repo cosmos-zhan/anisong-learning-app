@@ -4,11 +4,11 @@
 
 **正式验收依据：** [歌词任务书](docs/requirements.md) · [钢琴模块任务书 Piano P0 v1.0](docs/piano-requirements.md)。AI 识别、简谱、外接 MIDI 与商业曲库不在本轮范围。
 
-**默认试用歌曲：** [春日影（CRYCHIC ver.）整曲试听](https://anisong-learning-lab.woolly-mochi-2205.chatgpt.site/?song=haruhikage-crychic#lyrics)。私有测试站已接入用户提供的 MP3 和 42 句 LRC，打开即可点句循环，或点“播放整曲”，无需重新导入。钢琴页已接入用户提供的 7 声部、140 小节 MXL 总谱，可看原谱并主动选择最高音单音练习，见 [试用边界](docs/private-score.md)。[素材状态与操作](docs/haruhikage-trial.md) · [私有音频构建与恢复](docs/private-audio.md)。录音、歌词和该曲谱不进入 GitHub；普通克隆/CI 不带这些私人素材，仍可本地导入。
+**默认试用歌曲：** [春日影（CRYCHIC ver.）整曲试听](https://anisong-learning-lab.woolly-mochi-2205.chatgpt.site/?song=haruhikage-crychic#lyrics)。私有测试站已接入用户提供的 MP3 和 42 句 LRC，打开即可点句循环，或点“播放整曲”，无需重新导入。钢琴页已接入用户提供的 7 声部、140 小节 MXL 总谱，可直接点小节试听原轨（含和弦），等待弹对仍使用单音练习，见 [试用边界](docs/private-score.md)。[素材状态与操作](docs/haruhikage-trial.md) · [私有音频构建与恢复](docs/private-audio.md)。录音、歌词和该曲谱不进入 GitHub；普通克隆/CI 不带这些私人素材，仍可本地导入。
 
 **手机反馈修复：** [歌词跳转与谱面兼容修复记录](docs/mobile-bugfixes.md)（完整缓冲后按句跳转；每屏8小节，精细排版失败自动显示兼容谱）。
 
-**钢琴手机入口：** [现有测试站](https://anisong-learning-lab.woolly-mochi-2205.chatgpt.site/#piano)（同一 ChatGPT 账号）。默认载入《春日影》用户曲谱；原轨含和弦，点“练习此轨最高音（单音）”后可试听/等待弹对。点「原创示例」可直接练习八小节 CC0 谱，也可导入 `.musicxml` / `.xml` / `.mxl`。详见 [钢琴手机验收](docs/piano-mobile-testing.md)、[架构与恢复](docs/piano-architecture.md)、[交付记录](docs/piano-delivery.md)。
+**钢琴手机入口：** [现有测试站](https://anisong-learning-lab.woolly-mochi-2205.chatgpt.site/#piano)（同一 ChatGPT 账号）。默认载入《春日影》用户曲谱；“自动试听”下点小节即可听当前轨道，包括和弦；“等待弹对”限单音，可明确选择最高音单音练习。点「原创示例」可直接练习八小节 CC0 谱，也可导入 `.musicxml` / `.xml` / `.mxl`。详见 [钢琴手机验收](docs/piano-mobile-testing.md)、[架构与恢复](docs/piano-architecture.md)、[交付记录](docs/piano-delivery.md)。
 
 ## 开始练习
 

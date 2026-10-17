@@ -10,8 +10,8 @@ import {
 } from "./types";
 
 const LIMIT = 8 * 1024 * 1024;
-const CHORD = '含和弦，P0 仅练习单音旋律，请选择其他轨道或导出旋律。';
-const OVERLAP = '同一轨道有重叠音符，P0 不自动演奏。';
+const CHORD = '含和弦，等待弹对仅支持单音；自动试听可演奏原轨。';
+const OVERLAP = '同一轨道有重叠音符，等待弹对仅支持单音。';
 const children = (node: Element, name: string) =>
   Array.from(node.children).filter((e) => e.localName === name);
 const child = (node: Element, name: string) => children(node, name)[0];
@@ -325,7 +325,7 @@ export function parseMusicXml(
           problems.add(OVERLAP);
         end = Math.max(end, note.tick + note.duration);
       }
-      const original={ id: trackId, staff, voice, blocked: Array.from(problems) };
+      const original={ id: trackId, staff, voice, blocked: Array.from(problems), listenBlocked: [...problems].filter(p=>p!==CHORD&&p!==OVERLAP) };
       // Offer an explicitly selected single-note exercise only when all unsupported
       // features reduce to chords and choosing their highest pitches removes overlap.
       const selected=highestNotes(notes);

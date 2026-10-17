@@ -1,5 +1,6 @@
 # 当前内置总谱与历史素材
 
+当前自动试听已支持选中原轨的普通和弦/重叠；等待弹对仍限单音。下文旧版“禁止自动演奏”仅描述历史状态，不是现行试听限制。详见 [手机修复](mobile-bugfixes.md)。
 当前默认已按用户要求换为 7 声部、140 小节 MXL，♩97；源文件、边界、渲染修复与手机复测见 [mobile-bugfixes.md](mobile-bugfixes.md)。恢复路径为忽略的 `private-media/haruhikage-crychic.mxl`，优先于旧 `.musicxml`。三份素材仍只随私有部署分发，恢复引用在私有 `.openai/private-media-sources.json`。
 
 下文是已被替换的 63 小节旧文件记录，其缺速度/113.4秒结论仅适用于旧文件。

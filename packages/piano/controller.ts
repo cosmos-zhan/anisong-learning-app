@@ -200,9 +200,17 @@ export class PianoController {
     this.rebuild();
     if (autoplay && this.state.mode !== "free") void this.play();
   }
+  get trackBlocked() {
+    if (this.state.mode === "free") return "";
+    const problems = this.state.mode === "listen"
+      ? this.track?.listenBlocked ?? this.track?.blocked
+      : this.track?.blocked;
+    return problems?.join(" ") ?? "";
+  }
   get blocked() {
+    if (this.state.mode === "free") return "";
     return (
-      this.track?.blocked.join(" ") ||
+      this.trackBlocked ||
       (this.score?.needsWrittenOrder && !this.writtenOrderAccepted
         ? "此谱有反复或跳转，请先确认按书写顺序练习。"
         : "")
@@ -267,8 +275,9 @@ export class PianoController {
       return;
     const { tempos } = this.score,
       { speed, loop } = this.state,
-      start = this.steps[0].tick,
-      end = this.steps.at(-1)!.end;
+      start = this.part!.measures[this.state.range[0]].tick,
+      lastMeasure = this.part!.measures[this.state.range[1]],
+      end = lastMeasure.tick + lastMeasure.duration;
     const full = secondsBetween(tempos, start, end, speed),
       first = secondsBetween(tempos, this.originTick, end, speed),
       elapsed = Math.max(0, this.audio.now - this.originTime);

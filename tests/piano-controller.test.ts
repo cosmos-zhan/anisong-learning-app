@@ -160,8 +160,9 @@ describe("Piano state and audio scheduling", () => {
     c.mode("wait");
     expect(audio.stopped).toBeGreaterThan(stopped);
   });
-  it("blocked chords and repeat notation do not claim playback success", async () => {
+  it("chord judgement and unconfirmed repeat notation do not claim playback success", async () => {
     const { c, audio } = setup(fixture([note() + note("E", 480, "<chord/>")]));
+    c.mode("wait");
     await c.play();
     expect(c.getSnapshot().phase).toBe("ready");
     expect(audio.calls).toHaveLength(0);
@@ -209,3 +210,37 @@ describe("Piano state and audio scheduling", () => {
 });
 
 it("defaults to a playable pitched melody when the first part has only unsupported chords",()=>{const {c}=setup(fixture([note()+note("E",480,"<chord/>")],"",`<part id="P2"><measure number="1"><attributes><divisions>480</divisions></attributes>${note("G")}</measure></part>`));expect(c.part?.id).toBe("P2");expect(c.track?.blocked).toHaveLength(0);});
+
+it('original chord selection starts every simultaneous tone, loops the whole selected bar, and preserves pitch at slower speed',async()=>{
+ const {c,audio}=setup(fixture([note('C')+note('E',480,'<chord/>')+note('G',480,'<chord/>'),note('D',1920)]));
+ c.setSpeed(0.5);c.select(0);
+ await vi.waitFor(()=>expect(c.getSnapshot().phase).toBe('playing'));
+ expect(c.track?.projection).toBeUndefined();expect(audio.calls.map(n=>n.midi)).toEqual([60,64,67]);
+ expect(audio.calls.every(n=>n.at===0.03&&n.duration===1)).toBe(true);
+ audio.now=3.9;c.pump();expect(c.getSnapshot().rounds).toBe(0);
+ audio.now=4.04;c.pump();expect(c.getSnapshot().rounds).toBe(1);
+ expect(audio.calls.slice(-3).map(n=>n.midi)).toEqual([60,64,67]);
+ expect(audio.calls.slice(-3).every(n=>Math.abs(n.at-4.04)<0.001)).toBe(true);
+ c.setLoop(false);audio.now=8.1;c.pump();expect(c.getSnapshot().phase).toBe('ended');expect(c.getSnapshot().tick).toBe(1920);
+});
+it('each chord pitch joins its own cross-bar tie; selecting only the continuation reattacks it',async()=>{
+ const {c,audio}=setup(fixture([
+  note('C',1920,'<tie type="start"/>')+note('G',1920,'<chord/><tie type="start"/>'),
+  note('C',1920,'<tie type="stop"/>')+note('G',1920,'<chord/><tie type="stop"/>'),
+ ]));
+ c.select(0,1,false);c.setLoop(false);await c.play();
+ expect(c.steps).toHaveLength(2);expect(c.steps.every(s=>s.end===3840&&s.noteIds.length===2)).toBe(true);
+ expect(audio.calls.map(n=>n.midi)).toEqual([60,67]);expect(audio.calls.every(n=>n.duration===4)).toBe(true);
+ audio.now=2.1;c.pump();expect(audio.calls).toHaveLength(2);expect(c.getSnapshot().phase).toBe('playing');
+ c.select(1);await vi.waitFor(()=>expect(audio.calls).toHaveLength(4));expect(audio.calls.slice(-2).every(n=>n.duration===2)).toBe(true);
+});
+it('non-chord overlaps play through the real bar end, never the shorter last note end',async()=>{
+ const {c,audio}=setup(fixture([note('C',1920)+'<backup><duration>1920</duration></backup>'+note('G',480)]));
+ c.setLoop(false);await c.play();expect(audio.calls.map(n=>n.midi)).toEqual([60,67]);
+ audio.now=1;c.pump();expect(c.getSnapshot().phase).toBe('playing');
+ audio.now=2.1;c.pump();expect(c.getSnapshot().phase).toBe('ended');expect(c.getSnapshot().tick).toBe(1920);
+});
+it('polyphonic listen still rejects unsupported transposition instead of claiming sound',async()=>{
+ const {c,audio}=setup(fixture([note()+note('G',480,'<chord/>')],'<transpose><chromatic>2</chromatic></transpose>'));
+ await c.play();expect(c.blocked).toContain('移调');expect(c.getSnapshot().phase).toBe('ready');expect(audio.calls).toHaveLength(0);
+});

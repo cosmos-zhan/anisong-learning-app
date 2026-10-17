@@ -16,6 +16,18 @@ globalThis.fetch=async input=>{
  if(url.origin!=='https://build-check.invalid'||!file.startsWith(dist+sep)||!existsSync(file))return new Response('Missing',{status:404});
  return new Response(readFileSync(file));
 };
+// Instrument the Web Audio boundary so a bar click must reach the real SynthPiano.
+// This checks node scheduling, not audible output or Android audio policy.
+const oscillators=[];
+const parameter=()=>({value:0,setValueAtTime(){},linearRampToValueAtTime(){},exponentialRampToValueAtTime(){},cancelScheduledValues(){},setTargetAtTime(){}});
+const gain=()=>({gain:parameter(),connect(){return this;},disconnect(){}});
+globalThis.AudioContext=class {
+ currentTime=0;state='suspended';destination={};onstatechange=null;
+ async resume(){this.state='running';}
+ async close(){this.state='closed';}
+ createGain(){return gain();}
+ createOscillator(){const node={frequency:{value:0},connect(){return gain();},disconnect(){},start(at){this.started=at;},stop(at){this.stopped=at;},onended:null};oscillators.push(node);return node;}
+};
 const errors=[];window.addEventListener('error',event=>errors.push(event.message));process.on('unhandledRejection',error=>errors.push(String(error)));
 try{
  const entry=html.match(/src="([^\"]+\.js)"/)[1];await import(pathToFileURL(resolve(dist,entry)));
@@ -29,6 +41,18 @@ try{
  if(document.querySelector('.score-message[role=status]'))throw new Error('Production renderer did not finish.');
  const bars=document.querySelectorAll('.measure-hit').length;
  if(bars<1||bars>8||errors.length)throw new Error('Production window/DOM failed: '+errors.join(';'));
- console.log(JSON.stringify({check:'production-esm-dom',svg:true,visibleBars:bars,page:document.querySelector('.score-page-controls span')?.textContent,compatible:!!document.querySelector('.score-compatibility'),method:'jsdom with deterministic text metrics; not physical browser/audio verification'}));
+ const bar=document.querySelector('button[aria-label="第 1 小节"]');
+ if(!bar)throw new Error('Production first bar button missing.');
+ bar.dispatchEvent(new window.MouseEvent('click',{bubbles:true}));
+ const audioDeadline=Date.now()+2000;
+ while(Date.now()<audioDeadline&&!oscillators.some(o=>Number.isFinite(o.started)))await new Promise(r=>setTimeout(r,20));
+ if(!oscillators.some(o=>Number.isFinite(o.started)))throw new Error('Production bar selection never reached Web Audio: '+document.querySelector('.piano-status')?.textContent);
+ const transport=document.querySelector('.piano-play');
+ if(transport.disabled||transport.textContent!=='暂停')throw new Error('Production audition did not enter playing state.');
+ transport.dispatchEvent(new window.MouseEvent('click',{bubbles:true}));
+ await new Promise(r=>setTimeout(r,20));
+ if(document.querySelector('.piano-play').textContent!=='播放')throw new Error('Production pause failed.');
+ if(errors.length)throw new Error('Production playback DOM failed: '+errors.join(';'));
+ console.log(JSON.stringify({check:'production-esm-dom',svg:true,visibleBars:bars,page:document.querySelector('.score-page-controls span')?.textContent,compatible:!!document.querySelector('.score-compatibility'),barClickScheduledOscillators:oscillators.length,pause:true,method:'jsdom, deterministic text metrics and instrumented Web Audio nodes; not physical browser/audio verification'}));
  dom.window.close();process.exit(0);
 }catch(error){console.error(error.message);dom.window.close();process.exit(1);}

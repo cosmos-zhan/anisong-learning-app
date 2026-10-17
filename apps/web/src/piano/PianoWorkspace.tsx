@@ -304,7 +304,11 @@ export function PianoWorkspace({
   };
   const choose = (i: number) => {
     if (busy) return;
-    setNotice("");
+    setNotice(controller.getSnapshot().mode === "free"
+      ? "自由弹奏只选范围；点击“自动试听”再点小节可听谱。"
+      : controller.getSnapshot().mode === "wait"
+        ? "等待弹对：请按高亮琴键；此模式不会自动演奏。"
+        : "");
     if (!rangeMode) {
       controller.select(i);
       return;
@@ -359,6 +363,7 @@ export function PianoWorkspace({
     sound: state.sound,
     writtenOrder: ack,
     hasError: !!state.error,
+    playbackBlocked: !!controller.blocked,
   });
   const currentSegment =
     target?.segments.find((s) => state.tick >= s.tick && state.tick < s.end) ??
@@ -484,7 +489,7 @@ export function PianoWorkspace({
                     <option key={t.id} value={t.id}>
                       谱表 {t.staff} · 声部 {t.voice}
                       {t.projection==='highest'?'（最高音单音简化）':''}
-                      {t.blocked.length ? "（仅看谱）" : ""}
+                      {(t.listenBlocked ?? t.blocked).length ? "（仅看谱）" : t.blocked.length ? "（可试听；等待需单音）" : ""}
                     </option>
                   ))}
                 </select>
@@ -555,12 +560,13 @@ export function PianoWorkspace({
           含反复/跳转；我确认按书写顺序练习（不展开反复）
         </label>
       )}
-      {track?.blocked.length ? (
+      {controller.trackBlocked ? (
         <div className="piano-blocked" role="alert">
-          {track.blocked[0]}{" "}
+          {controller.trackBlocked}{" "}
           {highestTrack&&<button onClick={()=>{controller.selectPart(part!.id,highestTrack.id);setAnchor(null);}}>练习此轨最高音（单音）</button>}
           <button onClick={() => setDetails(true)}>更换轨道</button>{" "}
           原谱仍可查看，自由弹琴可用。
+          {state.mode === "wait" && !(track?.listenBlocked ?? track?.blocked)?.length && <button onClick={() => controller.mode("listen")}>切换自动试听原轨</button>}
         </div>
       ) : null}
       {track?.projection==='highest'&&<div className="piano-adaptation">单音简化：只演奏每组和弦的最高音，谱面保留原谱。<button onClick={()=>{const original=part!.tracks.find(t=>!t.projection&&t.staff===track.staff&&t.voice===track.voice);if(original)controller.selectPart(part!.id,original.id);}}>返回原轨</button></div>}

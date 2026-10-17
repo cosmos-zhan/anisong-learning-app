@@ -10,10 +10,12 @@ it('offers highest-note projection separately, retaining every original chord no
  expect(projection.blocked).toEqual([]);const steps=buildSteps(s,p,projection,[0,0]);
  expect(steps.map(s=>s.pitch?.midi??null)).toEqual([67,null,62,null]);expect(steps[0].noteIds).toEqual([p.measures[0].events[2].id]);
 });
-it('never silently switches a blocked original chord track to simplified playback',async()=>{
+it('auditions every original chord tone without silently switching to highest-note practice',async()=>{
  const s=parseMusicXml(chord()),audio=new PianoTestAudio(),c=new PianoController(audio);c.load(s);
- expect(c.track?.projection).toBeUndefined();expect(c.blocked).toContain('和弦');await c.play();expect(audio.calls).toHaveLength(0);
- const t=s.parts[0].tracks.find(t=>t.projection)!;c.selectPart(s.parts[0].id,t.id);await c.play();expect(audio.calls[0].midi).toBe(67);c.dispose();
+ expect(c.track?.projection).toBeUndefined();expect(c.blocked).toBe('');await c.play();expect(audio.calls.map(n=>n.midi)).toEqual([60,64,67]);
+ c.mode('wait');expect(c.blocked).toContain('和弦');const before=audio.calls.length;await c.play();expect(audio.calls).toHaveLength(before);
+ c.mode('listen');
+ const t=s.parts[0].tracks.find(t=>t.projection)!;c.selectPart(s.parts[0].id,t.id);await c.play();expect(audio.calls.at(-1)?.midi).toBe(67);c.dispose();
 });
 it('waiting on a selected highest-note exercise advances only after the real target key',async()=>{
  const s=parseMusicXml(chord()),audio=new PianoTestAudio(),c=new PianoController(audio),p=s.parts[0],t=p.tracks.find(t=>t.projection)!;
