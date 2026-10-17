@@ -555,6 +555,7 @@ export function PianoWorkspace({
               <>
                 <strong>春日影 · CRYCHIC</strong>
                 <span>待导入这版的 MusicXML / MXL 乐谱</span>
+                <a className="piano-download" href="?song=haruhikage-crychic#lyrics">去学唱页试听完整歌曲 ↗</a>
                 <small>
                   先点“官方试听（片段）”听歌，或启用声音自由试琴。PDF/图片尚不支持。
                 </small>

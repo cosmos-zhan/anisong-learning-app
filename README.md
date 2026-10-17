@@ -4,13 +4,13 @@
 
 **正式验收依据：** [歌词任务书](docs/requirements.md) · [钢琴模块任务书 Piano P0 v1.0](docs/piano-requirements.md)。AI 识别、简谱、外接 MIDI 与商业曲库不在本轮范围。
 
-**默认试用歌曲：** [春日影（CRYCHIC ver.）](https://anisong-learning-lab.woolly-mochi-2205.chatgpt.site/?song=haruhikage-crychic#piano)。可打开官方片段、自由试琴；按谱练习需导入自己的 MusicXML/MXL，学唱需音频和匹配 LRC。当前未内置该曲录音或曲谱。[素材状态与操作](docs/haruhikage-trial.md)。
+**默认试用歌曲：** [春日影（CRYCHIC ver.）整曲试听](https://anisong-learning-lab.woolly-mochi-2205.chatgpt.site/?song=haruhikage-crychic#lyrics)。私有测试站已接入用户提供的 MP3，打开后点“播放整曲”，无需重新导入。逐句循环仍需匹配 LRC，钢琴跟谱仍需 MusicXML/MXL。[素材状态与操作](docs/haruhikage-trial.md) · [私有音频构建与恢复](docs/private-audio.md)。录音不进入 GitHub；普通克隆/CI 不带该音频，仍可本地导入。
 
 **钢琴手机入口：** [现有测试站](https://anisong-learning-lab.woolly-mochi-2205.chatgpt.site/#piano)（同一 ChatGPT 账号）。默认《春日影》待导入曲谱；点「原创示例」可直接练习八小节 CC0 谱，也可导入 `.musicxml` / `.xml` / `.mxl`。详见 [钢琴手机验收](docs/piano-mobile-testing.md)、[架构与恢复](docs/piano-architecture.md)、[交付记录](docs/piano-delivery.md)。
 
 ## 开始练习
 
-打开部署后的网页，点「播放」试听原创演示旋律；点歌词立即播放并循环该句。「多句连续」依次点起始与结束句，可反向选择。导入自己的音频后，继续导入对应的 `.lrc` 文件。音频、原始歌词和本地路径不会上传。
+私有测试站默认点「播放整曲」试听春日影；点「原创演示」可切换 CC0 功能示例。导入音频后，即使没有 LRC 也可试听整曲；导入对应 `.lrc` 后，点歌词立即播放并循环该句。「多句连续」依次点起始与结束句，可反向选择。页面内本地导入的音频、歌词与路径不会上传；内置 MP3 是用户在 Work 上传后明确要求加入私有预览的文件。
 
 演示为 35.5 秒原创器乐，LRC 标记与音乐乐句边界匹配。第 2 行日文只是任务书中的界面示例，音频没有演唱这句文字；不可把演示当成已完成日文歌词对齐验证。第 2 乐句 16.3–21.1 秒，0.75× 理论耗时 6.4 秒。真实歌曲的歌词对齐由用户本地导入匹配的 LRC 验证。
 

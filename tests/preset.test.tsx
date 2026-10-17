@@ -152,7 +152,7 @@ it("lyrics preset does not silently auto-load the original audio under the CRYCH
   const engine = new TestEngine(),
     load = vi.spyOn(engine, "load"),
     c = new LoopController(engine),
-    ui = render(<App initialSong={HARUHIKAGE} controller={c} />);
+    ui = render(<App initialSong={HARUHIKAGE} controller={c} bundledAudio={{available:false,src:'',sha256:'',bytes:0}} />);
   expect(screen.getByRole("heading", { name: HARUHIKAGE.title })).toBeVisible();
   expect(load).not.toHaveBeenCalled();
   expect(fetch).not.toHaveBeenCalled();

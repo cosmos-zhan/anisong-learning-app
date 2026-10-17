@@ -31,6 +31,13 @@ export class LoopController {
   await this.engine.seek(range.start);if(token!==this.operation)return;
   if(autoplay)await this.play();
  }catch(e){if(token===this.operation)this.fail((e as Error).message);}}
+ async selectTrack(autoplay=false){if(this.state.duration<=0||this.state.phase==='loading')return;const token=++this.operation;this.engine.pause();try{
+  const range={start:0,end:this.state.duration};
+  this.patch({selection:null,range,position:0,rounds:0,phase:'paused',error:null});
+  await this.engine.setRange(range,this.state.loop);if(token!==this.operation)return;
+  await this.engine.seek(0);if(token!==this.operation)return;
+  if(autoplay)await this.play();
+ }catch(e){if(token===this.operation)this.fail((e as Error).message);}}
  async play(){if(!this.state.range||this.state.phase==='loading')return;const token=++this.operation;
   try{if(this.state.phase==='ended')await this.engine.seek(this.state.range.start);
    if(token!==this.operation)return;await this.engine.play();if(token===this.operation)this.patch({phase:'playing',error:null});
