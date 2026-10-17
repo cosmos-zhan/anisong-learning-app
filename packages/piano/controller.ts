@@ -117,11 +117,11 @@ export class PianoController {
     this.score = score;
     this.part =
       score.parts.find((p) => p.id === (partId ?? session?.partId)) ??
-      score.parts.find((p) => p.tracks.some((t) => this.melody(p, t))) ??
+      score.parts.find((p) => p.tracks.some((t) => !t.projection&&this.melody(p, t))) ??
       score.parts[0];
     this.track =
       this.part.tracks.find((t) => t.id === (trackId ?? session?.trackId)) ??
-      this.part.tracks.find((t) => this.melody(this.part!, t)) ??
+      this.part.tracks.find((t) => !t.projection&&this.melody(this.part!, t)) ??
       this.part.tracks[0];
     this.writtenOrderAccepted = false;
     const find = (id?: string) =>
@@ -170,7 +170,7 @@ export class PianoController {
     this.part = selected;
     this.track =
       selected.tracks.find((t) => t.id === trackId) ??
-      selected.tracks.find((t) => this.melody(selected, t)) ??
+      selected.tracks.find((t) => !t.projection&&this.melody(selected, t)) ??
       selected.tracks[0];
     const range = rangeIndices(selected, ...old.range);
     this.update({

@@ -23,6 +23,7 @@ import { LoopController } from "../packages/core/controller";
 import { PianoController } from "../packages/piano/controller";
 import { PianoTestAudio, demoXml } from "./piano-fixtures";
 import { TestEngine } from "./helpers";
+vi.mock('../apps/web/src/bundled-audio.json',()=>({default:{available:false,src:'',sha256:'',bytes:0,lyrics:null,score:null}}));
 vi.mock("../apps/web/src/piano/ScoreView", () => ({
   ScoreView: () => <div>Imported fixture score</div>,
 }));

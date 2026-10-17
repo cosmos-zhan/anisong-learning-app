@@ -35,6 +35,7 @@ export interface Track {
   staff: string;
   voice: string;
   blocked: string[];
+  projection?: "highest";
 }
 export interface ScorePart {
   id: string;

@@ -6,6 +6,7 @@ import {
   type Tempo,
   type Track,
 } from "./types";
+import {highestNotes} from './projection';
 
 export function rangeIndices(
   part: ScorePart,
@@ -69,11 +70,12 @@ export function buildSteps(
   const [a, b] = rangeIndices(part, ...range);
   const start = part.measures[a].tick;
   const end = part.measures[b].tick + part.measures[b].duration;
-  const notes = part.measures
+  const sourceNotes = part.measures
     .slice(a, b + 1)
     .flatMap((m) => m.events)
     .filter((e) => e.staff === track.staff && e.voice === track.voice)
     .sort((x, y) => x.tick - y.tick);
+  const notes=track.projection==='highest'?highestNotes(sourceNotes):sourceNotes;
   const result: Step[] = [];
   let cursor = start;
   for (const [index, note] of notes.entries()) {

@@ -1,4 +1,5 @@
 import { strFromU8, unzipSync } from "fflate";
+import {highestNotes} from './projection';
 import {
   PPQ,
   type Measure,
@@ -9,6 +10,8 @@ import {
 } from "./types";
 
 const LIMIT = 2 * 1024 * 1024;
+const CHORD = '含和弦，P0 仅练习单音旋律，请选择其他轨道或导出旋律。';
+const OVERLAP = '同一轨道有重叠音符，P0 不自动演奏。';
 const children = (node: Element, name: string) =>
   Array.from(node.children).filter((e) => e.localName === name);
 const child = (node: Element, name: string) => children(node, name)[0];
@@ -252,7 +255,7 @@ export function parseMusicXml(
         if (chord)
           problem(
             trackId,
-            "含和弦，P0 仅练习单音旋律，请选择其他轨道或导出旋律。",
+            CHORD,
           );
         if (transpose !== 0)
           problem(trackId, "含移调乐器，请先导出实音谱后练习。");
@@ -319,11 +322,16 @@ export function parseMusicXml(
       let end = -1;
       for (const note of notes) {
         if (note.tick < end - 0.01)
-          problems.add("同一轨道有重叠音符，P0 不自动演奏。");
+          problems.add(OVERLAP);
         end = Math.max(end, note.tick + note.duration);
       }
-      return { id: trackId, staff, voice, blocked: Array.from(problems) };
-    });
+      const original={ id: trackId, staff, voice, blocked: Array.from(problems) };
+      // Offer an explicitly selected single-note exercise only when all unsupported
+      // features reduce to chords and choosing their highest pitches removes overlap.
+      const selected=highestNotes(notes);
+      const canProject=problems.has(CHORD)&&[...problems].every(p=>p===CHORD||p===OVERLAP)&&selected.every((n,i)=>i===0||n.tick>=selected[i-1].tick+selected[i-1].duration-0.01);
+      return canProject?[original,{id:`${trackId}:highest`,staff,voice,blocked:[],projection:'highest' as const}]:[original];
+    }).flat();
     if (measures.length && tracks.length)
       parts.push({ id, name, measures, tracks });
     if (!tempos.length) tempos.push(...localTempos);
