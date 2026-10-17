@@ -7,8 +7,13 @@ import { join } from 'node:path';
 const input = join('private-media', 'haruhikage-crychic.mp3');
 const output = join('public', 'private-media');
 const available = existsSync(input);
+const lyricsInput = join('private-media', 'haruhikage-crychic.lrc');
+const lyricsAvailable = available && existsSync(lyricsInput);
 if (!available && process.env.ANISONG_REQUIRE_BUNDLED_AUDIO === '1') {
   throw new Error('Restore private-media/haruhikage-crychic.mp3 before publishing this private Site. See docs/private-audio.md.');
+}
+if (!lyricsAvailable && process.env.ANISONG_REQUIRE_BUNDLED_LYRICS === '1') {
+  throw new Error('Restore private MP3 and private-media/haruhikage-crychic.lrc before publishing. See docs/private-audio.md.');
 }
 const audio = available ? readFileSync(input) : undefined;
 if (audio && (audio.length < 1024 || audio.length > 30 * 1024 * 1024)) {
@@ -21,9 +26,20 @@ if (audio) {
   mkdirSync(output, { recursive: true });
   writeFileSync(join(output, filename), audio);
 }
+let lyrics = null;
+if (lyricsAvailable) {
+  const content = readFileSync(lyricsInput);
+  if (!content.length || content.length > 128 * 1024) throw new Error('Private LRC must be between 1 byte and 128 KB.');
+  new TextDecoder('utf-8', { fatal: true }).decode(content);
+  const hash = createHash('sha256').update(content).digest('hex');
+  const name = `haruhikage-crychic-${hash.slice(0, 12)}.lrc`;
+  writeFileSync(join(output, name), content);
+  lyrics = { src: `private-media/${name}`, sha256: hash, bytes: content.length };
+}
 writeFileSync('apps/web/src/bundled-audio.json', JSON.stringify({
   available,
   src: available ? `private-media/${filename}` : '',
   sha256,
   bytes: audio?.length ?? 0,
+  lyrics,
 }, null, 2) + '\n');

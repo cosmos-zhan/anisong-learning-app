@@ -10,7 +10,7 @@ import type {Song} from '../../../packages/core/song';
 import {HARUHIKAGE,isHaruhikage} from '../../../packages/core/presets';
 import {OfficialReference} from './components/OfficialReference';
 import bundledAudioConfig from './bundled-audio.json';
-export interface BundledAudio {available:boolean;src:string;sha256:string;bytes:number}
+export interface BundledAudio {available:boolean;src:string;sha256:string;bytes:number;lyrics?:{src:string;sha256:string;bytes:number}|null}
 const format=(v:number)=>`${Math.floor(v/60).toString().padStart(2,'0')}:${(v%60).toFixed(2).padStart(5,'0')}`;
 export function App({controller:provided,autoLoad=true,active=true,onSong,onPiano,initialSong,bundledAudio=bundledAudioConfig}:{controller?:LoopController;autoLoad?:boolean;active?:boolean;onSong?:(title:string,demo:boolean)=>void;onPiano?:()=>void;initialSong?:Song;bundledAudio?:BundledAudio}){
  const [controller]=useState(()=>provided??new LoopController(isNative()?new NativeAudioEngine():new WebAudioEngine()));
@@ -18,15 +18,22 @@ export function App({controller:provided,autoLoad=true,active=true,onSong,onPian
  const [preset,setPreset]=useState(()=>isHaruhikage(initialSong));
  const [title,setTitle]=useState(initialSong?.title??'小小的练习曲');const [demo,setDemo]=useState(!initialSong||initialSong.id==='demo-original');const [notice,setNotice]=useState(isHaruhikage(initialSong)?bundledAudio.available?'正在载入你提供的春日影 MP3…':'此部署未包含内置音频。可导入本地 MP3 试听，再导入匹配 LRC 进行逐句循环。':'');
  const [multi,setMulti]=useState(false);const [anchor,setAnchor]=useState<number|null>(null);
- const [feedback,setFeedback]=useState<PlayerState|null>(null);const closeFeedback=useCallback(()=>setFeedback(null),[]);const fileUrl=useRef<string|null>(null);const loadToken=useRef(0);
- const loadPreset=async()=>{if(!bundledAudio.available)return;const token=++loadToken.current;setAnchor(null);setNotice('正在载入你提供的春日影 MP3…');
+ const [feedback,setFeedback]=useState<PlayerState|null>(null);const closeFeedback=useCallback(()=>setFeedback(null),[]);const fileUrl=useRef<string|null>(null);const loadToken=useRef(0);const lyricsToken=useRef(0);
+ const loadPreset=async()=>{if(!bundledAudio.available)return;const token=++loadToken.current;const lyricToken=++lyricsToken.current;setAnchor(null);setNotice('正在载入你提供的春日影 MP3 和歌词…');
+  const lyricsPromise=bundledAudio.lyrics?(async()=>{const abort=new AbortController();const timeout=setTimeout(()=>abort.abort(),10000);try{
+   const response=await fetch(`${import.meta.env.BASE_URL}${bundledAudio.lyrics!.src}`,{signal:abort.signal});if(!response.ok)throw new Error('LRC');return {parsed:parseLrc(await response.text())};
+  }catch{return {failed:true};}finally{clearTimeout(timeout);}})():Promise.resolve(null);
   const source=isNative()?`file:///android_asset/public/${bundledAudio.src}`:`${import.meta.env.BASE_URL}${bundledAudio.src}`;
   const loaded=await controller.load(source);if(token!==loadToken.current)return;
   if(!loaded){setNotice('内置 MP3 载入失败。可重新载入，或导入本地音频；不会替换成其他歌曲。');return;}
-  await controller.setSpeed(1);if(token!==loadToken.current)return;await controller.selectTrack();if(token!==loadToken.current)return;
-  if(fileUrl.current){URL.revokeObjectURL(fileUrl.current);fileUrl.current=null;}setPreset(true);setTitle(HARUHIKAGE.title);setDemo(false);setNotice('已内置你提供的 MP3，点播放即可整曲试听，无需重新导入。匹配 LRC 导入后可逐句循环。');
+  await controller.setSpeed(1);if(token!==loadToken.current)return;
+  if(fileUrl.current){URL.revokeObjectURL(fileUrl.current);fileUrl.current=null;}setPreset(true);setTitle(HARUHIKAGE.title);setDemo(false);
+  const result=await lyricsPromise;if(token!==loadToken.current||lyricToken!==lyricsToken.current)return;
+  const hasLyrics=!!result?.parsed&&controller.setLyrics(result.parsed.lines,result.parsed.warnings);
+  await controller.selectTrack();if(token!==loadToken.current||lyricToken!==lyricsToken.current)return;
+  setNotice(hasLyrics?`已内置 MP3 与 ${controller.getSnapshot().lines.length} 句歌词。点任一句循环，或点播放整曲，无需重新导入。`:bundledAudio.lyrics?'MP3 已就绪，但内置歌词载入失败。可整曲试听，点“内置春日影”重试或导入本地 LRC。':'已内置你提供的 MP3，点播放即可整曲试听，无需重新导入。匹配 LRC 导入后可逐句循环。');
  };
- const loadDemo=async()=>{const token=++loadToken.current;controller.pause();setAnchor(null);setNotice('正在载入原创演示旋律…');
+ const loadDemo=async()=>{const token=++loadToken.current;++lyricsToken.current;controller.pause();setAnchor(null);setNotice('正在载入原创演示旋律…');
   try{const response=await fetch(`${import.meta.env.BASE_URL}demo/demo.lrc`);if(!response.ok)throw new Error('无法读取演示歌词。');const parsed=parseLrc(await response.text());if(token!==loadToken.current)return;
    const source=isNative()?'file:///android_asset/public/demo/demo.wav':`${import.meta.env.BASE_URL}demo/demo.wav`;
    const loaded=await controller.load(source);if(!loaded||token!==loadToken.current)return;
@@ -35,12 +42,12 @@ export function App({controller:provided,autoLoad=true,active=true,onSong,onPian
   }catch{if(token===loadToken.current)setNotice('演示载入失败，请重试，或导入本地音频与 LRC。');}};
  useEffect(()=>{if(autoLoad){if(isHaruhikage(initialSong))void loadPreset();else void loadDemo();}const hidden=()=>{if(document.hidden&&controller.getSnapshot().phase==='playing'){controller.pause();setNotice('离开页面后已暂停，返回时点播放继续。');}};
   document.addEventListener('visibilitychange',hidden);
-  return ()=>{++loadToken.current;document.removeEventListener('visibilitychange',hidden);if(!provided)controller.dispose();if(fileUrl.current)URL.revokeObjectURL(fileUrl.current);};
+  return ()=>{++loadToken.current;++lyricsToken.current;document.removeEventListener('visibilitychange',hidden);if(!provided)controller.dispose();if(fileUrl.current)URL.revokeObjectURL(fileUrl.current);};
  // Controller and initial song are created once; loading never autoplays.
  },[]);
  useEffect(()=>{if(!active)controller.pause();},[active,controller]);
  useEffect(()=>{onSong?.(title,demo);},[title,demo]);
- const importAudio=async(file?:File)=>{const token=++loadToken.current;setAnchor(null);setNotice('正在读取本地音频…');let url:string|undefined;
+ const importAudio=async(file?:File)=>{const token=++loadToken.current;++lyricsToken.current;setAnchor(null);setNotice('正在读取本地音频…');let url:string|undefined;
   try {let source:string;let name:string;
    if(isNative()){const picked=await bridge.pickAudio();source=picked.source;name=picked.name;}else{if(!file)return;url=URL.createObjectURL(file);source=url;name=file.name;}
    if(token!==loadToken.current){if(url)URL.revokeObjectURL(url);return;}
@@ -48,9 +55,9 @@ export function App({controller:provided,autoLoad=true,active=true,onSong,onPian
    await controller.selectTrack();if(token!==loadToken.current){if(url)URL.revokeObjectURL(url);return;}
    if(fileUrl.current)URL.revokeObjectURL(fileUrl.current);fileUrl.current=url??null;setTitle(preset?HARUHIKAGE.title:name);setDemo(false);setNotice('音频已载入，点播放可整曲试听。导入对应 LRC 后可逐句循环。');
   }catch{if(url)URL.revokeObjectURL(url);if(token===loadToken.current)setNotice('音频选择已取消或读取失败，请重试。');}};
- const importLyrics=async(file:File)=>{const token=loadToken.current;try{const parsed=parseLrc(await file.text());if(token!==loadToken.current)return;
-  setAnchor(null);if(controller.setLyrics(parsed.lines,parsed.warnings)){await controller.select(0,0,false);setNotice('歌词已载入。点击一句立即播放。');}
- }catch(e){setNotice((e as Error).message);}};
+ const importLyrics=async(file:File)=>{const token=loadToken.current;const lyricToken=++lyricsToken.current;try{const parsed=parseLrc(await file.text());if(token!==loadToken.current||lyricToken!==lyricsToken.current)return;
+  setAnchor(null);if(controller.setLyrics(parsed.lines,parsed.warnings)){await controller.select(0,0,false);if(token===loadToken.current&&lyricToken===lyricsToken.current)setNotice('歌词已载入。点击一句立即播放。');}
+ }catch(e){if(token===loadToken.current&&lyricToken===lyricsToken.current)setNotice((e as Error).message);}};
  const select=(i:number)=>{if(!multi){void controller.select(i);return;}if(anchor===null){controller.pause();setAnchor(i);}else{void controller.select(anchor,i);setAnchor(null);}};
  const chooseMode=(value:boolean)=>{setMulti(value);setAnchor(null);};
  const range=state.range;const playing=state.phase==='playing';const selection=state.selection;const disabled=!range||state.phase==='loading';
