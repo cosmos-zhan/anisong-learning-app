@@ -32,3 +32,8 @@ describe('反馈隐私',()=>{
  it('包含准确快照但没有歌词、音频名或源地址',async()=>{const {controller}=await player();await controller.select(1);const report=feedbackReport({kind:'Bug',description:'test',steps:'tap',expected:'loop'},controller.getSnapshot(),{sha:'abcdef',branch:'feature/test',builtAt:'now'},'Android',true);expect(report).toContain('abcdef');expect(report).toContain('16.3');expect(report).not.toContain('いつまでも');expect(issueUrl(report,'Bug')).toContain('issues/new');controller.dispose();});
  it('用户可以完全移除诊断',async()=>{const {controller}=await player();const report=feedbackReport({kind:'Bug',description:'test',steps:'tap',expected:'loop'},controller.getSnapshot(),{sha:'SECRET_SHA',branch:'x',builtAt:'now'},'UA',false);expect(report).not.toContain('SECRET_SHA');controller.dispose();});
 });
+it('a late selection cannot restart playback after a genuine engine error',async()=>{
+ const {controller,engine}=await player();let finish!:()=>void;engine.seek=()=>new Promise<void>(r=>{finish=r;});
+ const pending=controller.select(1);await Promise.resolve();engine.emit({type:'error',code:'DECODE'});finish();await pending;
+ expect(controller.getSnapshot().phase).toBe('error');expect(controller.getSnapshot().error).toContain('解码');expect(engine.playing).toBe(false);controller.dispose();
+});

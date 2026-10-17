@@ -47,3 +47,8 @@ C：Capacitor/Media3源码与GitHub自动debug APK、原生单元测试和真实
 3. 后续Work默认克隆main，修复走feature/fix分支及PR，查看CI后继续迭代。
 
 首次本地APK仍可用：源码d2d656fb3308、8,584,234字节、v2签名验证通过；SHA256为32af2eb83846af7c2ccc638e9a6adc247d356381f6055411c187698b86a6c416。它与本节GitHub构建产物为两次不同的debug构建，签名可能不同。
+
+
+## 钢琴增量
+
+后续钢琴开发统一记录在 [piano-delivery.md](piano-delivery.md)，以 [PR #3](https://github.com/cosmos-zhan/anisong-learning-app/pull/3) 为变更入口。原 APK 与原验收结果不可冒充新增钢琴模块验收。
