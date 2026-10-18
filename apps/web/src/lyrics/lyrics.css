@@ -40,6 +40,7 @@
 .lyrics-focus .lyrics-song-heading {
   min-width: 0;
   flex: 1;
+  text-align: left;
 }
 .lyrics-focus .lyrics-song-heading h1 {
   font-size: 20px;
@@ -166,6 +167,10 @@
 .lyrics-focus .lyric.selected {
   background: #294b3c;
   color: #dcebe0;
+  border-color: transparent;
+}
+.lyrics-focus .lyric.selected .line-number {
+  color: #a4b5aa;
 }
 .lyrics-focus .lyric.anchor {
   background: #233e33;
@@ -336,8 +341,13 @@
   height: min(537px, 88dvh);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 8px;
+  padding-top: 12px;
   overflow: auto;
+}
+.app-sheet.lyrics-sheet::before {
+  width: 54px;
+  margin: 0 auto;
 }
 .lyrics-sheet .sheet-title {
   margin: 0;
@@ -353,9 +363,9 @@
   flex-direction: column;
   gap: 8px;
   flex: 1;
-  padding-top: 12px;
+  padding-top: 4px;
 }
-.lyrics-sheet .speed-options button {
+.app-sheet.lyrics-sheet .speed-options button {
   display: flex;
   justify-content: space-between;
   align-items: center;
