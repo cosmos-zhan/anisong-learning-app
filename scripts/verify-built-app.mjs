@@ -70,6 +70,24 @@ try{
  click(document.querySelector('.range-button'));await until(()=>document.querySelector('.measure-grid'));history.back();await until(()=>!document.querySelector('[role=dialog]'));
  if(location.hash!=='#piano'||!document.querySelector('.piano-practice'))throw new Error('Panel Back changed the practice route.');
  if(document.querySelector('.bottom-nav'))throw new Error('Practice unexpectedly includes bottom navigation.');
+ // Parameter entries must have distinct content in the emitted application.
+ const option=(group,title)=>Array.from(document.querySelectorAll(`[aria-label="${group}"] button`)).find(b=>b.querySelector('strong')?.textContent===title);
+ click(document.querySelector('.mode-pill'));await until(()=>document.querySelector('[aria-label="钢琴练习方式"]'));
+ if(document.querySelector('[role=dialog] select')||document.querySelectorAll('[aria-label="钢琴练习方式"] button').length!==3)throw new Error('Mode panel mixed unrelated settings.');
+ click(option('钢琴练习方式','自由弹奏'));await until(()=>document.querySelector('.mode-pill')?.textContent==='自由弹奏');
+ if(!document.querySelector('.piano-play').disabled)throw new Error('Free practice left auto playback enabled.');
+ click(document.querySelector('[aria-label="关闭练习方式"]'));await until(()=>!document.querySelector('[role=dialog]'));
+ click(buttonText('音名辅助'));await until(()=>document.querySelector('[aria-label="钢琴音符辅助"]'));
+ click(option('钢琴音符辅助','固定唱名'));await until(()=>document.querySelector('.piano-key.white span')?.textContent==='Do');
+ click(document.querySelector('[aria-label="关闭音符辅助"]'));await until(()=>!document.querySelector('[role=dialog]'));
+ click(document.querySelector('[aria-label="钢琴声部与轨道"]'));await until(()=>document.querySelector('.track-options'));
+ if(document.querySelectorAll('[role=dialog] select').length!==2||document.querySelector('[role=dialog] .speed-options'))throw new Error('Track panel is not dedicated.');
+ click(document.querySelector('[aria-label="关闭声部与轨道"]'));await until(()=>!document.querySelector('[role=dialog]'));
+ click(document.querySelector('.mode-pill'));await until(()=>document.querySelector('[aria-label="钢琴练习方式"]'));
+ click(option('钢琴练习方式','自动试听'));await until(()=>document.querySelector('.mode-pill')?.textContent==='自动试听');
+ click(document.querySelector('[aria-label="关闭练习方式"]'));await until(()=>!document.querySelector('[role=dialog]'));
+ if(!document.querySelector('.range-button')?.textContent.includes('5–8'))throw new Error('Mode or label change lost the range.');
+
  click(document.querySelector('[aria-label="更多钢琴操作"]'));await until(()=>buttonText('反馈 ↗'));
  click(buttonText('反馈 ↗'));await until(()=>document.querySelector('.report')?.value.includes('"piano"'));
  const report=document.querySelector('.report').value;
@@ -82,6 +100,6 @@ try{
  click(document.querySelector('.bottom-nav [aria-label="曲库"]'));await until(()=>document.querySelector('.library-list'));
  if(!document.querySelector('.song-row'))throw new Error('Production song library missing.');
 
- console.log(JSON.stringify({check:'production-esm-dom',svg:true,visibleBars:bars,page:document.querySelector('.score-page-controls span')?.textContent,compatible:!!document.querySelector('.score-compatibility'),barClickScheduledOscillators:oscillators.length,pause:true,feedbackSnapshot:true,practiceExit:true,homeAndLibrary:true,rangeGrid:true,dedicatedSpeed:true,panelBack:true,method:'jsdom, deterministic text metrics and instrumented Web Audio nodes; not physical browser/audio verification'}));
+ console.log(JSON.stringify({check:'production-esm-dom',svg:true,visibleBars:bars,page:document.querySelector('.score-page-controls span')?.textContent,compatible:!!document.querySelector('.score-compatibility'),barClickScheduledOscillators:oscillators.length,pause:true,feedbackSnapshot:true,practiceExit:true,homeAndLibrary:true,rangeGrid:true,dedicatedSpeed:true,panelBack:true,dedicatedMode:true,dedicatedTracks:true,dedicatedLabels:true,method:'jsdom, deterministic text metrics and instrumented Web Audio nodes; not physical browser/audio verification'}));
  dom.window.close();process.exit(0);
 }catch(error){console.error(error.message);dom.window.close();process.exit(1);}

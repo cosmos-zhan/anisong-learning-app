@@ -63,3 +63,5 @@ npm run dev
 阅读：[架构](docs/architecture.md) · [手机测试](docs/mobile-testing.md) · [反馈](docs/feedback.md) · [部署](docs/deployment.md) · [维护与交接](docs/maintenance.md) · [已知问题](docs/known-issues.md) · [测试证据](docs/test-results.md)。
 
 源码 MIT；自制演示音频与八小节钢琴谱 CC0；OSMD 为 BSD-3-Clause，fflate 为 MIT，见 [第三方许可](docs/piano-third-party.md)。无需客户端密钥，不包含音频上传、录音或云账号。
+
+钢琴 UI R1 第二批（准备摘要、模式 / 声部 / 标记独立面板、和弦冲突流程）见 [ui-r1-piano-batch2.md](docs/ui-r1-piano-batch2.md)。

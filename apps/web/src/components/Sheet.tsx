@@ -39,6 +39,9 @@ export function Sheet({
     afterClose?.();
   }, []);
   useEffect(() => {
+    ref.current?.focus();
+  }, [title]);
+  useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
     const entry = {
       id: crypto.randomUUID(),
