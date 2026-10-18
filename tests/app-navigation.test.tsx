@@ -93,7 +93,7 @@ it("lyrics focus jumps through real controller, sheets pause, exit saves and vie
   expect(engine.playing).toBe(false);
   await user.click(screen.getByRole("button", { name: "0.5×" }));
   expect(engine.speed).toBe(0.5);
-  await user.click(screen.getByRole("button", { name: "关闭播放速度" }));
+  await user.click(screen.getByRole("button", { name: "关闭练习速度" }));
   await user.click(screen.getByRole("button", { name: "返回歌曲" }));
   expect(exit).toHaveBeenCalled();
   expect(practiceRecords()[0]).toMatchObject({

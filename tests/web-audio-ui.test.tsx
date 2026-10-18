@@ -12,7 +12,7 @@ class AsyncMedia extends EventTarget{
 }
 it('clicking a lyric through UI waits for actual media seek and cancels a superseded click',async()=>{
  const media=new AsyncMedia(),c=new LoopController(new WebAudioEngine(media as unknown as HTMLAudioElement));const ready=c.load('blob:fixture');media.dispatchEvent(new Event('loadedmetadata'));await ready;c.setLyrics(lyrics);
- const ui=render(<App controller={c} autoLoad={false}/>);fireEvent.click(screen.getByRole('button',{name:'第 2 句 いつまでも覚えていたい'}));
+ const ui=render(<App controller={c} autoLoad={false} view="practice"/>);fireEvent.click(screen.getByRole('button',{name:'第 2 句 いつまでも覚えていたい'}));
  await waitFor(()=>expect(media.target).toBe(16.3));expect(media.plays).toBe(0);act(()=>media.finish());await waitFor(()=>expect(media.plays).toBe(1));expect(media.currentTime).toBe(16.3);
  fireEvent.click(screen.getByRole('button',{name:'第 3 句 three'}));fireEvent.click(screen.getByRole('button',{name:'第 4 句 four'}));
  await waitFor(()=>expect(media.target).toBe(25.9));act(()=>media.finish());await waitFor(()=>expect(c.getSnapshot().phase).toBe('playing'));expect(media.currentTime).toBe(25.9);expect(c.getSnapshot().error).toBeNull();ui.unmount();c.dispose();

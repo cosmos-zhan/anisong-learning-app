@@ -605,162 +605,6 @@ small {
   white-space: nowrap;
   text-overflow: ellipsis;
 }
-.lyrics-app.view-practice {
-  max-width: 720px;
-  margin: auto;
-  padding: 16px max(18px, env(safe-area-inset-right))
-    max(14px, env(safe-area-inset-bottom), var(--safe-area-inset-bottom, 0px))
-    max(18px, env(safe-area-inset-left));
-  padding-top: max(
-    10px,
-    env(safe-area-inset-top),
-    var(--safe-area-inset-top, 0px)
-  );
-  height: 100dvh;
-  display: flex;
-  flex-direction: column;
-  background: #142923;
-  color: #fffdf7;
-}
-.lyrics-app.view-practice .practice-card {
-  background: transparent;
-  border: 0;
-  padding: 12px 0 0;
-  box-shadow: none;
-  margin: 0;
-  min-height: 140px;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-.lyrics-app.view-practice .section-title {
-  font-size: 11px;
-}
-.lyrics-app.view-practice .section-title h2 {
-  font-size: 15px;
-  color: #e2eadf;
-  margin: 0;
-}
-.lyrics-app.view-practice .section-title > span {
-  background: #284438;
-  color: #dcebe0;
-}
-.lyrics-app.view-practice .mode {
-  background: #20392e;
-  margin-top: 10px;
-  flex-shrink: 0;
-}
-.lyrics-app .mode button {
-  color: #a4b5aa;
-  min-height: 44px;
-}
-.lyrics-app .mode button.active {
-  background: #3f6651;
-  color: #fffdf7;
-}
-.lyrics-app.view-practice .selection-help {
-  font-size: 10px;
-  min-height: 32px;
-  color: #a4b5aa;
-  flex-shrink: 0;
-}
-.lyrics-app.view-practice .lyrics {
-  max-height: none;
-  min-height: 0;
-  flex: 1;
-  scroll-padding: 20px;
-}
-.lyrics-app.view-practice .lyric {
-  color: #acbdb0;
-  border-radius: 13px;
-  min-height: 68px;
-  margin: 5px 0;
-  padding: 12px 13px;
-}
-.lyrics-app.view-practice .lyric.selected {
-  color: #fffdf7;
-  background: #2d503f;
-  border-color: #557962;
-}
-.lyrics-app.view-practice .lyric.anchor {
-  background: #203f31;
-  border-color: #dea477;
-}
-.lyrics-app.view-practice .lyric-text {
-  font-size: 16px;
-}
-.lyrics-app.view-practice .lyric small,
-.lyrics-app.view-practice .line-number {
-  color: #8ca491;
-}
-.lyrics-app.view-practice .line-mark {
-  color: #dea477;
-}
-.lyrics-app.view-practice .controls {
-  background: transparent;
-  box-shadow: none;
-  border: 0;
-  margin: 0;
-  padding: 14px 0 0;
-  flex-shrink: 0;
-}
-.lyrics-app .tag {
-  color: #b6d2bc;
-}
-.lyrics-app .range-summary,
-.lyrics-app .time-labels {
-  color: #a4b5aa;
-}
-.lyrics-app .progress {
-  accent-color: #d4e8ce;
-}
-.lyrics-app.view-practice .transport {
-  margin: 9px 0;
-  gap: 24px;
-}
-.lyrics-app .transport .play-button {
-  background: #dcebe0;
-  color: #203c34;
-  border-radius: 40px;
-  width: 110px;
-  box-shadow: none;
-  min-height: 52px;
-}
-.lyrics-app .transport > button {
-  color: #dcebe0;
-}
-.lyrics-app.view-practice .play-options {
-  gap: 12px;
-  justify-content: center;
-}
-.lyrics-app.view-practice .play-options > button {
-  border: 1px solid #45604e;
-  font-size: 12px;
-  padding: 8px 20px;
-  min-width: 120px;
-  color: #c9ddcd;
-}
-.lyrics-app.view-practice .play-options > button.active {
-  background: #294736;
-}
-.lyrics-app .trim-entry {
-  display: block;
-  width: 100%;
-  text-align: center;
-  font-size: 10px;
-  color: #a4b5aa;
-  padding: 5px;
-  min-height: 36px;
-}
-.focus-notice {
-  font-size: 9px;
-  color: #8ca491;
-  line-height: 1.4;
-  margin: 4px 0 0;
-  max-height: 26px;
-  overflow: auto;
-  flex-shrink: 0;
-}
 .lyrics-app.view-materials,
 .lyrics-app.view-preview {
   width: 100%;
@@ -1320,36 +1164,6 @@ small {
     max-height: 100%;
     border-radius: 20px 0 0 20px;
   }
-  .lyrics-app.view-practice {
-    max-width: 1100px;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 290px;
-    grid-template-rows: 48px minmax(0, 1fr) 22px;
-    gap: 0 24px;
-  }
-  .lyrics-app.view-practice .focus-header {
-    grid-column: 1/-1;
-  }
-  .lyrics-app.view-practice .practice-card {
-    grid-column: 1;
-    grid-row: 2;
-  }
-  .lyrics-app.view-practice .controls {
-    grid-column: 2;
-    grid-row: 2;
-    align-self: center;
-  }
-  .lyrics-app.view-practice .focus-notice {
-    grid-column: 1/-1;
-    grid-row: 3;
-  }
-  .lyrics-app.view-practice .transport {
-    margin: 15px 0;
-  }
-  .lyrics-app.view-practice .play-options > button {
-    min-width: 100px;
-    padding: 8px 10px;
-  }
 }
 @media (orientation: portrait) {
   .piano-practice {
@@ -1415,9 +1229,6 @@ small {
   .continue-card {
     padding: 18px;
   }
-  .lyrics-app.view-practice .lyric-text {
-    font-size: 14px;
-  }
 }
 @media (prefers-reduced-motion: reduce) {
   * {
@@ -1442,16 +1253,8 @@ small {
 .app-shell .shell-header {
   margin-bottom: 0;
 }
-.lyrics-app.view-practice .practice-card > .text-button {
-  display: none;
-}
 .app-shell .view-preview .song-card .song-top {
   display: none;
-}
-
-.lyrics-app.view-practice .lyric[aria-current="true"] {
-  border-left: 3px solid #dea477;
-  color: #fffdf7;
 }
 .browse h1 {
   color: #203c34;

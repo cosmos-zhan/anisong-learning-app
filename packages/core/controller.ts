@@ -1,5 +1,5 @@
-import type { AudioEngine,PlayerState,LyricLine } from './types';
-import { rangeFor,adjustRange } from './range';
+import type { AudioEngine,PlayerState,LyricLine,Range } from './types';
+import { rangeFor,adjustRange,assertRange } from './range';
 import { validateLyrics } from './lrc';
 const messages:Record<string,string>={PLAY_BLOCKED:'浏览器阻止了播放，请再点一次播放。',DECODE:'无法解码音频，请尝试 MP3、M4A 或 WAV。',LOAD:'音频读取失败，请重新选择文件。',SEEK:'音频未能跳到所选位置，请重新载入后重试。',NATIVE:'原生播放器发生错误，请重新载入音频。'};
 export class LoopController {
@@ -46,6 +46,18 @@ export class LoopController {
  async setSpeed(speed:number){if(![0.5,0.75,1].includes(speed))return;try{await this.engine.setSpeed(speed);this.patch({speed});}catch{this.fail('NATIVE');}}
  async setLoop(loop:boolean){try{if(this.state.range)await this.engine.setRange(this.state.range,loop);this.patch({loop});}catch{this.fail('NATIVE');}}
  async seek(position:number){const range=this.state.range;if(!range)return;const token=++this.operation;try{const p=Math.max(range.start,Math.min(range.end-0.001,position));await this.engine.seek(p);if(token===this.operation)this.patch({position:this.engine.getPosition(),phase:this.state.phase==='ended'?'paused':this.state.phase});}catch{if(token===this.operation)this.fail('SEEK');}}
+ async applyRange(next:Range):Promise<boolean>{
+  if(!this.state.range||this.state.phase==='loading')return false;
+  let token=this.operation;
+  try{
+   const range=assertRange({...next},this.state.duration);
+   token=++this.operation;this.engine.pause();
+   this.patch({range,phase:'paused',position:range.start,rounds:0,error:null});
+   await this.engine.setRange(range,this.state.loop);if(token!==this.operation)return false;
+   await this.engine.seek(range.start);if(token!==this.operation)return false;
+   return true;
+  }catch(error){if(token===this.operation)this.fail((error as Error).message);return false;}
+ }
  async adjust(edge:'start'|'end',delta:number){if(!this.state.range)return;try{const range=adjustRange(this.state.range,edge,delta,this.state.duration);const wasPlaying=this.state.phase==='playing';const token=++this.operation;this.engine.pause();this.patch({range,phase:'paused',position:range.start,error:null});await this.engine.setRange(range,this.state.loop);if(token!==this.operation)return;await this.engine.seek(range.start);if(token!==this.operation)return;if(wasPlaying)await this.play();}catch(e){this.patch({error:(e as Error).message});}}
  dispose(){++this.operation;++this.loadOperation;this.unsubscribe();this.engine.dispose();this.listeners.clear();}
 }

@@ -20,6 +20,8 @@ import type { Song } from "../../../packages/core/song";
 import { HARUHIKAGE, isHaruhikage } from "../../../packages/core/presets";
 import { OfficialReference } from "./components/OfficialReference";
 import { Sheet } from "./components/Sheet";
+import { LyricsPractice } from "./lyrics/LyricsPractice";
+import { TrimRange } from "./lyrics/TrimRange";
 import {
   materialStore,
   saveMaterialSummary,
@@ -377,6 +379,9 @@ export function App({
     if (!active) controller.pause();
   }, [active, controller]);
   useEffect(() => {
+    setSheet(null);
+  }, [view, active, songId]);
+  useEffect(() => {
     onSong?.(title, demo);
   }, [title, demo]);
   const importAudio = async (file?: File) => {
@@ -515,6 +520,7 @@ export function App({
     }
   };
   const chooseMode = (value: boolean) => {
+    if (value !== multi) controller.pause();
     setMulti(value);
     setAnchor(null);
   };
@@ -535,6 +541,7 @@ export function App({
     void controller.select(i);
   };
   const openSheet = (next: "speed" | "trim" | "more") => {
+    setAnchor(null);
     controller.pause();
     flushRef.current();
     setSheet(next);
@@ -571,25 +578,34 @@ export function App({
   return (
     <main className={`app lyrics-app view-${view}`}>
       {view === "practice" && (
-        <div className="focus-header">
-          <button
-            aria-label="返回歌曲"
-            onClick={() => {
-              controller.pause();
-              flushRef.current();
-              onExit?.();
-            }}
-          >
-            ←
-          </button>
-          <div>
-            <strong>{title}</strong>
-            <small>{preset ? "CRYCHIC · " : ""}歌词学唱</small>
-          </div>
-          <button aria-label="更多学唱操作" onClick={() => openSheet("more")}>
-            •••
-          </button>
-        </div>
+        <LyricsPractice
+          state={state}
+          title={preset ? "春日影" : title}
+          subtitle={preset ? "CRYCHIC ver. · 歌词学唱" : "歌词学唱"}
+          multi={multi}
+          anchor={anchor}
+          notice={notice}
+          onSelect={select}
+          onMode={chooseMode}
+          onCancel={() => setAnchor(null)}
+          onSeek={(position) => {
+            void controller.seek(position);
+          }}
+          onMove={move}
+          onPlay={() => {
+            if (playing) controller.pause();
+            else void controller.play();
+          }}
+          onLoop={() => {
+            void controller.setLoop(!state.loop);
+          }}
+          onSheet={openSheet}
+          onExit={() => {
+            controller.pause();
+            flushRef.current();
+            onExit?.();
+          }}
+        />
       )}
       {view === "legacy" && (
         <>
@@ -724,7 +740,7 @@ export function App({
           演示是原创器乐旋律；日文句仅用于界面示例，音频没有人声。
         </p>
       )}
-      {(view === "practice" || view === "legacy") && (
+      {view === "legacy" && (
         <section className="practice-card" aria-labelledby="practice-title">
           <div className="section-title">
             <h2 id="practice-title">选择练习片段</h2>
@@ -821,7 +837,7 @@ export function App({
           </div>
         </section>
       )}
-      {view !== "materials" && (
+      {view !== "materials" && view !== "practice" && (
         <section className="controls" aria-label="播放器">
           <div className="range-summary">
             <span className="tag">
@@ -950,11 +966,6 @@ export function App({
           ))}
         </section>
       )}
-      {view === "practice" && notice && (
-        <p className="focus-notice" role="status">
-          {notice}
-        </p>
-      )}
       {view === "legacy" && (
         <footer>
           <p>
@@ -970,11 +981,20 @@ export function App({
       )}
       {sheet && (
         <Sheet
+          className={
+            view === "practice"
+              ? `lyrics-sheet ${sheet === "trim" ? "lyrics-trim-sheet" : ""}`
+              : ""
+          }
           title={
             sheet === "speed"
-              ? "播放速度"
+              ? view === "practice"
+                ? "练习速度"
+                : "播放速度"
               : sheet === "trim"
-                ? "片段边界"
+                ? view === "practice"
+                  ? "微调片段"
+                  : "片段边界"
                 : "更多学唱操作"
           }
           onClose={() => setSheet(null)}
@@ -982,19 +1002,50 @@ export function App({
           {(dismiss) => (
             <>
               {sheet === "speed" ? (
-                <div className="sheet-options">
+                <div
+                  className="sheet-options speed-options"
+                  role="group"
+                  aria-label="播放速度"
+                >
                   {[0.5, 0.75, 1].map((n) => (
                     <button
                       key={n}
                       aria-pressed={state.speed === n}
                       onClick={() => void controller.setSpeed(n)}
                     >
-                      {n}× {n === state.speed ? "✓" : ""}
+                      <span>{n}×</span>
+                      <span aria-hidden="true">
+                        {n === state.speed ? "✓" : ""}
+                      </span>
                     </button>
                   ))}
+                  <p className="helper">只改变节奏，不改变音高。</p>
                 </div>
               ) : sheet === "trim" ? (
-                edges
+                view === "practice" && range ? (
+                  <TrimRange
+                    range={range}
+                    duration={state.duration}
+                    selection={
+                      selection
+                        ? `歌词第 ${selection[0] + 1}${selection[1] === selection[0] ? "" : `–${selection[1] + 1}`} 句`
+                        : "整曲试听"
+                    }
+                    onApply={async (draft) => {
+                      const ok = await controller.applyRange(draft);
+                      if (ok) {
+                        flushRef.current();
+                        return null;
+                      }
+                      return (
+                        controller.getSnapshot().error ?? "应用未完成，请重试。"
+                      );
+                    }}
+                    onClose={() => dismiss()}
+                  />
+                ) : (
+                  edges
+                )
               ) : (
                 <div className="sheet-options">
                   <button
