@@ -23,7 +23,16 @@ import { LoopController } from "../packages/core/controller";
 import { PianoController } from "../packages/piano/controller";
 import { PianoTestAudio, demoXml } from "./piano-fixtures";
 import { TestEngine } from "./helpers";
-vi.mock('../apps/web/src/bundled-audio.json',()=>({default:{available:false,src:'',sha256:'',bytes:0,lyrics:null,score:null}}));
+vi.mock("../apps/web/src/bundled-audio.json", () => ({
+  default: {
+    available: false,
+    src: "",
+    sha256: "",
+    bytes: 0,
+    lyrics: null,
+    score: null,
+  },
+}));
 vi.mock("../apps/web/src/piano/ScoreView", () => ({
   ScoreView: () => <div>Imported fixture score</div>,
 }));
@@ -153,7 +162,13 @@ it("lyrics preset does not silently auto-load the original audio under the CRYCH
   const engine = new TestEngine(),
     load = vi.spyOn(engine, "load"),
     c = new LoopController(engine),
-    ui = render(<App initialSong={HARUHIKAGE} controller={c} bundledAudio={{available:false,src:'',sha256:'',bytes:0}} />);
+    ui = render(
+      <App
+        initialSong={HARUHIKAGE}
+        controller={c}
+        bundledAudio={{ available: false, src: "", sha256: "", bytes: 0 }}
+      />,
+    );
   expect(screen.getByRole("heading", { name: HARUHIKAGE.title })).toBeVisible();
   expect(load).not.toHaveBeenCalled();
   expect(fetch).not.toHaveBeenCalled();
@@ -167,7 +182,7 @@ it("the shared workspace CRYCHIC deep link selects the same song without loading
   await waitFor(() =>
     expect(screen.getByRole("status")).toHaveTextContent("已选 CRYCHIC 版"),
   );
-  expect(screen.getByRole("heading", { name: HARUHIKAGE.title })).toBeVisible();
+  expect(screen.getByRole("heading", { name: "春日影" })).toBeVisible();
   expect(localStorage.getItem("anisong:currentSong")).toBe(HARUHIKAGE.id);
   expect(fetch).not.toHaveBeenCalled();
   ui.unmount();

@@ -10,6 +10,8 @@
 
 **钢琴手机入口：** [现有测试站](https://anisong-learning-lab.woolly-mochi-2205.chatgpt.site/#piano)（同一 ChatGPT 账号）。默认载入《春日影》用户曲谱；“自动试听”下点小节即可听当前轨道，包括和弦；“等待弹对”限单音，可明确选择最高音单音练习。从曲库选择「小小的练习曲」可练习八小节 CC0 谱，也可导入 `.musicxml` / `.xml` / `.mxl`。详见 [钢琴手机验收](docs/piano-mobile-testing.md)、[架构与恢复](docs/piano-architecture.md)、[交付记录](docs/piano-delivery.md)。
 
+**界面 R1 第一批（0.3.1）：** 钢琴控制带、小节网格、独立速度抽屉及返回层级已调整，见 [第一批变更与手机验收](docs/ui-r1-piano-batch1.md)。
+
 **界面 R1（0.3.0）已接入：** 练习 / 曲库 / 设置主导航、统一歌曲详情与资料关联、独立学唱 / 钢琴练习页、横屏抽屉和本机练习恢复。见 [新版页面、架构与手机验收](docs/ui-r1.md)。
 
 ## 开始练习

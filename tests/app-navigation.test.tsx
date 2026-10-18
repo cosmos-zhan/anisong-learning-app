@@ -126,13 +126,10 @@ it("piano preparation selects settings without sounding; focus bar click plays; 
   await waitFor(() => expect(c.score).toBeDefined());
   expect(audio.calls).toHaveLength(0);
   await user.click(screen.getByRole("button", { name: /练习范围/ }));
-  fireEvent.change(screen.getByRole("spinbutton", { name: "起始小节" }), {
-    target: { value: "8" },
-  });
-  fireEvent.change(screen.getByRole("spinbutton", { name: "结束小节" }), {
-    target: { value: "5" },
-  });
-  await user.click(screen.getByRole("button", { name: "应用范围" }));
+  await user.click(screen.getByRole("button", { name: "选择第 8 小节" }));
+  await user.click(screen.getByRole("button", { name: "选择第 5 小节" }));
+  await user.click(screen.getByRole("button", { name: "确认范围" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   expect(c.getSnapshot().range).toEqual([4, 7]);
   expect(audio.calls).toHaveLength(0);
   ui.rerender(
@@ -151,7 +148,7 @@ it("piano preparation selects settings without sounding; focus bar click plays; 
   await user.click(screen.getByRole("button", { name: "退出钢琴练习" }));
   expect(c.getSnapshot().phase).toBe("paused");
   await user.click(screen.getByRole("button", { name: "暂停并返回" }));
-  expect(exit).toHaveBeenCalled();
+  await waitFor(() => expect(exit).toHaveBeenCalled());
   expect(practiceRecords()[0]).toMatchObject({
     module: "piano",
     range: [4, 4],
@@ -203,21 +200,21 @@ it("bottom navigation disappears in practice and feedback returns to paused cont
   const user = userEvent.setup();
   history.replaceState(null, "", "?song=haruhikage-crychic#piano");
   const ui = render(<Workspace />);
-  await screen.findByRole("heading", { name: "春日影（CRYCHIC ver.）" });
+  await screen.findByRole("heading", { name: "春日影" });
   expect(screen.queryByRole("navigation", { name: "主导航" })).toBeNull();
   await user.click(screen.getByRole("button", { name: "更多钢琴操作" }));
   await user.click(screen.getByRole("button", { name: "反馈 ↗" }));
-  expect(
-    (
-      screen.getByRole("textbox", {
-        name: "完整反馈报告",
-      }) as HTMLTextAreaElement
-    ).value,
-  ).toContain('"piano"');
+  await waitFor(() =>
+    expect(
+      (
+        screen.getByRole("textbox", {
+          name: "完整反馈报告",
+        }) as HTMLTextAreaElement
+      ).value,
+    ).toContain('"piano"'),
+  );
   await user.click(screen.getByRole("button", { name: "关闭反馈" }));
-  expect(
-    screen.getByRole("heading", { name: "春日影（CRYCHIC ver.）" }),
-  ).toBeVisible();
+  expect(screen.getByRole("heading", { name: "春日影" })).toBeVisible();
   ui.unmount();
 });
 it("practice records are actual per-song module records; invalid storage and defaults recover safely", () => {

@@ -25,6 +25,8 @@ import { Feedback } from "../components/Feedback";
 import { OfficialReference } from "../components/OfficialReference";
 import { Keyboard } from "./Keyboard";
 import { ScoreView } from "./ScoreView";
+import { MeasurePicker } from "./MeasurePicker";
+import { Icon } from "../components/Icon";
 import { Sheet } from "../components/Sheet";
 import {
   preferences,
@@ -66,10 +68,8 @@ export function PianoWorkspace({
   bundledScore?: BundledScore | null;
 }) {
   const [sheet, setSheet] = useState<
-    "settings" | "range" | "more" | "leave" | null
+    "settings" | "speed" | "range" | "more" | "leave" | null
   >(null);
-  const [rangeStart, setRangeStart] = useState(1),
-    [rangeEnd, setRangeEnd] = useState(1);
   const viewRef = useRef(view);
   viewRef.current = view;
   const changedRef = useRef(onChanged);
@@ -516,12 +516,29 @@ export function PianoWorkspace({
     (m) => state.tick >= m.tick && state.tick < m.tick + m.duration,
   );
   const running = state.phase === "playing" || state.phase === "waiting";
-  const openSheet = (next: "settings" | "range" | "more" | "leave") => {
+  const openSheet = (
+    next: "settings" | "speed" | "range" | "more" | "leave",
+  ) => {
     controller.pause();
     flush();
-    setRangeStart(state.range[0] + 1);
-    setRangeEnd(state.range[1] + 1);
     setSheet(next);
+  };
+  useEffect(() => {
+    setSheet(null);
+  }, [view, active, song.id]);
+  const modeTitle =
+    state.mode === "listen"
+      ? "自动试听"
+      : state.mode === "wait"
+        ? "等待弹对"
+        : "自由弹奏";
+  const shortTitle = isHaruhikage(song) ? "春日影" : song.title;
+  const rangeTitle = `第 ${state.range[0] + 1}${state.range[1] === state.range[0] ? "" : `–${state.range[1] + 1}`} 小节`;
+  const restWaiting =
+    state.mode === "wait" && state.phase === "waiting" && !target?.pitch;
+  const shiftOctave = (delta: number) => {
+    controller.pause();
+    setKeyboardStart((n) => Math.max(0, Math.min(108, n + delta)));
   };
   const modes = (
     <div className="mode-choices" role="group" aria-label="钢琴练习模式">
@@ -693,7 +710,7 @@ export function PianoWorkspace({
   if (view !== "legacy")
     return (
       <main
-        className={`piano-workspace piano-redesign piano-${view}`}
+        className={`piano-workspace piano-redesign piano-${view} ${restWaiting ? "has-rest" : ""}`}
         aria-label="钢琴学谱"
       >
         {view === "materials" ? (
@@ -790,46 +807,48 @@ export function PianoWorkspace({
           </div>
         ) : (
           <>
-            <div className="focus-header">
+            <div className="focus-header piano-focus-header">
               <button
                 aria-label="退出钢琴练习"
                 onClick={() => openSheet("leave")}
               >
-                ←
+                <Icon name="back" />
               </button>
-              <div>
-                <h1>{song.title}</h1>
+              <div className="piano-song-heading">
+                <h1>{shortTitle}</h1>
                 <small aria-label="当前练习声部">
                   {part
-                    ? `${part.name} · 谱表 ${track?.staff} / 声部 ${track?.voice}`
-                    : "自由试琴"}{" "}
-                  ·{" "}
-                  {state.mode === "listen"
-                    ? "自动试听"
-                    : state.mode === "wait"
-                      ? "等待弹对"
-                      : "自由弹奏"}
+                    ? `${part.name} · ${track?.projection === "highest" ? "最高音单音" : "原轨"} · ${track?.staff}/${track?.voice}`
+                    : "自由试琴"}
                 </small>
               </div>
+              <button
+                className="mode-pill"
+                aria-label={`练习方式：${modeTitle}`}
+                onClick={() => openSheet("settings")}
+              >
+                {modeTitle}
+              </button>
+              {state.sound !== "ready" && (
+                <button
+                  className="sound-enable"
+                  onClick={() => void controller.enable()}
+                >
+                  {state.sound === "off" ? "启用声音" : "重新启用声音"}
+                </button>
+              )}
               <button
                 aria-label="更多钢琴操作"
                 onClick={() => openSheet("more")}
               >
-                •••
+                <Icon name="more" />
               </button>
-            </div>
-            <div className="piano-status" role="status">
-              <span>
-                {busy
-                  ? "读取中…"
-                  : state.error ||
-                    state.message ||
-                    (controller.trackBlocked
-                      ? "此轨不支持当前模式，请打开模式设置。"
-                      : notice) ||
-                    "点小节立即试听；按住琴键发声。"}
-              </span>
-              <button onClick={() => openSheet("settings")}>模式 / 声部</button>
+              <button
+                aria-label="钢琴练习设置"
+                onClick={() => openSheet("settings")}
+              >
+                <Icon name="settings" />
+              </button>
             </div>
             <section className="staff-region" aria-label="乐谱">
               {score && part && track ? (
@@ -853,21 +872,30 @@ export function PianoWorkspace({
                 </div>
               )}
             </section>
-            <div className="focus-piano-transport">
-              <button disabled={!score} onClick={() => openSheet("range")}>
-                第 {state.range[0] + 1}–{state.range[1] + 1} 小节 ▾
+            <div className="focus-piano-transport" aria-label="钢琴播放控制">
+              <button
+                className="range-button"
+                disabled={!score}
+                onClick={() => openSheet("range")}
+              >
+                {rangeTitle} ▾
               </button>
               <button
+                className="restart-button"
                 aria-label="重练"
                 disabled={
                   !score || state.mode === "free" || !!controller.blocked
                 }
                 onClick={() => controller.restart()}
               >
-                ↶
+                <Icon name="restart" />
+                <span>重练</span>
               </button>
               <button
                 className="piano-play"
+                aria-label={
+                  running ? "暂停" : state.mode === "wait" ? "开始等待" : "播放"
+                }
                 disabled={
                   !score ||
                   busy ||
@@ -878,61 +906,68 @@ export function PianoWorkspace({
                   running ? controller.pause() : void controller.play()
                 }
               >
-                {running ? "暂停" : state.mode === "wait" ? "开始等待" : "播放"}
+                <Icon name={running ? "pause" : "play"} />
               </button>
-              <button onClick={() => openSheet("settings")}>
+              <button
+                className="speed-button"
+                aria-label={`钢琴速度 ${state.speed} 倍`}
+                onClick={() => openSheet("speed")}
+              >
                 {state.speed}×
               </button>
               <button
                 aria-pressed={state.loop}
                 onClick={() => controller.setLoop(!state.loop)}
               >
-                ↻ 循环{state.loop ? "开" : "关"}
+                循环{state.loop ? "开" : "关"}
               </button>
-              <button onClick={() => openSheet("settings")}>标记</button>
+              <button onClick={() => openSheet("settings")}>
+                {labels === "name"
+                  ? "音名辅助"
+                  : labels === "solfege"
+                    ? "唱名辅助"
+                    : "标记关闭"}
+              </button>
+              <button aria-label="低八度" onClick={() => shiftOctave(-12)}>
+                低八度
+              </button>
+              <button aria-label="高八度" onClick={() => shiftOctave(12)}>
+                高八度
+              </button>
             </div>
-            <div className="keyboard-top">
-              <button
-                aria-label="低八度"
-                onClick={() => {
-                  controller.pause();
-                  setKeyboardStart((n) => Math.max(0, n - 12));
-                }}
-              >
-                −8度
-              </button>
+            <div
+              className={`piano-status ${restWaiting ? "rest-waiting" : ""}`}
+              role="status"
+            >
               <span>
-                {state.mode === "free"
-                  ? "自由弹奏 · 无自动推进"
-                  : `${target?.pitch ? `${pitchLabel(target.pitch)} / ${pitchLabel(target.pitch, true)}` : "休止"}${state.phase === "waiting" ? " · 等你触键" : ""}`}
+                {busy
+                  ? "正在读取乐谱…"
+                  : state.error ||
+                    state.message ||
+                    (controller.trackBlocked
+                      ? "此轨暂不支持当前模式，请打开设置选择轨道。"
+                      : !score
+                        ? notice
+                        : state.mode === "free"
+                          ? "自由弹奏 · 按住发声，松开释放"
+                          : running
+                            ? `${modeTitle} · ${currentMeasure ? `第 ${currentMeasure.index + 1} 小节` : "练习中"}`
+                            : "准备试听 · 点小节，或点播放")}
               </span>
-              {state.mode === "wait" &&
-                state.phase === "waiting" &&
-                !target?.pitch && (
-                  <button
-                    className="rest-step"
-                    onClick={() => controller.nextRest()}
-                  >
-                    下一步（休止）
-                  </button>
-                )}
-              <button
-                aria-label="高八度"
-                onClick={() => {
-                  controller.pause();
-                  setKeyboardStart((n) => Math.min(108, n + 12));
-                }}
-              >
-                ＋8度
-              </button>
-              <button
-                className={
-                  state.sound === "ready" ? "sound-ready" : "sound-enable"
-                }
-                onClick={() => void controller.enable()}
-              >
-                {state.sound === "ready" ? "声音已启用" : "启用声音"}
-              </button>
+              {!state.error && state.mode !== "free" && target?.pitch && (
+                <span className="target-hint">
+                  {pitchLabel(target.pitch)} / {pitchLabel(target.pitch, true)}
+                  {state.phase === "waiting" ? " · 等你触键" : ""}
+                </span>
+              )}
+              {restWaiting && (
+                <button
+                  className="rest-step"
+                  onClick={() => controller.nextRest()}
+                >
+                  下一步（休止）
+                </button>
+              )}
             </div>
             <Keyboard
               start={keyboardStart}
@@ -944,128 +979,118 @@ export function PianoWorkspace({
               onDown={(id, n) => controller.press(id, n)}
               onUp={(id) => controller.release(id)}
             />
-            <div className="piano-foot">
-              <span>按住发声 · 松开释放 · 多指可弹 · 旋转 / 后台暂停</span>
-              <span>{version.sha}</span>
-            </div>
           </>
         )}
         {sheet && (
           <Sheet
+            className={sheet === "range" ? "measure-sheet" : ""}
             title={
               sheet === "range"
                 ? "练习小节范围"
-                : sheet === "settings"
-                  ? "钢琴练习设置"
-                  : sheet === "leave"
-                    ? "离开练习"
-                    : "更多钢琴操作"
+                : sheet === "speed"
+                  ? "练习速度"
+                  : sheet === "settings"
+                    ? "钢琴练习设置"
+                    : sheet === "leave"
+                      ? "离开练习"
+                      : "更多钢琴操作"
             }
             onClose={() => setSheet(null)}
           >
-            {sheet === "settings" ? (
+            {(dismiss) => (
               <>
-                {settings}
-                {issues}
-              </>
-            ) : sheet === "range" ? (
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (!part) return;
-                  controller.select(rangeStart - 1, rangeEnd - 1, false);
-                  flush();
-                  setSheet(null);
-                }}
-              >
-                <p className="helper">
-                  可反向选取，包含起始与结束小节。应用后点播放开始。
-                </p>
-                <label className="field-label">
-                  起始小节
-                  <input
-                    aria-label="起始小节"
-                    type="number"
-                    min="1"
-                    max={part?.measures.length ?? 1}
-                    required
-                    value={rangeStart}
-                    onChange={(e) => setRangeStart(Number(e.target.value))}
+                {sheet === "settings" ? (
+                  <>
+                    {settings}
+                    {issues}
+                  </>
+                ) : sheet === "speed" ? (
+                  <>
+                    <div
+                      className="sheet-options speed-options"
+                      role="group"
+                      aria-label="钢琴练习速度"
+                    >
+                      {[0.5, 0.75, 1, 1.25].map((speed) => (
+                        <button
+                          key={speed}
+                          aria-pressed={state.speed === speed}
+                          onClick={() => controller.setSpeed(speed)}
+                        >
+                          {speed}×
+                          <span>{state.speed === speed ? "✓" : ""}</span>
+                        </button>
+                      ))}
+                    </div>
+                    <p className="helper">
+                      改变练习节奏，保留原曲音高；范围保持不变。
+                    </p>
+                  </>
+                ) : sheet === "range" ? (
+                  <MeasurePicker
+                    count={part?.measures.length ?? 0}
+                    range={state.range}
+                    dismiss={dismiss}
+                    onApply={(a, b) => {
+                      controller.select(a, b, false);
+                      flush();
+                    }}
                   />
-                </label>
-                <label className="field-label">
-                  结束小节
-                  <input
-                    aria-label="结束小节"
-                    type="number"
-                    min="1"
-                    max={part?.measures.length ?? 1}
-                    required
-                    value={rangeEnd}
-                    onChange={(e) => setRangeEnd(Number(e.target.value))}
-                  />
-                </label>
-                <button className="primary full" disabled={!part}>
-                  应用范围
-                </button>
-              </form>
-            ) : sheet === "leave" ? (
-              <>
-                <p className="helper">
-                  播放已暂停，当前设置已尝试保存在本机。退出后可从最近练习恢复；保存失败会显示提示。
-                </p>
-                <button
-                  className="primary full"
-                  onClick={() => {
-                    flush();
-                    setSheet(null);
-                    onExit?.();
-                  }}
-                >
-                  暂停并返回
-                </button>
-                <button className="quiet full" onClick={() => setSheet(null)}>
-                  继续练习
-                </button>
+                ) : sheet === "leave" ? (
+                  <>
+                    <p className="helper">
+                      播放已暂停，当前设置已尝试保存在本机。退出后可从最近练习恢复；保存失败会显示提示。
+                    </p>
+                    <button
+                      className="primary full"
+                      onClick={() => {
+                        flush();
+                        dismiss(() => onExit?.());
+                      }}
+                    >
+                      暂停并返回
+                    </button>
+                    <button className="quiet full" onClick={() => dismiss()}>
+                      继续练习
+                    </button>
+                  </>
+                ) : (
+                  <div className="sheet-options">
+                    <button onClick={() => setSheet("settings")}>
+                      模式 / 声部 / 速度 / 标记
+                    </button>
+                    <button
+                      onClick={() => {
+                        const context = snapshot();
+                        dismiss(() => setFeedback(context));
+                      }}
+                    >
+                      反馈 ↗
+                    </button>
+                    <button
+                      onClick={() => {
+                        dismiss(() => onMaterials?.());
+                      }}
+                    >
+                      歌曲资料
+                    </button>
+                    <button
+                      onClick={() => {
+                        dismiss(() => onLyrics?.());
+                      }}
+                    >
+                      歌词学唱
+                    </button>
+                    <button
+                      onClick={() => {
+                        dismiss(() => onExit?.());
+                      }}
+                    >
+                      返回练习准备
+                    </button>
+                  </div>
+                )}
               </>
-            ) : (
-              <div className="sheet-options">
-                <button onClick={() => setSheet("settings")}>
-                  模式 / 声部 / 速度 / 标记
-                </button>
-                <button
-                  onClick={() => {
-                    setSheet(null);
-                    setFeedback(snapshot());
-                  }}
-                >
-                  反馈 ↗
-                </button>
-                <button
-                  onClick={() => {
-                    setSheet(null);
-                    onMaterials?.();
-                  }}
-                >
-                  歌曲资料
-                </button>
-                <button
-                  onClick={() => {
-                    setSheet(null);
-                    onLyrics?.();
-                  }}
-                >
-                  歌词学唱
-                </button>
-                <button
-                  onClick={() => {
-                    setSheet(null);
-                    onExit?.();
-                  }}
-                >
-                  返回练习准备
-                </button>
-              </div>
             )}
           </Sheet>
         )}

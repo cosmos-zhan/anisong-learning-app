@@ -979,55 +979,58 @@ export function App({
           }
           onClose={() => setSheet(null)}
         >
-          {sheet === "speed" ? (
-            <div className="sheet-options">
-              {[0.5, 0.75, 1].map((n) => (
-                <button
-                  key={n}
-                  aria-pressed={state.speed === n}
-                  onClick={() => void controller.setSpeed(n)}
-                >
-                  {n}× {n === state.speed ? "✓" : ""}
-                </button>
-              ))}
-            </div>
-          ) : sheet === "trim" ? (
-            edges
-          ) : (
-            <div className="sheet-options">
-              <button
-                onClick={() => {
-                  setSheet(null);
-                  setFeedback({ ...state });
-                }}
-              >
-                反馈问题 ↗
-              </button>
-              <button
-                onClick={() => {
-                  setSheet(null);
-                  onMaterials?.();
-                }}
-              >
-                歌曲资料
-              </button>
-              <button
-                onClick={() => {
-                  setSheet(null);
-                  void controller.selectTrack();
-                }}
-              >
-                整曲试听
-              </button>
-              <button
-                onClick={() => {
-                  setSheet(null);
-                  onPiano?.();
-                }}
-              >
-                钢琴学谱
-              </button>
-            </div>
+          {(dismiss) => (
+            <>
+              {sheet === "speed" ? (
+                <div className="sheet-options">
+                  {[0.5, 0.75, 1].map((n) => (
+                    <button
+                      key={n}
+                      aria-pressed={state.speed === n}
+                      onClick={() => void controller.setSpeed(n)}
+                    >
+                      {n}× {n === state.speed ? "✓" : ""}
+                    </button>
+                  ))}
+                </div>
+              ) : sheet === "trim" ? (
+                edges
+              ) : (
+                <div className="sheet-options">
+                  <button
+                    onClick={() => {
+                      const context = { ...state };
+                      dismiss(() => setFeedback(context));
+                    }}
+                  >
+                    反馈问题 ↗
+                  </button>
+                  <button
+                    onClick={() => {
+                      dismiss(() => onMaterials?.());
+                    }}
+                  >
+                    歌曲资料
+                  </button>
+                  <button
+                    onClick={() => {
+                      dismiss(() => {
+                        void controller.selectTrack();
+                      });
+                    }}
+                  >
+                    整曲试听
+                  </button>
+                  <button
+                    onClick={() => {
+                      dismiss(() => onPiano?.());
+                    }}
+                  >
+                    钢琴学谱
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </Sheet>
       )}

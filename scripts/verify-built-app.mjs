@@ -35,9 +35,9 @@ try{
  while(Date.now()<deadline){
   await new Promise(r=>setTimeout(r,50));
   if(document.querySelector('.score-message[role=alert]'))throw new Error('Production score renderer reported an error.');
-  if(document.querySelector('svg')&&!document.querySelector('.score-message[role=status]'))break;
+  if(document.querySelector('.measure-hit')&&!document.querySelector('.score-message[role=status]'))break;
  }
- if(!document.querySelector('svg'))throw new Error('Production score SVG was not created.');
+ if(!document.querySelector('.staff-region svg'))throw new Error('Production score SVG was not created.');
  if(document.querySelector('.score-message[role=status]'))throw new Error('Production renderer did not finish.');
  const bars=document.querySelectorAll('.measure-hit').length;
  if(bars<1||bars>8||errors.length)throw new Error('Production window/DOM failed: '+errors.join(';'));
@@ -48,17 +48,30 @@ try{
  while(Date.now()<audioDeadline&&!oscillators.some(o=>Number.isFinite(o.started)))await new Promise(r=>setTimeout(r,20));
  if(!oscillators.some(o=>Number.isFinite(o.started)))throw new Error('Production bar selection never reached Web Audio: '+document.querySelector('.piano-status')?.textContent);
  const transport=document.querySelector('.piano-play');
- if(transport.disabled||transport.textContent!=='暂停')throw new Error('Production audition did not enter playing state.');
+ if(transport.disabled||transport.getAttribute('aria-label')!=='暂停')throw new Error('Production audition did not enter playing state.');
  transport.dispatchEvent(new window.MouseEvent('click',{bubbles:true}));
  await new Promise(r=>setTimeout(r,20));
- if(document.querySelector('.piano-play').textContent!=='播放')throw new Error('Production pause failed.');
+ if(document.querySelector('.piano-play').getAttribute('aria-label')!=='播放')throw new Error('Production pause failed.');
  if(errors.length)throw new Error('Production playback DOM failed: '+errors.join(';'));
- const until=async test=>{const end=Date.now()+2000;while(!test()&&Date.now()<end)await new Promise(r=>setTimeout(r,20));if(!test())throw new Error('Production navigation did not settle.');};
+ const until=async test=>{const end=Date.now()+2000;while(!test()&&Date.now()<end)await new Promise(r=>setTimeout(r,20));if(!test())throw new Error('Production navigation did not settle: '+test.toString()+'; route='+location.hash+'; panel='+document.querySelector('[role=dialog]')?.getAttribute('aria-label'));};
  const click=node=>{if(!node)throw new Error('Production UI target missing.');node.dispatchEvent(new window.MouseEvent('click',{bubbles:true}));};
  const buttonText=text=>Array.from(document.querySelectorAll('button')).find(b=>b.textContent.trim()===text);
+
+ // Exercise the delivered range/speed panels and their real browser history entries.
+ click(document.querySelector('.speed-button'));await until(()=>document.querySelector('[aria-label="钢琴练习速度"]'));
+ const speedPanel=document.querySelector('[role=dialog]');
+ if(speedPanel.querySelector('select')||speedPanel.querySelectorAll('.speed-options button').length!==4)throw new Error('Speed entry is not a dedicated panel.');
+ click(document.querySelector('[aria-label="关闭练习速度"]'));await until(()=>!document.querySelector('[role=dialog]'));
+ click(document.querySelector('.range-button'));await until(()=>document.querySelector('.measure-grid'));
+ click(document.querySelector('[aria-label="选择第 8 小节"]'));await until(()=>document.querySelector('.range-anchor')?.textContent==='8');click(document.querySelector('[aria-label="选择第 5 小节"]'));
+ await until(()=>document.querySelector('.range-preview')?.textContent.includes('5–8'));
+ click(buttonText('确认范围'));await until(()=>!document.querySelector('[role=dialog]'));
+ if(!document.querySelector('.range-button')?.textContent.includes('5–8'))throw new Error('Confirmed range did not reach the actual controller.');
+ click(document.querySelector('.range-button'));await until(()=>document.querySelector('.measure-grid'));history.back();await until(()=>!document.querySelector('[role=dialog]'));
+ if(location.hash!=='#piano'||!document.querySelector('.piano-practice'))throw new Error('Panel Back changed the practice route.');
  if(document.querySelector('.bottom-nav'))throw new Error('Practice unexpectedly includes bottom navigation.');
  click(document.querySelector('[aria-label="更多钢琴操作"]'));await until(()=>buttonText('反馈 ↗'));
- click(buttonText('反馈 ↗'));await until(()=>document.querySelector('.report'));
+ click(buttonText('反馈 ↗'));await until(()=>document.querySelector('.report')?.value.includes('"piano"'));
  const report=document.querySelector('.report').value;
  if(!report.includes('"piano"')||!report.includes('"bars"')||!report.includes('"sha"'))throw new Error('Production feedback has no current practice snapshot.');
  click(document.querySelector('[aria-label="关闭反馈"]'));await until(()=>!document.querySelector('.feedback-modal'));
@@ -69,6 +82,6 @@ try{
  click(document.querySelector('.bottom-nav [aria-label="曲库"]'));await until(()=>document.querySelector('.library-list'));
  if(!document.querySelector('.song-row'))throw new Error('Production song library missing.');
 
- console.log(JSON.stringify({check:'production-esm-dom',svg:true,visibleBars:bars,page:document.querySelector('.score-page-controls span')?.textContent,compatible:!!document.querySelector('.score-compatibility'),barClickScheduledOscillators:oscillators.length,pause:true,feedbackSnapshot:true,practiceExit:true,homeAndLibrary:true,method:'jsdom, deterministic text metrics and instrumented Web Audio nodes; not physical browser/audio verification'}));
+ console.log(JSON.stringify({check:'production-esm-dom',svg:true,visibleBars:bars,page:document.querySelector('.score-page-controls span')?.textContent,compatible:!!document.querySelector('.score-compatibility'),barClickScheduledOscillators:oscillators.length,pause:true,feedbackSnapshot:true,practiceExit:true,homeAndLibrary:true,rangeGrid:true,dedicatedSpeed:true,panelBack:true,method:'jsdom, deterministic text metrics and instrumented Web Audio nodes; not physical browser/audio verification'}));
  dom.window.close();process.exit(0);
 }catch(error){console.error(error.message);dom.window.close();process.exit(1);}

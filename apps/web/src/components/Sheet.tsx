@@ -1,21 +1,76 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, type ReactNode } from "react";
+export type DismissSheet = (afterClose?: () => void) => void;
+const HISTORY_KEY = "anisongSheet";
 export function Sheet({
   title,
   onClose,
   children,
+  className = "",
 }: {
+  className?: string;
   title: string;
   onClose: () => void;
-  children: ReactNode;
+  children: ReactNode | ((dismiss: DismissSheet) => ReactNode);
 }) {
   const ref = useRef<HTMLElement>(null),
     close = useRef(onClose);
   close.current = onClose;
+  const navigation = useRef<{
+    id: string;
+    url: string;
+    closing: boolean;
+    popped: boolean;
+    after?: () => void;
+  } | null>(null);
+  const dismiss = useCallback<DismissSheet>((afterClose) => {
+    const entry = navigation.current;
+    if (entry?.closing) return;
+    if (
+      entry &&
+      location.href === entry.url &&
+      history.state?.[HISTORY_KEY] === entry.id
+    ) {
+      entry.closing = true;
+      entry.after = afterClose;
+      history.back();
+      return;
+    }
+    close.current();
+    afterClose?.();
+  }, []);
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
+    const entry = {
+      id: crypto.randomUUID(),
+      url: location.href,
+      closing: false,
+      popped: false,
+      after: undefined as (() => void) | undefined,
+    };
+    try {
+      history.pushState(
+        { ...history.state, [HISTORY_KEY]: entry.id },
+        "",
+        entry.url,
+      );
+      navigation.current = entry;
+    } catch {
+      /* Embedded contexts that disallow history can still close explicitly. */
+    }
+    const back = () => {
+      if (history.state?.[HISTORY_KEY] === entry.id || entry.popped) return;
+      entry.popped = true;
+      close.current();
+      // Consume the panel history entry before a menu action changes the route.
+      entry.after?.();
+    };
+    window.addEventListener("popstate", back);
     ref.current?.focus();
     const key = (e: KeyboardEvent) => {
-      if (e.key === "Escape") close.current();
+      if (e.key === "Escape") {
+        e.preventDefault();
+        dismiss();
+      }
       if (e.key === "Tab") {
         const nodes = ref.current?.querySelectorAll<HTMLElement>(
           'button:not(:disabled),a[href],input:not(:disabled),select,textarea,[tabindex="0"]',
@@ -39,14 +94,22 @@ export function Sheet({
     document.addEventListener("keydown", key);
     return () => {
       document.removeEventListener("keydown", key);
-      previous?.focus();
+      window.removeEventListener("popstate", back);
+      if (
+        !entry.popped &&
+        history.state?.[HISTORY_KEY] === entry.id &&
+        location.href === entry.url
+      )
+        history.back();
+      navigation.current = null;
+      if (previous?.isConnected) previous.focus();
     };
-  }, []);
+  }, [dismiss]);
   return (
     <div
       className="sheet-backdrop"
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget) dismiss();
       }}
     >
       <section
@@ -55,15 +118,15 @@ export function Sheet({
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="app-sheet"
+        className={`app-sheet ${className}`}
       >
         <div className="sheet-title">
           <h2>{title}</h2>
-          <button aria-label={`关闭${title}`} onClick={onClose}>
+          <button aria-label={`关闭${title}`} onClick={() => dismiss()}>
             ✕
           </button>
         </div>
-        {children}
+        {typeof children === "function" ? children(dismiss) : children}
       </section>
     </div>
   );
