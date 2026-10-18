@@ -141,7 +141,7 @@ class AnisongAudioPlugin : Plugin() {
     fun pickAudio(call: PluginCall) {
         val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
             type = "audio/*"; addCategory(Intent.CATEGORY_OPENABLE)
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
         }
         startActivityForResult(call, intent, "audioPicked")
     }
@@ -150,6 +150,11 @@ class AnisongAudioPlugin : Plugin() {
         if (call == null) return
         val selected = result.data?.data
         if (result.resultCode != Activity.RESULT_OK || selected == null) { call.reject("选择已取消"); return }
+        // Keep the provider grant across process restarts when supported. Revoked or
+        // moved files still fail explicitly and can be reselected from materials.
+        try {
+            context.contentResolver.takePersistableUriPermission(selected, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        } catch (_: SecurityException) { /* Provider only grants this session. */ }
         var name = "本地音频"
         context.contentResolver.query(selected, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
             if (cursor.moveToFirst()) name = cursor.getString(0) ?: name

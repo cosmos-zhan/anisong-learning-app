@@ -15,6 +15,7 @@ const names = [
   "B",
 ];
 export function Keyboard({
+  labels = "name",
   start = 60,
   octaves = 2,
   target,
@@ -23,6 +24,7 @@ export function Keyboard({
   onDown,
   onUp,
 }: {
+  labels?: "name" | "solfege" | "none";
   start?: number;
   octaves?: number;
   target?: number;
@@ -128,8 +130,24 @@ export function Keyboard({
           onBlur={() => release(-midi)}
         >
           <span>
-            {names[midi % 12]}
-            {Math.floor(midi / 12) - 1}
+            {labels === "none"
+              ? ""
+              : labels === "solfege"
+                ? [
+                    "Do",
+                    "Di",
+                    "Re",
+                    "Ri",
+                    "Mi",
+                    "Fa",
+                    "Fi",
+                    "Sol",
+                    "Si",
+                    "La",
+                    "Li",
+                    "Ti",
+                  ][midi % 12]
+                : `${names[midi % 12]}${Math.floor(midi / 12) - 1}`}
           </span>
         </button>
       ))}

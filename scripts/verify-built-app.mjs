@@ -41,7 +41,7 @@ try{
  if(document.querySelector('.score-message[role=status]'))throw new Error('Production renderer did not finish.');
  const bars=document.querySelectorAll('.measure-hit').length;
  if(bars<1||bars>8||errors.length)throw new Error('Production window/DOM failed: '+errors.join(';'));
- const bar=document.querySelector('button[aria-label="第 1 小节"]');
+ const bar=document.querySelector('button[aria-label="谱面小节 1"]');
  if(!bar)throw new Error('Production first bar button missing.');
  bar.dispatchEvent(new window.MouseEvent('click',{bubbles:true}));
  const audioDeadline=Date.now()+2000;
@@ -53,6 +53,22 @@ try{
  await new Promise(r=>setTimeout(r,20));
  if(document.querySelector('.piano-play').textContent!=='播放')throw new Error('Production pause failed.');
  if(errors.length)throw new Error('Production playback DOM failed: '+errors.join(';'));
- console.log(JSON.stringify({check:'production-esm-dom',svg:true,visibleBars:bars,page:document.querySelector('.score-page-controls span')?.textContent,compatible:!!document.querySelector('.score-compatibility'),barClickScheduledOscillators:oscillators.length,pause:true,method:'jsdom, deterministic text metrics and instrumented Web Audio nodes; not physical browser/audio verification'}));
+ const until=async test=>{const end=Date.now()+2000;while(!test()&&Date.now()<end)await new Promise(r=>setTimeout(r,20));if(!test())throw new Error('Production navigation did not settle.');};
+ const click=node=>{if(!node)throw new Error('Production UI target missing.');node.dispatchEvent(new window.MouseEvent('click',{bubbles:true}));};
+ const buttonText=text=>Array.from(document.querySelectorAll('button')).find(b=>b.textContent.trim()===text);
+ if(document.querySelector('.bottom-nav'))throw new Error('Practice unexpectedly includes bottom navigation.');
+ click(document.querySelector('[aria-label="更多钢琴操作"]'));await until(()=>buttonText('反馈 ↗'));
+ click(buttonText('反馈 ↗'));await until(()=>document.querySelector('.report'));
+ const report=document.querySelector('.report').value;
+ if(!report.includes('"piano"')||!report.includes('"bars"')||!report.includes('"sha"'))throw new Error('Production feedback has no current practice snapshot.');
+ click(document.querySelector('[aria-label="关闭反馈"]'));await until(()=>!document.querySelector('.feedback-modal'));
+ click(document.querySelector('[aria-label="退出钢琴练习"]'));await until(()=>buttonText('暂停并返回'));
+ click(buttonText('暂停并返回'));await until(()=>document.querySelector('.piano-preparation')&&document.querySelector('.bottom-nav'));
+ click(document.querySelector('.bottom-nav [aria-label="练习"]'));await until(()=>document.querySelector('.page-home'));
+ if(!document.querySelector('.browse h1')?.textContent.includes('今天'))throw new Error('Production home missing.');
+ click(document.querySelector('.bottom-nav [aria-label="曲库"]'));await until(()=>document.querySelector('.library-list'));
+ if(!document.querySelector('.song-row'))throw new Error('Production song library missing.');
+
+ console.log(JSON.stringify({check:'production-esm-dom',svg:true,visibleBars:bars,page:document.querySelector('.score-page-controls span')?.textContent,compatible:!!document.querySelector('.score-compatibility'),barClickScheduledOscillators:oscillators.length,pause:true,feedbackSnapshot:true,practiceExit:true,homeAndLibrary:true,method:'jsdom, deterministic text metrics and instrumented Web Audio nodes; not physical browser/audio verification'}));
  dom.window.close();process.exit(0);
 }catch(error){console.error(error.message);dom.window.close();process.exit(1);}

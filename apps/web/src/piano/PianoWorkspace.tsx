@@ -14,7 +14,10 @@ import {
   readSession,
   saveSession,
 } from "../../../../packages/piano/storage";
-import { pitchLabel, secondsBetween } from "../../../../packages/piano/timeline";
+import {
+  pitchLabel,
+  secondsBetween,
+} from "../../../../packages/piano/timeline";
 import type { Labels, Score } from "../../../../packages/piano/types";
 import { rememberSong, type Song } from "../../../../packages/core/song";
 import { isHaruhikage } from "../../../../packages/core/presets";
@@ -22,22 +25,55 @@ import { Feedback } from "../components/Feedback";
 import { OfficialReference } from "../components/OfficialReference";
 import { Keyboard } from "./Keyboard";
 import { ScoreView } from "./ScoreView";
+import { Sheet } from "../components/Sheet";
+import {
+  preferences,
+  rememberPractice,
+  saveMaterialSummary,
+} from "../../../../packages/core/app-state";
 import version from "../version.json";
-import bundledMedia from '../bundled-audio.json';
-export interface BundledScore {src:string;sha256:string;bytes:number;preferredPartId?:string;preferredTrackId?:string}
+import bundledMedia from "../bundled-audio.json";
+export interface BundledScore {
+  src: string;
+  sha256: string;
+  bytes: number;
+  preferredPartId?: string;
+  preferredTrackId?: string;
+}
 import "./piano.css";
 
 export function PianoWorkspace({
   song,
   active,
   controller: provided,
-  bundledScore=bundledMedia.score,
+  bundledScore = bundledMedia.score,
+  view = "legacy",
+  onExit,
+  onEnter,
+  onMaterials,
+  onLyrics,
+  onChanged,
 }: {
+  view?: "legacy" | "practice" | "prepare" | "materials";
+  onExit?: () => void;
+  onEnter?: () => void;
+  onMaterials?: () => void;
+  onLyrics?: () => void;
+  onChanged?: () => void;
   song: Song;
   active: boolean;
   controller?: PianoController;
-  bundledScore?:BundledScore|null;
+  bundledScore?: BundledScore | null;
 }) {
+  const [sheet, setSheet] = useState<
+    "settings" | "range" | "more" | "leave" | null
+  >(null);
+  const [rangeStart, setRangeStart] = useState(1),
+    [rangeEnd, setRangeEnd] = useState(1);
+  const viewRef = useRef(view);
+  viewRef.current = view;
+  const changedRef = useRef(onChanged);
+  changedRef.current = onChanged;
   const [controller] = useState(
     () => provided ?? new PianoController(new SynthPiano()),
   );
@@ -47,7 +83,10 @@ export function PianoWorkspace({
   );
   const [score, setScore] = useState<Score>(),
     [labels, setLabels] = useState<Labels>("name");
-  const [renderStatus,setRenderStatus]=useState({backend:'loading',code:''});
+  const [renderStatus, setRenderStatus] = useState({
+    backend: "loading",
+    code: "",
+  });
   const labelRef = useRef(labels);
   labelRef.current = labels;
   const [notice, setNotice] = useState("正在恢复练习…"),
@@ -90,6 +129,18 @@ export function PianoWorkspace({
         tick: s.tick,
         practicedAt: new Date().toISOString(),
       });
+      if (viewRef.current === "practice" && activeRef.current) {
+        rememberPractice({
+          songId: loadedSongId.current,
+          module: "piano",
+          range: s.range,
+          speed: s.speed,
+          loop: s.loop,
+          mode: s.mode,
+          savedAt: new Date().toISOString(),
+        });
+        changedRef.current?.();
+      }
     } catch {
       setNotice("浏览器阻止保存练习设置；本次仍可使用，刷新后可能丢失。");
     }
@@ -131,14 +182,37 @@ export function PianoWorkspace({
         );
     }
   };
-  const install = (next: Score, loadToken: number, restore: boolean, presetSource=false) => {
+  const install = (
+    next: Score,
+    loadToken: number,
+    restore: boolean,
+    presetSource = false,
+  ) => {
     if (loadToken !== token.current) return;
     loadedSongId.current = currentSong.current.id;
     const saved = restore
       ? readSession(scoreKey(loadedSongId.current, next.id))
       : undefined;
-    controller.load(next, saved?undefined:presetSource?bundledScore?.preferredPartId:undefined, saved?undefined:presetSource?bundledScore?.preferredTrackId:undefined, saved);
-    setLabels(saved?.labels ?? "name");
+    controller.load(
+      next,
+      saved
+        ? undefined
+        : presetSource
+          ? bundledScore?.preferredPartId
+          : undefined,
+      saved
+        ? undefined
+        : presetSource
+          ? bundledScore?.preferredTrackId
+          : undefined,
+      saved,
+    );
+    if (!saved && viewRef.current !== "legacy")
+      controller.setSpeed(preferences().speed);
+    setLabels(
+      saved?.labels ??
+        (viewRef.current === "legacy" ? "name" : preferences().labels),
+    );
     setScore(next);
     setAck(false);
     setRangeMode(false);
@@ -166,19 +240,51 @@ export function PianoWorkspace({
       }
     }
   };
-  const readBuiltIn=async(loadToken:number)=>{
-    if(!bundledScore)return;
-    setNotice('正在载入你提供的春日影曲谱…');
-    try{
-      const response=await fetch(`${import.meta.env.BASE_URL}${bundledScore.src}`);
-      if(!response.ok)throw new Error('内置曲谱读取失败，可点“内置曲谱”重试或导入 MusicXML。');
-      const next=bundledScore.src.endsWith('.mxl')?await (async()=>{const buffer=await response.arrayBuffer();return readScore({name:'preset.mxl',size:buffer.byteLength,arrayBuffer:async()=>buffer});})():parseMusicXml(await response.text());
-      if(loadToken!==token.current)return;
-      install(next,loadToken,true,true);
-      try{localStorage.setItem(`anisong:bundledScore:${currentSong.current.id}`,bundledScore.sha256);}catch{/* Playback still works without local storage. */}
-    }catch(error){if(loadToken===token.current){setBusy(false);setNotice((error as Error).message);}}
+  const readBuiltIn = async (loadToken: number) => {
+    if (!bundledScore) return;
+    setNotice("正在载入你提供的春日影曲谱…");
+    try {
+      const response = await fetch(
+        `${import.meta.env.BASE_URL}${bundledScore.src}`,
+      );
+      if (!response.ok)
+        throw new Error(
+          "内置曲谱读取失败，可点“内置曲谱”重试或导入 MusicXML。",
+        );
+      const next = bundledScore.src.endsWith(".mxl")
+        ? await (async () => {
+            const buffer = await response.arrayBuffer();
+            return readScore({
+              name: "preset.mxl",
+              size: buffer.byteLength,
+              arrayBuffer: async () => buffer,
+            });
+          })()
+        : parseMusicXml(await response.text());
+      if (loadToken !== token.current) return;
+      install(next, loadToken, true, true);
+      try {
+        localStorage.setItem(
+          `anisong:bundledScore:${currentSong.current.id}`,
+          bundledScore.sha256,
+        );
+      } catch {
+        /* Playback still works without local storage. */
+      }
+    } catch (error) {
+      if (loadToken === token.current) {
+        setBusy(false);
+        setNotice((error as Error).message);
+      }
+    }
   };
-  const reloadBuiltIn=()=>{const loadToken=++token.current;flush();controller.pause();setBusy(true);void readBuiltIn(loadToken);};
+  const reloadBuiltIn = () => {
+    const loadToken = ++token.current;
+    flush();
+    controller.pause();
+    setBusy(true);
+    void readBuiltIn(loadToken);
+  };
   useEffect(() => {
     const loadToken = ++token.current;
     flush();
@@ -192,8 +298,14 @@ export function PianoWorkspace({
     setBusy(true);
     void (async () => {
       try {
-        const updatedPreset=isHaruhikage(song)&&bundledScore&&localStorage.getItem(`anisong:bundledScore:${song.id}`)!==bundledScore.sha256;
-        const id = updatedPreset?null:localStorage.getItem(`anisong:lastScore:${song.id}`);
+        const updatedPreset =
+          isHaruhikage(song) &&
+          bundledScore &&
+          localStorage.getItem(`anisong:bundledScore:${song.id}`) !==
+            bundledScore.sha256;
+        const id = updatedPreset
+          ? null
+          : localStorage.getItem(`anisong:lastScore:${song.id}`);
         const saved = id ? await scoreStore.get(id) : undefined;
         if (saved) {
           install(
@@ -208,11 +320,19 @@ export function PianoWorkspace({
       }
       if (loadToken !== token.current) return;
       if (isHaruhikage(song)) {
-        if(bundledScore){await readBuiltIn(loadToken);return;}
+        if (bundledScore) {
+          await readBuiltIn(loadToken);
+          return;
+        }
         setBusy(false);
         setNotice(
           "已选 CRYCHIC 版。导入这版的 MusicXML/MXL 后开始小节练习；琴键可先自由试音。",
         );
+        return;
+      }
+      if (viewRef.current !== "legacy" && song.id !== "demo-original") {
+        setBusy(false);
+        setNotice("尚未关联乐谱，请到歌曲资料导入 MusicXML；琴键可自由试音。");
         return;
       }
       try {
@@ -276,9 +396,14 @@ export function PianoWorkspace({
   const part = controller.part,
     track = controller.track,
     target = controller.target;
-  const highestTrack=part?.tracks.find(t=>t.projection==='highest'&&t.staff===track?.staff&&t.voice===track?.voice);
+  const highestTrack = part?.tracks.find(
+    (t) =>
+      t.projection === "highest" &&
+      t.staff === track?.staff &&
+      t.voice === track?.voice,
+  );
   const midi = state.mode === "free" ? undefined : target?.pitch?.midi;
-  const octaves = wide ? 2 : 1;
+  const octaves = view === "legacy" && wide ? 2 : 1;
   useEffect(() => {
     if (
       midi !== undefined &&
@@ -287,6 +412,23 @@ export function PianoWorkspace({
       setKeyboardStart(Math.max(0, Math.min(108, Math.floor(midi / 12) * 12)));
     }
   }, [midi, octaves]);
+  useEffect(() => {
+    if (view !== "legacy") controller.pause();
+    return () => flush();
+  }, [view, controller, flush]);
+  useEffect(() => {
+    if (!score) return;
+    try {
+      saveMaterialSummary(song.id, {
+        score: score.title,
+        bars: score.parts[0]?.measures.length,
+        parts: score.parts.length,
+      });
+      onChanged?.();
+    } catch {
+      /* Score remains usable. */
+    }
+  }, [score, song.id, onChanged]);
   const importFile = async (file: File) => {
     const loadToken = ++token.current;
     flush();
@@ -304,20 +446,22 @@ export function PianoWorkspace({
   };
   const choose = (i: number) => {
     if (busy) return;
-    setNotice(controller.getSnapshot().mode === "free"
-      ? "自由弹奏只选范围；点击“自动试听”再点小节可听谱。"
-      : controller.getSnapshot().mode === "wait"
-        ? "等待弹对：请按高亮琴键；此模式不会自动演奏。"
-        : "");
+    setNotice(
+      controller.getSnapshot().mode === "free"
+        ? "自由弹奏只选范围；点击“自动试听”再点小节可听谱。"
+        : controller.getSnapshot().mode === "wait"
+          ? "等待弹对：请按高亮琴键；此模式不会自动演奏。"
+          : "",
+    );
     if (!rangeMode) {
-      controller.select(i);
+      controller.select(i, i, view === "practice" || view === "legacy");
       return;
     }
     if (anchor === null) {
       controller.pause();
       setAnchor(i);
     } else {
-      controller.select(anchor, i);
+      controller.select(anchor, i, view === "practice" || view === "legacy");
       setAnchor(null);
       setRangeMode(false);
     }
@@ -350,10 +494,10 @@ export function PianoWorkspace({
     part: score
       ? score.parts.findIndex((p) => p.id === part?.id) + 1
       : undefined,
-    staff:track?.staff,
-    voice:track?.voice,
-    practiceTrack:track?.projection??'original',
-    renderer:renderStatus,
+    staff: track?.staff,
+    voice: track?.voice,
+    practiceTrack: track?.projection ?? "original",
+    renderer: renderStatus,
     bars: state.range.map((n) => n + 1),
     mode: state.mode,
     speed: state.speed,
@@ -372,6 +516,562 @@ export function PianoWorkspace({
     (m) => state.tick >= m.tick && state.tick < m.tick + m.duration,
   );
   const running = state.phase === "playing" || state.phase === "waiting";
+  const openSheet = (next: "settings" | "range" | "more" | "leave") => {
+    controller.pause();
+    flush();
+    setRangeStart(state.range[0] + 1);
+    setRangeEnd(state.range[1] + 1);
+    setSheet(next);
+  };
+  const modes = (
+    <div className="mode-choices" role="group" aria-label="钢琴练习模式">
+      {(["listen", "wait", "free"] as const).map((mode) => (
+        <button
+          key={mode}
+          disabled={!score && mode !== "free"}
+          aria-pressed={state.mode === mode}
+          onClick={() => {
+            controller.mode(mode);
+            setAnchor(null);
+            setRangeMode(false);
+          }}
+        >
+          <strong>
+            {mode === "listen"
+              ? "自动试听"
+              : mode === "wait"
+                ? "等待弹对"
+                : "自由弹奏"}
+          </strong>
+          <small>
+            {mode === "listen"
+              ? "听选中轨道的真实音符"
+              : mode === "wait"
+                ? "按对目标琴键才前进"
+                : "自己弹，不自动推进"}
+          </small>
+        </button>
+      ))}
+    </div>
+  );
+  const settings = (
+    <>
+      <p className="helper">
+        {score
+          ? `${part?.measures.length} 小节 · ${score.parts.length} 声部 · 初始 ♩${score.tempos[0].bpm}`
+          : "尚未关联乐谱，可启用声音自由试琴。"}
+      </p>
+      {modes}
+      {score && part && track && (
+        <>
+          <label className="field-label">
+            乐器 / 声部
+            <select
+              aria-label="练习声部"
+              value={part.id}
+              onChange={(e) => {
+                controller.selectPart(e.target.value);
+                setAnchor(null);
+              }}
+            >
+              {score.parts.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field-label">
+            轨道
+            <select
+              aria-label="旋律轨道"
+              value={track.id}
+              onChange={(e) => controller.selectPart(part.id, e.target.value)}
+            >
+              {part.tracks.map((t) => (
+                <option key={t.id} value={t.id}>
+                  谱表 {t.staff} / 声部 {t.voice}
+                  {t.projection === "highest" ? " · 最高音单音简化" : " · 原轨"}
+                  {(t.listenBlocked ?? t.blocked).length ? " · 仅看谱" : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+        </>
+      )}
+      <label className="field-label">
+        播放速度
+        <select
+          aria-label="钢琴播放速度"
+          value={state.speed}
+          onChange={(e) => controller.setSpeed(Number(e.target.value))}
+        >
+          {[0.5, 0.75, 1, 1.25].map((s) => (
+            <option key={s} value={s}>
+              {s}×
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="field-label">
+        音符辅助显示
+        <select
+          aria-label="音符辅助显示"
+          value={labels}
+          onChange={(e) => setLabels(e.target.value as Labels)}
+        >
+          <option value="name">音名 C4 / F♯4</option>
+          <option value="solfege">固定唱名 Do / Re / Mi</option>
+          <option value="none">关闭</option>
+        </select>
+      </label>
+      <p className="helper">
+        固定唱名 C =
+        Do。自动试听可听原轨和弦；等待弹对限单音，不会自动替换成简化轨。合成钢琴音色，乐谱与
+        MP3 时间轴独立。
+      </p>
+      {score?.warnings.map((w) => (
+        <p className="warning" key={w}>
+          {w}
+        </p>
+      ))}
+    </>
+  );
+  const issues = (
+    <>
+      {score?.needsWrittenOrder && !ack && (
+        <label className="written-order-inline">
+          <input
+            type="checkbox"
+            checked={ack}
+            onChange={(e) => {
+              controller.writtenOrderAccepted = e.target.checked;
+              setAck(e.target.checked);
+            }}
+          />
+          我确认按书写顺序练习，不展开反复
+        </label>
+      )}
+      {controller.trackBlocked && (
+        <div className="track-alert" role="alert">
+          <p>{controller.trackBlocked}</p>
+          {highestTrack && (
+            <button
+              onClick={() => controller.selectPart(part!.id, highestTrack.id)}
+            >
+              练习此轨最高音（单音）
+            </button>
+          )}
+          {state.mode === "wait" &&
+            !(track?.listenBlocked ?? track?.blocked)?.length && (
+              <button onClick={() => controller.mode("listen")}>
+                自动试听原轨
+              </button>
+            )}
+        </div>
+      )}
+      {track?.projection === "highest" && (
+        <div className="track-alert">
+          单音简化：仅弹每组和弦的最高音。
+          <button
+            onClick={() => {
+              const original = part!.tracks.find(
+                (t) =>
+                  !t.projection &&
+                  t.staff === track.staff &&
+                  t.voice === track.voice,
+              );
+              if (original) controller.selectPart(part!.id, original.id);
+            }}
+          >
+            返回原轨
+          </button>
+        </div>
+      )}
+    </>
+  );
+  if (view !== "legacy")
+    return (
+      <main
+        className={`piano-workspace piano-redesign piano-${view}`}
+        aria-label="钢琴学谱"
+      >
+        {view === "materials" ? (
+          <section className="material-panel">
+            <h2>乐谱 · MusicXML</h2>
+            <p className="helper">
+              {score
+                ? `${score.title} · ${part?.measures.length} 小节 / ${score.parts.length} 声部`
+                : "尚未关联乐谱。支持 .musicxml / .xml / .mxl，不支持图片与 PDF。"}
+            </p>
+            <label className="file-button">
+              ＋ 关联 / 替换乐谱
+              <input
+                aria-label="导入 MusicXML 或 MXL"
+                type="file"
+                accept=".musicxml,.xml,.mxl"
+                disabled={busy}
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void importFile(f);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+            {isHaruhikage(song) && bundledScore && (
+              <button disabled={busy} onClick={reloadBuiltIn}>
+                恢复内置曲谱
+              </button>
+            )}
+            <label className="field-label">
+              此歌曲已保存乐谱
+              <select
+                aria-label="已保存乐谱"
+                value={score ? scoreKey(song.id, score.id) : ""}
+                onChange={(e) => void selectRecent(e.target.value)}
+              >
+                <option value="">选择乐谱</option>
+                {recent.map((s) => (
+                  <option value={s.id} key={s.id}>
+                    {s.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <a
+              className="back-link"
+              href={`${import.meta.env.BASE_URL}demo/piano-demo.musicxml`}
+              download="anisong-original-8-bars.musicxml"
+            >
+              下载原创合法示例谱 ↗
+            </a>
+            <p role="status" className="helper">
+              {notice}
+            </p>
+          </section>
+        ) : view === "prepare" ? (
+          <div className="piano-preparation">
+            <button className="back-link" onClick={onExit}>
+              ← 返回歌曲
+            </button>
+            <p className="eyebrow">PIANO PRACTICE</p>
+            <h1>{song.title}</h1>
+            <p className="helper" role="status">
+              {busy ? "正在恢复乐谱…" : state.error || notice}
+            </p>
+            <section className="settings-card">
+              {settings}
+              <button
+                className="info-row"
+                disabled={!score}
+                onClick={() => openSheet("range")}
+              >
+                练习范围{" "}
+                <strong>
+                  第 {state.range[0] + 1}–{state.range[1] + 1} 小节 ›
+                </strong>
+              </button>
+              <button
+                className="info-row"
+                aria-pressed={state.loop}
+                onClick={() => controller.setLoop(!state.loop)}
+              >
+                循环 <strong>{state.loop ? "开" : "关"}</strong>
+              </button>
+            </section>
+            {issues}
+            <p className="rotate-card">↔ 横过手机，看谱和琴键会同时展开。</p>
+            <button className="primary full" onClick={onEnter}>
+              进入钢琴练习 →
+            </button>
+            <button className="quiet full" onClick={onMaterials}>
+              关联 / 替换乐谱
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="focus-header">
+              <button
+                aria-label="退出钢琴练习"
+                onClick={() => openSheet("leave")}
+              >
+                ←
+              </button>
+              <div>
+                <h1>{song.title}</h1>
+                <small aria-label="当前练习声部">
+                  {part
+                    ? `${part.name} · 谱表 ${track?.staff} / 声部 ${track?.voice}`
+                    : "自由试琴"}{" "}
+                  ·{" "}
+                  {state.mode === "listen"
+                    ? "自动试听"
+                    : state.mode === "wait"
+                      ? "等待弹对"
+                      : "自由弹奏"}
+                </small>
+              </div>
+              <button
+                aria-label="更多钢琴操作"
+                onClick={() => openSheet("more")}
+              >
+                •••
+              </button>
+            </div>
+            <div className="piano-status" role="status">
+              <span>
+                {busy
+                  ? "读取中…"
+                  : state.error ||
+                    state.message ||
+                    (controller.trackBlocked
+                      ? "此轨不支持当前模式，请打开模式设置。"
+                      : notice) ||
+                    "点小节立即试听；按住琴键发声。"}
+              </span>
+              <button onClick={() => openSheet("settings")}>模式 / 声部</button>
+            </div>
+            <section className="staff-region" aria-label="乐谱">
+              {score && part && track ? (
+                <ScoreView
+                  score={score}
+                  part={part}
+                  track={track}
+                  range={state.range}
+                  activeId={
+                    state.mode === "free" ? undefined : currentSegment?.id
+                  }
+                  labels={labels}
+                  onSelect={choose}
+                  active={active}
+                  onRenderStatus={setRenderStatus}
+                />
+              ) : (
+                <div className="piano-empty">
+                  {busy ? "正在载入乐谱…" : "尚未关联 MusicXML 乐谱。"}
+                  <button onClick={onMaterials}>添加乐谱</button>
+                </div>
+              )}
+            </section>
+            <div className="focus-piano-transport">
+              <button disabled={!score} onClick={() => openSheet("range")}>
+                第 {state.range[0] + 1}–{state.range[1] + 1} 小节 ▾
+              </button>
+              <button
+                aria-label="重练"
+                disabled={
+                  !score || state.mode === "free" || !!controller.blocked
+                }
+                onClick={() => controller.restart()}
+              >
+                ↶
+              </button>
+              <button
+                className="piano-play"
+                disabled={
+                  !score ||
+                  busy ||
+                  state.mode === "free" ||
+                  !!controller.blocked
+                }
+                onClick={() =>
+                  running ? controller.pause() : void controller.play()
+                }
+              >
+                {running ? "暂停" : state.mode === "wait" ? "开始等待" : "播放"}
+              </button>
+              <button onClick={() => openSheet("settings")}>
+                {state.speed}×
+              </button>
+              <button
+                aria-pressed={state.loop}
+                onClick={() => controller.setLoop(!state.loop)}
+              >
+                ↻ 循环{state.loop ? "开" : "关"}
+              </button>
+              <button onClick={() => openSheet("settings")}>标记</button>
+            </div>
+            <div className="keyboard-top">
+              <button
+                aria-label="低八度"
+                onClick={() => {
+                  controller.pause();
+                  setKeyboardStart((n) => Math.max(0, n - 12));
+                }}
+              >
+                −8度
+              </button>
+              <span>
+                {state.mode === "free"
+                  ? "自由弹奏 · 无自动推进"
+                  : `${target?.pitch ? `${pitchLabel(target.pitch)} / ${pitchLabel(target.pitch, true)}` : "休止"}${state.phase === "waiting" ? " · 等你触键" : ""}`}
+              </span>
+              {state.mode === "wait" &&
+                state.phase === "waiting" &&
+                !target?.pitch && (
+                  <button
+                    className="rest-step"
+                    onClick={() => controller.nextRest()}
+                  >
+                    下一步（休止）
+                  </button>
+                )}
+              <button
+                aria-label="高八度"
+                onClick={() => {
+                  controller.pause();
+                  setKeyboardStart((n) => Math.min(108, n + 12));
+                }}
+              >
+                ＋8度
+              </button>
+              <button
+                className={
+                  state.sound === "ready" ? "sound-ready" : "sound-enable"
+                }
+                onClick={() => void controller.enable()}
+              >
+                {state.sound === "ready" ? "声音已启用" : "启用声音"}
+              </button>
+            </div>
+            <Keyboard
+              start={keyboardStart}
+              octaves={1}
+              labels={labels}
+              target={midi}
+              enabled={state.sound === "ready" && active}
+              resetKey={state.epoch}
+              onDown={(id, n) => controller.press(id, n)}
+              onUp={(id) => controller.release(id)}
+            />
+            <div className="piano-foot">
+              <span>按住发声 · 松开释放 · 多指可弹 · 旋转 / 后台暂停</span>
+              <span>{version.sha}</span>
+            </div>
+          </>
+        )}
+        {sheet && (
+          <Sheet
+            title={
+              sheet === "range"
+                ? "练习小节范围"
+                : sheet === "settings"
+                  ? "钢琴练习设置"
+                  : sheet === "leave"
+                    ? "离开练习"
+                    : "更多钢琴操作"
+            }
+            onClose={() => setSheet(null)}
+          >
+            {sheet === "settings" ? (
+              <>
+                {settings}
+                {issues}
+              </>
+            ) : sheet === "range" ? (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!part) return;
+                  controller.select(rangeStart - 1, rangeEnd - 1, false);
+                  flush();
+                  setSheet(null);
+                }}
+              >
+                <p className="helper">
+                  可反向选取，包含起始与结束小节。应用后点播放开始。
+                </p>
+                <label className="field-label">
+                  起始小节
+                  <input
+                    aria-label="起始小节"
+                    type="number"
+                    min="1"
+                    max={part?.measures.length ?? 1}
+                    required
+                    value={rangeStart}
+                    onChange={(e) => setRangeStart(Number(e.target.value))}
+                  />
+                </label>
+                <label className="field-label">
+                  结束小节
+                  <input
+                    aria-label="结束小节"
+                    type="number"
+                    min="1"
+                    max={part?.measures.length ?? 1}
+                    required
+                    value={rangeEnd}
+                    onChange={(e) => setRangeEnd(Number(e.target.value))}
+                  />
+                </label>
+                <button className="primary full" disabled={!part}>
+                  应用范围
+                </button>
+              </form>
+            ) : sheet === "leave" ? (
+              <>
+                <p className="helper">
+                  播放已暂停，当前设置已尝试保存在本机。退出后可从最近练习恢复；保存失败会显示提示。
+                </p>
+                <button
+                  className="primary full"
+                  onClick={() => {
+                    flush();
+                    setSheet(null);
+                    onExit?.();
+                  }}
+                >
+                  暂停并返回
+                </button>
+                <button className="quiet full" onClick={() => setSheet(null)}>
+                  继续练习
+                </button>
+              </>
+            ) : (
+              <div className="sheet-options">
+                <button onClick={() => setSheet("settings")}>
+                  模式 / 声部 / 速度 / 标记
+                </button>
+                <button
+                  onClick={() => {
+                    setSheet(null);
+                    setFeedback(snapshot());
+                  }}
+                >
+                  反馈 ↗
+                </button>
+                <button
+                  onClick={() => {
+                    setSheet(null);
+                    onMaterials?.();
+                  }}
+                >
+                  歌曲资料
+                </button>
+                <button
+                  onClick={() => {
+                    setSheet(null);
+                    onLyrics?.();
+                  }}
+                >
+                  歌词学唱
+                </button>
+                <button
+                  onClick={() => {
+                    setSheet(null);
+                    onExit?.();
+                  }}
+                >
+                  返回练习准备
+                </button>
+              </div>
+            )}
+          </Sheet>
+        )}
+        {feedback && <Feedback context={feedback} onClose={closeFeedback} />}
+      </main>
+    );
   return (
     <main className="piano-workspace" aria-label="钢琴学谱">
       <div className="piano-heading">
@@ -405,7 +1105,11 @@ export function PianoWorkspace({
               }}
             />
           </label>
-          {isHaruhikage(song)&&bundledScore&&<button disabled={busy} onClick={reloadBuiltIn}>内置曲谱</button>}
+          {isHaruhikage(song) && bundledScore && (
+            <button disabled={busy} onClick={reloadBuiltIn}>
+              内置曲谱
+            </button>
+          )}
           <button
             onClick={() => {
               if (isHaruhikage(song)) {
@@ -438,7 +1142,9 @@ export function PianoWorkspace({
               notice ||
               "点小节试听；琴键按住发声、松开释放。"}
         </span>
-        {score?.warnings.some(w=>w.startsWith('未写明速度'))&&<span>未标速度 · 暂用 ♩100</span>}
+        {score?.warnings.some((w) => w.startsWith("未写明速度")) && (
+          <span>未标速度 · 暂用 ♩100</span>
+        )}
         <span className="rotate-hint">↔ 演奏建议旋转手机</span>
       </div>
       {details && (
@@ -456,7 +1162,13 @@ export function PianoWorkspace({
                 {Math.abs(part.measures[0].fifths)} 个
                 {part.measures[0].fifths < 0 ? "降" : "升"}号 · 初始 ♩=
                 {score.tempos[0].bpm}
-                {' · 书写时长约 '}{secondsBetween(score.tempos,0,part.measures.at(-1)!.tick+part.measures.at(-1)!.duration).toFixed(1)} 秒（学谱与 MP3 独立）
+                {" · 书写时长约 "}
+                {secondsBetween(
+                  score.tempos,
+                  0,
+                  part.measures.at(-1)!.tick + part.measures.at(-1)!.duration,
+                ).toFixed(1)}{" "}
+                秒（学谱与 MP3 独立）
               </p>
               <label>
                 乐器 / 声部
@@ -488,8 +1200,12 @@ export function PianoWorkspace({
                   {part.tracks.map((t) => (
                     <option key={t.id} value={t.id}>
                       谱表 {t.staff} · 声部 {t.voice}
-                      {t.projection==='highest'?'（最高音单音简化）':''}
-                      {(t.listenBlocked ?? t.blocked).length ? "（仅看谱）" : t.blocked.length ? "（可试听；等待需单音）" : ""}
+                      {t.projection === "highest" ? "（最高音单音简化）" : ""}
+                      {(t.listenBlocked ?? t.blocked).length
+                        ? "（仅看谱）"
+                        : t.blocked.length
+                          ? "（可试听；等待需单音）"
+                          : ""}
                     </option>
                   ))}
                 </select>
@@ -563,13 +1279,44 @@ export function PianoWorkspace({
       {controller.trackBlocked ? (
         <div className="piano-blocked" role="alert">
           {controller.trackBlocked}{" "}
-          {highestTrack&&<button onClick={()=>{controller.selectPart(part!.id,highestTrack.id);setAnchor(null);}}>练习此轨最高音（单音）</button>}
+          {highestTrack && (
+            <button
+              onClick={() => {
+                controller.selectPart(part!.id, highestTrack.id);
+                setAnchor(null);
+              }}
+            >
+              练习此轨最高音（单音）
+            </button>
+          )}
           <button onClick={() => setDetails(true)}>更换轨道</button>{" "}
           原谱仍可查看，自由弹琴可用。
-          {state.mode === "wait" && !(track?.listenBlocked ?? track?.blocked)?.length && <button onClick={() => controller.mode("listen")}>切换自动试听原轨</button>}
+          {state.mode === "wait" &&
+            !(track?.listenBlocked ?? track?.blocked)?.length && (
+              <button onClick={() => controller.mode("listen")}>
+                切换自动试听原轨
+              </button>
+            )}
         </div>
       ) : null}
-      {track?.projection==='highest'&&<div className="piano-adaptation">单音简化：只演奏每组和弦的最高音，谱面保留原谱。<button onClick={()=>{const original=part!.tracks.find(t=>!t.projection&&t.staff===track.staff&&t.voice===track.voice);if(original)controller.selectPart(part!.id,original.id);}}>返回原轨</button></div>}
+      {track?.projection === "highest" && (
+        <div className="piano-adaptation">
+          单音简化：只演奏每组和弦的最高音，谱面保留原谱。
+          <button
+            onClick={() => {
+              const original = part!.tracks.find(
+                (t) =>
+                  !t.projection &&
+                  t.staff === track.staff &&
+                  t.voice === track.voice,
+              );
+              if (original) controller.selectPart(part!.id, original.id);
+            }}
+          >
+            返回原轨
+          </button>
+        </div>
+      )}
       <section className="staff-region" aria-label="乐谱">
         {score && part && track ? (
           <ScoreView
@@ -591,7 +1338,12 @@ export function PianoWorkspace({
               <>
                 <strong>春日影 · CRYCHIC</strong>
                 <span>待导入这版的 MusicXML / MXL 乐谱</span>
-                <a className="piano-download" href="?song=haruhikage-crychic#lyrics">去学唱页试听完整歌曲 ↗</a>
+                <a
+                  className="piano-download"
+                  href="?song=haruhikage-crychic#lyrics"
+                >
+                  去学唱页试听完整歌曲 ↗
+                </a>
                 <small>
                   先点“官方试听（片段）”听歌，或启用声音自由试琴。PDF/图片尚不支持。
                 </small>
