@@ -21,7 +21,7 @@ export interface NoteBox {
   event: NoteEvent;
   x: number;
   y: number;
-  graphic: Pick<GraphicalNote,'setColor'>;
+  graphic: Pick<GraphicalNote, "setColor">;
 }
 export async function engrave(
   container: HTMLElement,
@@ -29,7 +29,7 @@ export async function engrave(
   part: ScorePart,
   track: Track,
   zoom = 0.65,
-  window?:[number,number],
+  window?: [number, number],
 ) {
   const osmd = new OpenSheetMusicDisplay(container, {
     backend: "svg",
@@ -47,14 +47,25 @@ export async function engrave(
     newSystemFromXML: false,
   });
   osmd.Zoom = zoom;
-  await osmd.load(partXml(score, part.id,window));
+  osmd.EngravingRules.PageTopMargin = 1;
+  osmd.EngravingRules.PageBottomMargin = 1;
+  osmd.EngravingRules.PageLeftMargin = 0.5;
+  osmd.EngravingRules.PageRightMargin = 0.5;
+  await osmd.load(partXml(score, part.id, window));
+  // Practice follows one staff. Hide the others without rewriting MusicXML or
+  // changing its voices, timing, clefs, key/time signatures, or playback model.
+  osmd.Sheet.Instruments[0]?.Staves.forEach((staff, i) => {
+    staff.Visible = String(i + 1) === track.staff;
+  });
   osmd.render();
   const bars: BarBox[] = [],
     notes: NoteBox[] = [],
     factor = 10 * zoom;
   osmd.GraphicSheet.MeasureList.forEach((staffMeasures, offset) => {
-    const index=offset+(window?.[0]??0);
-    const boxes = staffMeasures.filter(Boolean).map((m) => m.PositionAndShape);
+    const index = offset + (window?.[0] ?? 0);
+    const boxes = staffMeasures
+      .filter((m) => m?.ParentStaff.isVisible())
+      .map((m) => m.PositionAndShape);
     if (!boxes.length) return;
     const x =
       Math.min(...boxes.map((b) => b.AbsolutePosition.x + b.BorderLeft)) *
@@ -78,7 +89,7 @@ export async function engrave(
       height: Math.max(45, bottom - y),
     });
     staffMeasures.forEach((measure, staffIndex) => {
-      if (!measure) return;
+      if (!measure || !measure.ParentStaff.isVisible()) return;
       for (const entry of measure.staffEntries) {
         const tick =
           (part.measures[index]?.tick ?? 0) +

@@ -1,6 +1,6 @@
 {
   "name": "anisong-learning-app",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "private": true,
   "type": "module",
   "engines": {
@@ -14,8 +14,9 @@
     "test": "node scripts/version.mjs && vitest run",
     "check": "npm run typecheck && npm run lint && npm test && npm run build",
     "android:sync": "npm run build && cap sync android",
-    "android:debug": "npm run android:sync && cd apps/android && ./gradlew :app:testDebugUnitTest :app:assembleDebug",
-    "prepare": "node scripts/version.mjs"
+    "android:debug": "npm run android:check",
+    "prepare": "node scripts/version.mjs",
+    "android:check": "node scripts/check-android.mjs"
   },
   "dependencies": {
     "react": "19.2.6",

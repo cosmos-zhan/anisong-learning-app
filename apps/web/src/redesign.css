@@ -885,20 +885,20 @@ small {
   background: #fffdf7 !important;
   color: #79502f !important;
 }
-.piano-practice {
+.piano-workspace.piano-practice {
   --piano-status-row: 24px;
   height: 100dvh;
   width: 100%;
   display: grid;
-  grid-template-rows: 44px minmax(0, 1fr) 44px var(--piano-status-row) minmax(
+  grid-template-rows: 52px minmax(0, 4fr) 44px var(--piano-status-row) minmax(
       0,
-      1fr
+      3fr
     );
-  gap: 4px;
+  gap: 6px;
   padding: max(4px, env(safe-area-inset-top), var(--safe-area-inset-top, 0px))
-    max(12px, env(safe-area-inset-right))
+    max(20px, env(safe-area-inset-right), var(--safe-area-inset-right, 0px))
     max(4px, env(safe-area-inset-bottom), var(--safe-area-inset-bottom, 0px))
-    max(12px, env(safe-area-inset-left));
+    max(20px, env(safe-area-inset-left), var(--safe-area-inset-left, 0px));
   background: #142923;
   color: #fffdf7;
   overflow: hidden;
@@ -1065,12 +1065,14 @@ small {
   white-space: nowrap;
 }
 .piano-practice .piano-key.white {
-  background: linear-gradient(#fffdf7, #e9e9df);
-  color: #526756;
-  border-color: #a6b2a0;
+  background: #f9f8f1;
+  color: #75847d;
+  border: 1px solid #142923;
+  border-radius: 6px;
 }
 .piano-practice .piano-key.black {
-  background: linear-gradient(#2d3e31, #14231c);
+  background: #263c30;
+  border-radius: 0 0 6px 6px;
   color: #c9d4c4;
   border-color: #0d1e15;
   box-shadow: 0 3px 4px #0003;
@@ -1166,10 +1168,10 @@ small {
   }
 }
 @media (orientation: portrait) {
-  .piano-practice {
-    grid-template-rows: 44px minmax(0, 1fr) 44px var(--piano-status-row) minmax(
+  .piano-workspace.piano-practice {
+    grid-template-rows: 52px minmax(0, 4fr) 44px var(--piano-status-row) minmax(
         0,
-        1fr
+        3fr
       );
   }
   .piano-practice .piano-song-heading small {
@@ -1192,12 +1194,12 @@ small {
   }
 }
 @media (min-width: 900px) and (min-height: 600px) {
-  .piano-practice {
+  .piano-workspace.piano-practice {
     padding: 12px 28px;
     gap: 8px;
-    grid-template-rows: 52px minmax(0, 1fr) 52px var(--piano-status-row) minmax(
+    grid-template-rows: 52px minmax(0, 4fr) 52px var(--piano-status-row) minmax(
         0,
-        1fr
+        3fr
       );
   }
   .piano-practice .piano-song-heading h1 {
@@ -1248,7 +1250,7 @@ small {
   color: inherit;
 }
 .piano-practice .focus-header h1 {
-  font-size: 15px;
+  font-size: 17px;
 }
 .app-shell .shell-header {
   margin-bottom: 0;
@@ -1479,4 +1481,33 @@ small {
   margin: 0 0 8px;
   font-size: 13px;
   line-height: 1.6;
+}
+
+/* Short landscape: reclaim chrome before shrinking the score and touch keys. */
+@media (orientation: landscape) and (max-height: 360px) {
+  .piano-workspace.piano-practice {
+    --piano-status-row: 20px;
+    grid-template-rows: 44px minmax(0, 4fr) 44px var(--piano-status-row) minmax(
+        0,
+        3fr
+      );
+    gap: 4px;
+    padding-left: max(
+      12px,
+      env(safe-area-inset-left),
+      var(--safe-area-inset-left, 0px)
+    );
+    padding-right: max(
+      12px,
+      env(safe-area-inset-right),
+      var(--safe-area-inset-right, 0px)
+    );
+  }
+  .piano-workspace.piano-practice.has-rest {
+    --piano-status-row: 44px;
+  }
+  .piano-practice .piano-key span {
+    padding-bottom: 6px;
+    font-size: 11px;
+  }
 }

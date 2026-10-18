@@ -2,19 +2,12 @@ name: Android debug APK
 on:
   workflow_dispatch:
   pull_request:
-    paths:
-      - 'apps/web/**'
-      - 'packages/core/**'
-      - 'packages/piano/**'
-      - 'packages/audio-web/**'
-      - 'package.json'
-      - 'package-lock.json'
-      - 'apps/android/**'
-      - 'packages/audio-native/**'
-      - 'capacitor.config.ts'
-      - '.github/workflows/android.yml'
   push:
+    branches: ['main', 'feature/**', 'fix/**']
     tags: ['android-test-*']
+concurrency:
+  group: android-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
@@ -37,13 +30,10 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
       - run: npm ci
-      - run: npm run check
-      - run: npx cap sync android
-      - run: chmod +x apps/android/gradlew
-      - name: Build debug APK and native unit tests
+      - name: Complete App check and debug APK
         env:
           VERSION_CODE: ${{ github.run_number }}
-        run: apps/android/gradlew -p apps/android :app:testDebugUnitTest :app:assembleDebug --stacktrace
+        run: npm run android:check
       - uses: actions/upload-artifact@v4
         with:
           name: anisong-debug-${{ github.sha }}

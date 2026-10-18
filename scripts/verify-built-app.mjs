@@ -37,10 +37,14 @@ try{
   if(document.querySelector('.score-message[role=alert]'))throw new Error('Production score renderer reported an error.');
   if(document.querySelector('.measure-hit')&&!document.querySelector('.score-message[role=status]'))break;
  }
- if(!document.querySelector('.staff-region svg'))throw new Error('Production score SVG was not created.');
+ if(!document.querySelector('.score-sheet svg'))throw new Error('Production score SVG was not created.');
  if(document.querySelector('.score-message[role=status]'))throw new Error('Production renderer did not finish.');
+ const notation=document.querySelector('.score-sheet svg');
+ if(Number(notation.getAttribute('width'))<100||notation.querySelectorAll('path,ellipse').length<5)throw new Error('Production notation was replaced by an icon or empty SVG.');
+ const scale=Number(document.querySelector('.score-sheet').dataset.scoreScale);
+ if(!Number.isFinite(scale)||scale<=0||scale>1.6||document.querySelector('.score-fit-frame').style.visibility!=='visible')throw new Error('Production notation fit is invalid or hidden.');
  const bars=document.querySelectorAll('.measure-hit').length;
- if(bars<1||bars>8||errors.length)throw new Error('Production window/DOM failed: '+errors.join(';'));
+ if(bars<1||bars>4||errors.length)throw new Error('Production window/DOM failed: '+errors.join(';'));
  const bar=document.querySelector('button[aria-label="谱面小节 1"]');
  if(!bar)throw new Error('Production first bar button missing.');
  bar.dispatchEvent(new window.MouseEvent('click',{bubbles:true}));
@@ -100,6 +104,6 @@ try{
  click(document.querySelector('.bottom-nav [aria-label="曲库"]'));await until(()=>document.querySelector('.library-list'));
  if(!document.querySelector('.song-row'))throw new Error('Production song library missing.');
 
- console.log(JSON.stringify({check:'production-esm-dom',svg:true,visibleBars:bars,page:document.querySelector('.score-page-controls span')?.textContent,compatible:!!document.querySelector('.score-compatibility'),barClickScheduledOscillators:oscillators.length,pause:true,feedbackSnapshot:true,practiceExit:true,homeAndLibrary:true,rangeGrid:true,dedicatedSpeed:true,panelBack:true,dedicatedMode:true,dedicatedTracks:true,dedicatedLabels:true,method:'jsdom, deterministic text metrics and instrumented Web Audio nodes; not physical browser/audio verification'}));
+ console.log(JSON.stringify({check:'production-esm-dom',svg:true,uniformScale:scale,visibleBars:bars,page:document.querySelector('.score-page-controls span')?.textContent,compatible:!!document.querySelector('.score-compatibility'),barClickScheduledOscillators:oscillators.length,pause:true,feedbackSnapshot:true,practiceExit:true,homeAndLibrary:true,rangeGrid:true,dedicatedSpeed:true,panelBack:true,dedicatedMode:true,dedicatedTracks:true,dedicatedLabels:true,method:'jsdom, deterministic text metrics and instrumented Web Audio nodes; not physical browser/audio verification'}));
  dom.window.close();process.exit(0);
 }catch(error){console.error(error.message);dom.window.close();process.exit(1);}

@@ -6,9 +6,11 @@
 
 **默认试用歌曲：** [春日影（CRYCHIC ver.）整曲试听](https://anisong-learning-lab.woolly-mochi-2205.chatgpt.site/?song=haruhikage-crychic#lyrics)。私有测试站已接入用户提供的 MP3 和 42 句 LRC，打开即可点句循环，或点“播放整曲”，无需重新导入。钢琴页已接入用户提供的 7 声部、140 小节 MXL 总谱，可直接点小节试听原轨（含和弦），等待弹对仍使用单音练习，见 [试用边界](docs/private-score.md)。[素材状态与操作](docs/haruhikage-trial.md) · [私有音频构建与恢复](docs/private-audio.md)。录音、歌词和该曲谱不进入 GitHub；普通克隆/CI 不带这些私人素材，仍可本地导入。
 
-**手机反馈修复：** [歌词跳转与谱面兼容修复记录](docs/mobile-bugfixes.md)（完整缓冲后按句跳转；每屏8小节，精细排版失败自动显示兼容谱）。
+**手机反馈修复：** [歌词跳转与谱面兼容修复记录](docs/mobile-bugfixes.md)（完整缓冲后按句跳转；当前每屏4小节，窄 / 短视口2小节；精细排版失败自动显示兼容谱）。
 
 **钢琴手机入口：** [现有测试站](https://anisong-learning-lab.woolly-mochi-2205.chatgpt.site/#piano)（同一 ChatGPT 账号）。默认载入《春日影》用户曲谱；“自动试听”下点小节即可听当前轨道，包括和弦；“等待弹对”限单音，可明确选择最高音单音练习。从曲库选择「小小的练习曲」可练习八小节 CC0 谱，也可导入 `.musicxml` / `.xml` / `.mxl`。详见 [钢琴手机验收](docs/piano-mobile-testing.md)、[架构与恢复](docs/piano-architecture.md)、[交付记录](docs/piano-delivery.md)。
+
+**钢琴谱面与横屏比例（0.3.4）：** 默认4小节单行、聚焦当前谱表、等比适配真实五线谱；短横屏压缩顶部间距。每轮交付均需完整 App 构建，详见 [本批对照与验收](docs/ui-r1-piano-score.md)。
 
 **界面 R1 第一批（0.3.1）：** 钢琴控制带、小节网格、独立速度抽屉及返回层级已调整，见 [第一批变更与手机验收](docs/ui-r1-piano-batch1.md)。
 
@@ -41,7 +43,7 @@ npm run dev
 - `npm test`：Vitest，包含业务、音频适配器与 React DOM 交互测试。
 - `npm run build`：生成构建 SHA / 分支 / 时间，再构建 `dist/`。
 - `npm run android:sync`：构建共享前端并同步原生项目。
-- `npm run android:debug`：构建 debug APK，需要 JDK 21、Android SDK 36。
+- `npm run android:check`（`android:debug` 同义）：每轮修改必须执行的完整 App 检查。依次验证前端、构建产物交互、Capacitor 同步、原生单元测试、debug APK，需要 JDK 21、Android SDK 36。
 
 `main` 用于稳定版本；后续变更在 `feature/*` / `fix/*`，开 PR，CI 通过、手机预览复测后合并。不要把未经手机验证的体验标记为真机验收通过。
 
@@ -57,7 +59,7 @@ npm run dev
 | `apps/android` | Capacitor Android、Media3 插件、Gradle wrapper |
 | `public/demo` | CC0 原创音频、LRC、版权说明 |
 | `tests` | Vitest 业务与交互回归测试 |
-| `.github/workflows` | push / PR 网页检查、手动 / tag APK 构建 |
+| `.github/workflows` | push / PR 网页检查与完整 APK 构建 |
 | `docs` | 架构、部署、手机测试、反馈、交接、已知问题 |
 
 阅读：[架构](docs/architecture.md) · [手机测试](docs/mobile-testing.md) · [反馈](docs/feedback.md) · [部署](docs/deployment.md) · [维护与交接](docs/maintenance.md) · [已知问题](docs/known-issues.md) · [测试证据](docs/test-results.md)。
