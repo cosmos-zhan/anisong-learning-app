@@ -61,7 +61,7 @@ it("does not engrave while the module is hidden; active notes can turn to the ne
     <ScoreView {...props} active activeId={p.measures[9].events[0].id} />,
   );
   await screen.findByRole("button", { name: "谱面小节 10" });
-  expect(screen.getByText("谱面 9–12 / 12 小节 · 谱表 1")).toBeVisible();
+  expect(screen.getByText(/谱面 9–12 \/ 12 小节 · 谱表 1/)).toBeVisible();
 });
 it("retry can recover the precise renderer after a fallback", async () => {
   const s = parseMusicXml(fixture([note()])),
@@ -86,4 +86,25 @@ it("retry can recover the precise renderer after a fallback", async () => {
     .setup()
     .click(screen.getByRole("button", { name: "重试精细谱面" }));
   await waitFor(() => expect(screen.queryByText(/兼容谱面 ·/)).toBeNull());
+});
+
+it("compatible notation fills four normal bars without shrinking the staff spacing", async () => {
+  const { compatibleEngrave } = await import(
+    "../apps/web/src/piano/compatible-engraver"
+  );
+  const s = parseMusicXml(fixture(Array.from({ length: 4 }, () => note("D")))),
+    p = s.parts[0],
+    host = document.createElement("div");
+  const result = compatibleEngrave(host, p, p.tracks[0], [0, 3], 716);
+  expect(result.bars).toHaveLength(4);
+  expect(
+    Number(host.querySelector("svg")?.getAttribute("width")),
+  ).toBeLessThanOrEqual(716);
+  const lines = Array.from(host.querySelectorAll("line")).filter(
+    (l) => l.getAttribute("x1") === "8",
+  );
+  expect(
+    Number(lines[1].getAttribute("y1")) - Number(lines[0].getAttribute("y1")),
+  ).toBe(10);
+  expect(host.querySelectorAll("ellipse")).toHaveLength(4);
 });

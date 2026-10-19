@@ -35,6 +35,8 @@ export function ScoreView({
   const host = useRef<HTMLDivElement>(null),
     viewport = useRef<HTMLDivElement>(null);
   const [available, setAvailable] = useState({ width: 800, height: 160 });
+  const availableRef = useRef(available);
+  availableRef.current = available;
   const [anchor, setAnchor] = useState(range[0]),
     [retry, setRetry] = useState(0);
   const pageSize = scorePageSize(available.width, available.height);
@@ -96,7 +98,9 @@ export function ScoreView({
     if (!active) return;
     let cancelled = false;
     const holder = document.createElement("div");
-    holder.style.width = "100%";
+    // The initial fit frame is 1px until layout completes. OSMD must never
+    // inherit that provisional width when engraving in a real WebView.
+    holder.style.width = "1024px";
     setLoading(true);
     // Keep the compatibility footer while a replacement page is loading.
     // Hiding/showing it per attempt would resize this viewport across the
@@ -135,7 +139,13 @@ export function ScoreView({
         if (cancelled) return;
         const code = `SCORE_${stage}_${error instanceof Error ? error.name : "UNKNOWN"}`;
         try {
-          const result = compatibleEngrave(holder, part, track, [start, end]);
+          const result = compatibleEngrave(
+            holder,
+            part,
+            track,
+            [start, end],
+            availableRef.current.width,
+          );
           setCompatible(true);
           install(result);
           onRenderStatus?.({ backend: "compatible", code });
@@ -169,11 +179,26 @@ export function ScoreView({
     available.width,
     available.height,
   );
+  useEffect(() => {
+    if (!active || layout.key !== key) return;
+    const el = viewport.current;
+    const note = layout.notes.find((n) => n.event.id === activeId);
+    if (!el || !note || !el.clientWidth || !el.clientHeight) return;
+    const x = note.x * fit.scale,
+      y = note.y * fit.scale;
+    if (x < el.scrollLeft + 24 || x > el.scrollLeft + el.clientWidth - 24)
+      el.scrollLeft = Math.max(0, x - el.clientWidth * 0.4);
+    if (y < el.scrollTop + 24 || y > el.scrollTop + el.clientHeight - 16)
+      el.scrollTop = Math.max(0, y - el.clientHeight * 0.75);
+  }, [active, activeId, layout, key, fit.scale]);
   const ready = layout.key === key && !loading && !error;
   return (
     <div
       className={`score-window score-fitted ${compatible ? "is-compatible" : ""}`}
       data-page-size={pageSize}
+      data-overflow={
+        fit.width > available.width || fit.height > available.height
+      }
     >
       <div className="score-page-controls" aria-label="谱面翻页">
         <button
@@ -186,6 +211,11 @@ export function ScoreView({
         <span>
           谱面 {start + 1}–{end + 1} / {part.measures.length} 小节 · 谱表{" "}
           {track.staff}
+          {fit.width > available.width + 1
+            ? " · 左右滑动"
+            : fit.height > available.height + 1
+              ? " · 上下滑动"
+              : ""}
         </span>
         <button
           className="score-page-next"
@@ -198,14 +228,21 @@ export function ScoreView({
       </div>
       {compatible && (
         <div className="score-compatibility">
-          兼容谱面 · 装饰与连梁简化{" "}
-          <button onClick={() => setRetry((r) => r + 1)}>重试精细谱面</button>
+          <span>
+            兼容谱面 · {start + 1}–{end + 1} 小节（简化连梁）
+          </span>{" "}
+          <button
+            aria-label="重试精细谱面"
+            onClick={() => setRetry((r) => r + 1)}
+          >
+            重试
+          </button>
         </div>
       )}
       <div
         className="score-viewport"
         ref={viewport}
-        aria-label="五线谱，自动适应可用空间"
+        aria-label="五线谱，可横向和纵向滚动"
       >
         {loading && (
           <p className="score-message" role="status">

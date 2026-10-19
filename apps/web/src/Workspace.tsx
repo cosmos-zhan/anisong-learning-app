@@ -21,6 +21,7 @@ import {
 import version from "./version.json";
 import media from "./bundled-audio.json";
 import "./redesign.css";
+import "./piano/practice-layout.css";
 const pages = [
   "home",
   "library",
@@ -543,7 +544,9 @@ export function Workspace() {
               <button className="info-row" onClick={() => navigate("about")}>
                 关于 Anisong <span>›</span>
               </button>
-              <p className="build-label">v{version.appVersion} · {version.sha}</p>
+              <p className="build-label">
+                v{version.appVersion} · {version.sha}
+              </p>
             </>
           )}
           {page === "about" && (

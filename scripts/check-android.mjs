@@ -4,7 +4,10 @@ const npm = process.platform === "win32" ? "npm.cmd" : "npm";
 const npx = process.platform === "win32" ? "npx.cmd" : "npx";
 const commands = [
   [npm, ["run", "check"]],
-  [process.execPath, ["scripts/verify-built-app.mjs"]],
+  [
+    process.execPath,
+    ["--experimental-vm-modules", "scripts/verify-built-app.mjs"],
+  ],
   [process.execPath, ["scripts/verify-lyrics-build.mjs"]],
   [npx, ["cap", "sync", "android"]],
   process.platform === "win32"

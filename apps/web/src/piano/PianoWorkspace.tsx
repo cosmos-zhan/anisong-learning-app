@@ -64,6 +64,7 @@ export interface BundledScore {
   preferredPartId?: string;
   preferredTrackId?: string;
 }
+import { pianoKeyHeight } from "./score-layout";
 import "./piano.css";
 
 export function PianoWorkspace({
@@ -121,6 +122,20 @@ export function PianoWorkspace({
     [ack, setAck] = useState(false),
     [keyboardStart, setKeyboardStart] = useState(60),
     [wide, setWide] = useState(() => window.innerWidth >= 600);
+  const [viewportHeight, setViewportHeight] = useState(
+    () => window.visualViewport?.height || window.innerHeight,
+  );
+  useEffect(() => {
+    const measure = () =>
+      setViewportHeight(window.visualViewport?.height || window.innerHeight);
+    measure();
+    window.addEventListener("resize", measure);
+    window.visualViewport?.addEventListener("resize", measure);
+    return () => {
+      window.removeEventListener("resize", measure);
+      window.visualViewport?.removeEventListener("resize", measure);
+    };
+  }, []);
   const token = useRef(0);
   const currentSong = useRef(song);
   currentSong.current = song;
@@ -518,6 +533,12 @@ export function PianoWorkspace({
     voice: track?.voice,
     practiceTrack: track?.projection ?? "original",
     renderer: renderStatus,
+    viewport: {
+      width: window.innerWidth,
+      height: window.innerHeight,
+      visualHeight: viewportHeight,
+      pixelRatio: window.devicePixelRatio,
+    },
     bars: state.range.map((n) => n + 1),
     mode: state.mode,
     speed: state.speed,
@@ -632,6 +653,14 @@ export function PianoWorkspace({
       <main
         className={`piano-workspace piano-redesign piano-${view} ${restWaiting || controller.blocked ? "has-rest" : ""}`}
         aria-label="钢琴学谱"
+        style={
+          view === "practice"
+            ? ({
+                "--piano-viewport-height": `${viewportHeight}px`,
+                "--piano-keyboard-height": `${pianoKeyHeight(viewportHeight)}px`,
+              } as import("react").CSSProperties)
+            : undefined
+        }
       >
         {view === "materials" ? (
           <section className="material-panel">
@@ -688,11 +717,13 @@ export function PianoWorkspace({
           </section>
         ) : view === "prepare" ? (
           <div className="piano-preparation">
-            <button className="back-link" onClick={onExit}>
-              ← 返回歌曲
-            </button>
-            <h1>钢琴学谱</h1>
-            <p className="helper">选好一小段，开始练琴。</p>
+            <header className="preparation-header">
+              <button aria-label="返回歌曲" onClick={onExit}>
+                <Icon name="back" />
+              </button>
+              <h1>钢琴学谱</h1>
+            </header>
+            <p className="preparation-intro">选好一小段，开始练琴。</p>
             <div className="preparation-song">
               <h2>{shortTitle}</h2>
               <p>
@@ -701,15 +732,13 @@ export function PianoWorkspace({
                   : "尚未关联乐谱"}
               </p>
             </div>
-            <p className="helper" role="status">
-              {busy ? "正在恢复乐谱…" : state.error || notice}
-            </p>
+
             <section
               className="settings-card preparation-parameters"
               aria-label="钢琴练习参数"
             >
               <button
-                className="info-row"
+                className="preparation-row"
                 aria-label={`练习方式：${modeTitle}`}
                 onClick={() => openSheet("mode")}
               >
@@ -726,7 +755,7 @@ export function PianoWorkspace({
                 <span>{modeTitle} ›</span>
               </button>
               <button
-                className="info-row"
+                className="preparation-row"
                 aria-label="选择声部与轨道"
                 disabled={!score}
                 onClick={() => openSheet("tracks")}
@@ -742,7 +771,7 @@ export function PianoWorkspace({
                 <span aria-hidden="true">›</span>
               </button>
               <button
-                className="info-row"
+                className="preparation-row"
                 aria-label={`练习范围：${rangeTitle}`}
                 disabled={!score}
                 onClick={() => openSheet("range")}
@@ -754,7 +783,7 @@ export function PianoWorkspace({
                 <span aria-hidden="true">›</span>
               </button>
               <button
-                className="info-row"
+                className="preparation-row"
                 aria-label={`钢琴速度 ${state.speed} 倍`}
                 onClick={() => openSheet("speed")}
               >
@@ -765,6 +794,14 @@ export function PianoWorkspace({
                 <span>{state.speed}× ›</span>
               </button>
             </section>
+            {issues}
+            <p className="rotate-card">↔ 横过手机，看谱和琴键会同时展开。</p>
+            <button className="primary full" onClick={onEnter}>
+              进入钢琴练习 →
+            </button>
+            <button className="quiet full" onClick={onMaterials}>
+              关联 / 替换乐谱
+            </button>
             <div className="preparation-secondary">
               <button onClick={() => openSheet("labels")}>
                 音符辅助：
@@ -780,14 +817,9 @@ export function PianoWorkspace({
                 循环{state.loop ? "开" : "关"}
               </button>
             </div>
-            {issues}
-            <p className="rotate-card">↔ 横过手机，看谱和琴键会同时展开。</p>
-            <button className="primary full" onClick={onEnter}>
-              进入钢琴练习 →
-            </button>
-            <button className="quiet full" onClick={onMaterials}>
-              关联 / 替换乐谱
-            </button>
+            <p className="helper preparation-notice" role="status">
+              {busy ? "正在恢复乐谱…" : state.error || notice}
+            </p>
           </div>
         ) : (
           <>
@@ -834,28 +866,81 @@ export function PianoWorkspace({
                 <Icon name="settings" />
               </button>
             </div>
-            <section className="staff-region" aria-label="乐谱">
-              {score && part && track ? (
-                <ScoreView
-                  score={score}
-                  part={part}
-                  track={track}
-                  range={state.range}
-                  activeId={
-                    state.mode === "free" ? undefined : currentSegment?.id
-                  }
-                  labels={labels}
-                  onSelect={choose}
-                  active={active}
-                  onRenderStatus={setRenderStatus}
-                />
-              ) : (
-                <div className="piano-empty">
-                  {busy ? "正在载入乐谱…" : "尚未关联 MusicXML 乐谱。"}
-                  <button onClick={onMaterials}>添加乐谱</button>
-                </div>
-              )}
-            </section>
+            <div
+              className={`piano-score-stack ${restWaiting || controller.blocked || state.error ? "with-status" : ""}`}
+            >
+              <section className="staff-region" aria-label="乐谱">
+                {score && part && track ? (
+                  <ScoreView
+                    score={score}
+                    part={part}
+                    track={track}
+                    range={state.range}
+                    activeId={
+                      state.mode === "free" ? undefined : currentSegment?.id
+                    }
+                    labels={labels}
+                    onSelect={choose}
+                    active={active}
+                    onRenderStatus={setRenderStatus}
+                  />
+                ) : (
+                  <div className="piano-empty">
+                    {busy ? "正在载入乐谱…" : "尚未关联 MusicXML 乐谱。"}
+                    <button onClick={onMaterials}>添加乐谱</button>
+                  </div>
+                )}
+              </section>
+              <div
+                className={`piano-status ${restWaiting || controller.blocked || state.error ? "status-action" : ""}`}
+                role="status"
+              >
+                <span>
+                  {busy
+                    ? "正在读取乐谱…"
+                    : state.error ||
+                      state.message ||
+                      (controller.trackBlocked
+                        ? "此轨暂不支持当前模式，请选择其他轨道。"
+                        : !score
+                          ? notice
+                          : state.mode === "free"
+                            ? "自由弹奏 · 按住发声，松开释放"
+                            : running
+                              ? `${modeTitle} · ${currentMeasure ? `第 ${currentMeasure.index + 1} 小节` : "练习中"}`
+                              : "准备试听 · 点小节，或点播放")}
+                </span>
+                {!state.error && state.mode !== "free" && target?.pitch && (
+                  <span className="target-hint">
+                    {pitchLabel(target.pitch)} /{" "}
+                    {pitchLabel(target.pitch, true)}
+                    {state.phase === "waiting" ? " · 等你触键" : ""}
+                  </span>
+                )}
+                {controller.blocked && (
+                  <button
+                    className="rest-step"
+                    onClick={() =>
+                      openSheet(
+                        state.mode === "wait" && controller.trackBlocked
+                          ? "blocked"
+                          : "tracks",
+                      )
+                    }
+                  >
+                    查看原因
+                  </button>
+                )}
+                {restWaiting && (
+                  <button
+                    className="rest-step"
+                    onClick={() => controller.nextRest()}
+                  >
+                    下一步（休止）
+                  </button>
+                )}
+              </div>
+            </div>
             <div className="focus-piano-transport" aria-label="钢琴播放控制">
               <button
                 className="range-button"
@@ -918,54 +1003,6 @@ export function PianoWorkspace({
               <button aria-label="高八度" onClick={() => shiftOctave(12)}>
                 高八度
               </button>
-            </div>
-            <div
-              className={`piano-status ${restWaiting ? "rest-waiting" : ""}`}
-              role="status"
-            >
-              <span>
-                {busy
-                  ? "正在读取乐谱…"
-                  : state.error ||
-                    state.message ||
-                    (controller.trackBlocked
-                      ? "此轨暂不支持当前模式，请选择其他轨道。"
-                      : !score
-                        ? notice
-                        : state.mode === "free"
-                          ? "自由弹奏 · 按住发声，松开释放"
-                          : running
-                            ? `${modeTitle} · ${currentMeasure ? `第 ${currentMeasure.index + 1} 小节` : "练习中"}`
-                            : "准备试听 · 点小节，或点播放")}
-              </span>
-              {!state.error && state.mode !== "free" && target?.pitch && (
-                <span className="target-hint">
-                  {pitchLabel(target.pitch)} / {pitchLabel(target.pitch, true)}
-                  {state.phase === "waiting" ? " · 等你触键" : ""}
-                </span>
-              )}
-              {controller.blocked && (
-                <button
-                  className="rest-step"
-                  onClick={() =>
-                    openSheet(
-                      state.mode === "wait" && controller.trackBlocked
-                        ? "blocked"
-                        : "tracks",
-                    )
-                  }
-                >
-                  查看原因
-                </button>
-              )}
-              {restWaiting && (
-                <button
-                  className="rest-step"
-                  onClick={() => controller.nextRest()}
-                >
-                  下一步（休止）
-                </button>
-              )}
             </div>
             <Keyboard
               start={keyboardStart}

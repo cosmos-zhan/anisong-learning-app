@@ -1,29 +1,32 @@
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { it, expect, vi } from "vitest";
-import { fitScore, scorePageSize } from "../apps/web/src/piano/score-layout";
+import {
+  fitScore,
+  scorePageSize,
+  pianoKeyHeight,
+} from "../apps/web/src/piano/score-layout";
 import { ScoreView } from "../apps/web/src/piano/ScoreView";
 import { engrave } from "../apps/web/src/piano/engraver";
 import { parseMusicXml } from "../packages/piano/musicxml";
 import { fixture, note } from "./piano-fixtures";
 vi.mock("../apps/web/src/piano/engraver", () => ({ engrave: vi.fn() }));
-it("fits a dense single staff with one uniform scale at phone landscape sizes", () => {
+it("preserves readable staff spacing at short and narrow viewports instead of making a thumbnail", () => {
   for (const [width, height] of [
     [716, 110],
     [628, 89],
     [540, 67],
-    [1232, 300],
+    [230, 300],
   ]) {
     const fit = fitScore(980, 125, width, height);
-    expect(fit.width).toBeLessThanOrEqual(width + 0.001);
-    expect(fit.height).toBeLessThanOrEqual(height + 0.001);
+    expect(fit.scale).toBeGreaterThanOrEqual(0.9);
     expect(fit.width / fit.height).toBeCloseTo(980 / 125);
-    expect(fit.scale).toBeGreaterThan(0);
+    expect(scorePageSize(width, height)).toBe(4);
   }
-  expect(scorePageSize(716, 110)).toBe(4);
-  expect(scorePageSize(540, 110)).toBe(2);
-  expect(scorePageSize(716, 67)).toBe(2);
+  expect(fitScore(980, 125, 716, 40).height).toBeGreaterThan(40);
+  for (const height of [280, 320, 344, 360, 390])
+    expect(pianoKeyHeight(height)).toBeGreaterThanOrEqual(112);
 });
-it("rotation resizes notation and hitboxes together without restarting playback; short views turn two bars at a time", async () => {
+it("rotation resizes notation and hitboxes together without restarting playback; short views preserve four bars and readable geometry", async () => {
   let width = 716,
     height = 110;
   vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockImplementation(
@@ -62,14 +65,14 @@ it("rotation resizes notation and hitboxes together without restarting playback;
   const calls = vi.mocked(engrave).mock.calls.length;
   expect(
     document.querySelector(".score-sheet")?.getAttribute("data-score-scale"),
-  ).toBe(String(716 / 900));
+  ).toBe(String(0.9));
   width = 620;
   height = 90;
   fireEvent(window, new Event("resize"));
   await waitFor(() =>
     expect(
       document.querySelector(".score-sheet")?.getAttribute("data-score-scale"),
-    ).toBe(String(620 / 900)),
+    ).toBe(String(0.9)),
   );
   expect(engrave).toHaveBeenCalledTimes(calls);
   fireEvent.click(screen.getByRole("button", { name: "谱面小节 1" }));
@@ -77,7 +80,7 @@ it("rotation resizes notation and hitboxes together without restarting playback;
   width = 540;
   height = 67;
   fireEvent(window, new Event("resize"));
-  await screen.findByRole("button", { name: "后 2 小节" });
+  await screen.findByRole("button", { name: "后 4 小节" });
   await waitFor(() =>
     expect(engrave).toHaveBeenLastCalledWith(
       expect.anything(),
@@ -85,7 +88,7 @@ it("rotation resizes notation and hitboxes together without restarting playback;
       p,
       p.tracks[0],
       1,
-      [0, 1],
+      [0, 3],
     ),
   );
   ui.unmount();
@@ -94,7 +97,7 @@ it("rotation resizes notation and hitboxes together without restarting playback;
   expect(engrave).toHaveBeenCalledTimes(count);
 });
 
-it("keeps a compatible page stable when its footer crosses the two/four-bar breakpoint", async () => {
+it("compatibility fallback keeps four bars without repeated layout attempts", async () => {
   vi.mocked(engrave)
     .mockReset()
     .mockRejectedValue(new TypeError("renderer unavailable"));
@@ -135,15 +138,48 @@ it("keeps a compatible page stable when its footer crosses the two/four-bar brea
     />,
   );
   try {
-    await screen.findByRole("button", { name: "后 2 小节" });
+    await screen.findByRole("button", { name: "后 4 小节" });
     await screen.findByRole("button", { name: "谱面小节 1" });
     expect(screen.getByText(/兼容谱面 ·/)).toBeVisible();
+    expect(engrave).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole("button", { name: "后 4 小节" }));
+    await screen.findByRole("button", { name: "谱面小节 5" });
     expect(engrave).toHaveBeenCalledTimes(2);
-    fireEvent.click(screen.getByRole("button", { name: "后 2 小节" }));
-    await screen.findByRole("button", { name: "谱面小节 3" });
-    expect(engrave).toHaveBeenCalledTimes(3);
   } finally {
     ui.unmount();
     vi.unstubAllGlobals();
   }
+});
+
+it("follows an actual active note inside an overflowing four-bar page", async () => {
+  vi.mocked(engrave).mockReset();
+  vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(600);
+  vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(90);
+  const s = parseMusicXml(fixture(Array.from({ length: 4 }, () => note()))),
+    p = s.parts[0],
+    event = p.measures[2].events[0];
+  vi.mocked(engrave).mockImplementation(async (host) => {
+    host.innerHTML = '<svg width="1000" height="125"></svg>';
+    return {
+      osmd: {} as never,
+      bars: [{ index: 2, x: 650, y: 0, width: 250, height: 110 }],
+      notes: [{ event, x: 850, y: 108, graphic: { setColor: vi.fn() } }],
+    };
+  });
+  const props = {
+    score: s,
+    part: p,
+    track: p.tracks[0],
+    range: [0, 3] as [number, number],
+    labels: "none" as const,
+    onSelect: vi.fn(),
+  };
+  const ui = render(<ScoreView {...props} />);
+  await screen.findByRole("button", { name: "谱面小节 3" });
+  const el = document.querySelector(".score-viewport")!;
+  expect(el.scrollLeft).toBe(0);
+  ui.rerender(<ScoreView {...props} activeId={event.id} />);
+  await waitFor(() => expect(el.scrollLeft).toBeGreaterThan(0));
+  expect(el.scrollTop).toBeGreaterThan(0);
+  expect(engrave).toHaveBeenCalledTimes(1);
 });

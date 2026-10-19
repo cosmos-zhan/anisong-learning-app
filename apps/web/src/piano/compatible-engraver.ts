@@ -6,6 +6,7 @@ export function compatibleEngrave(
   part: ScorePart,
   track: Track,
   window: [number, number],
+  availableWidth = 800,
 ) {
   const ns = "http://www.w3.org/2000/svg";
   const svg = document.createElementNS(ns, "svg");
@@ -14,9 +15,25 @@ export function compatibleEngrave(
   const measures = part.measures.slice(window[0], window[1] + 1),
     staffs = [track.staff];
   if (!staffs.length) staffs.push(track.staff);
-  const barWidth = 250,
-    left = 65,
-    height = staffs.length * 130 + 35,
+  const left = 65,
+    // Four ordinary bars fill the phone's paper. Dense bars can overflow;
+    // staff spacing and noteheads never shrink to make a thumbnail.
+    needed = Math.max(
+      150,
+      ...measures.map(
+        (m) =>
+          new Set(
+            m.events.filter((e) => e.staff === track.staff).map((e) => e.tick),
+          ).size *
+            18 +
+          30,
+      ),
+    ),
+    barWidth = Math.max(
+      needed,
+      (Math.max(650, availableWidth) - left) / Math.max(1, measures.length),
+    ),
+    height = staffs.length * 100 + 20,
     width = left + barWidth * measures.length;
   svg.setAttribute("width", String(width));
   svg.setAttribute("height", String(height));

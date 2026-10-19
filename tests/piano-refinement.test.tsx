@@ -435,3 +435,82 @@ it("part selection clamps a shorter part honestly, preserves mode/speed, and res
   restored.ui.unmount();
   restored.controller.dispose();
 });
+
+it("preparation uses left aligned list rows rather than nested generic button cards", async () => {
+  const { readFileSync } = await import("node:fs");
+  const style = document.createElement("style");
+  style.textContent = [
+    "apps/web/src/piano/piano.css",
+    "apps/web/src/redesign.css",
+    "apps/web/src/piano/practice-layout.css",
+  ]
+    .map((p) => readFileSync(p, "utf8"))
+    .join("\n");
+  document.head.append(style);
+  const controller = new PianoController(new PianoTestAudio());
+  const ui = render(
+    <PianoWorkspace
+      song={DEMO_SONG}
+      active
+      view="prepare"
+      controller={controller}
+    />,
+  );
+  try {
+    await waitFor(() => expect(controller.score).toBeDefined());
+    const rows = within(
+      screen.getByRole("region", { name: "钢琴练习参数" }),
+    ).getAllByRole("button");
+    expect(rows).toHaveLength(4);
+    for (const row of rows) {
+      expect(row.classList.contains("info-row")).toBe(false);
+      expect(getComputedStyle(row).textAlign).toBe("left");
+      expect(getComputedStyle(row.querySelector("strong")!).textAlign).toBe(
+        "left",
+      );
+      expect(getComputedStyle(row).borderRadius).toBe("0");
+    }
+    expect(screen.getByRole("button", { name: "返回歌曲" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "钢琴学谱" })).toBeVisible();
+  } finally {
+    ui.unmount();
+    controller.dispose();
+    style.remove();
+  }
+});
+
+it("visible viewport changes retain a useful key height and the actual practice settings", async () => {
+  const visual = Object.assign(new EventTarget(), { height: 320, width: 740 });
+  vi.stubGlobal("visualViewport", visual);
+  const { controller: c, ui } = await practice();
+  try {
+    const root = screen.getByRole("main", { name: "钢琴学谱" });
+    expect(root.style.getPropertyValue("--piano-keyboard-height")).toBe(
+      "112px",
+    );
+    expect(root.style.getPropertyValue("--piano-viewport-height")).toBe(
+      "320px",
+    );
+    act(() => {
+      c.select(4, 7, false);
+      c.setSpeed(0.75);
+    });
+    visual.height = 390;
+    act(() => visual.dispatchEvent(new Event("resize")));
+    expect(root.style.getPropertyValue("--piano-keyboard-height")).toBe(
+      "125px",
+    );
+    expect(root.style.getPropertyValue("--piano-viewport-height")).toBe(
+      "390px",
+    );
+    expect(c.getSnapshot().range).toEqual([4, 7]);
+    expect(c.getSnapshot().speed).toBe(0.75);
+    expect(
+      document.querySelector(".piano-score-stack .piano-status"),
+    ).not.toBeNull();
+  } finally {
+    ui.unmount();
+    c.dispose();
+    vi.unstubAllGlobals();
+  }
+});
