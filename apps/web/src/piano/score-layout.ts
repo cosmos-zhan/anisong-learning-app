@@ -3,11 +3,12 @@ export function fitScore(
   width: number,
   height: number,
   availableWidth: number,
-  _availableHeight: number,
+  availableHeight: number,
 ) {
   const scale = Math.max(
-    0.9,
-    Math.min(Math.max(1, availableWidth) / Math.max(1, width), 1.8),
+    0.75,
+    Math.min(Math.max(1, availableWidth) / Math.max(1, width),
+      Math.max(1, availableHeight) / Math.max(1, height), 1.5),
   );
   return { scale, width: width * scale, height: height * scale };
 }

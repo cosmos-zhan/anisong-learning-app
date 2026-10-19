@@ -147,7 +147,7 @@ export function Keyboard({
                     "Li",
                     "Ti",
                   ][midi % 12]
-                : `${names[midi % 12]}${Math.floor(midi / 12) - 1}`}
+                : `${names[midi % 12].split("/")[0]}${Math.floor(midi / 12) - 1}`}
           </span>
         </button>
       ))}

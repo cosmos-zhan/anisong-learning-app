@@ -30,11 +30,13 @@ export async function engrave(
   track: Track,
   zoom = 0.65,
   window?: [number, number],
+  wrap = false,
 ) {
   const osmd = new OpenSheetMusicDisplay(container, {
     backend: "svg",
     autoResize: false,
-    renderSingleHorizontalStaffline: true,
+    renderSingleHorizontalStaffline: !wrap,
+    pageFormat: "Endless",
     drawTitle: false,
     drawSubtitle: false,
     drawComposer: false,
@@ -51,6 +53,14 @@ export async function engrave(
   osmd.EngravingRules.PageBottomMargin = 1;
   osmd.EngravingRules.PageLeftMargin = 0.5;
   osmd.EngravingRules.PageRightMargin = 0.5;
+  // Auxiliary pitch labels sit below each staff; compacttight's 1-unit system
+  // gap otherwise puts them on top of the next system's clef and notes.
+  if (wrap) {
+    osmd.EngravingRules.MinimumDistanceBetweenSystems = 7;
+    osmd.EngravingRules.MinSkyBottomDistBetweenSystems = 4;
+    osmd.EngravingRules.RenderXMeasuresPerLineAkaSystem =
+      parseFloat(container.style.width) >= 500 ? 2 : 1;
+  }
   await osmd.load(partXml(score, part.id, window));
   // Practice follows one staff. Hide the others without rewriting MusicXML or
   // changing its voices, timing, clefs, key/time signatures, or playback model.

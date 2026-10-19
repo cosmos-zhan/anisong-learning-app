@@ -18,7 +18,7 @@ it("preserves readable staff spacing at short and narrow viewports instead of ma
     [230, 300],
   ]) {
     const fit = fitScore(980, 125, width, height);
-    expect(fit.scale).toBeGreaterThanOrEqual(0.9);
+    expect(fit.scale).toBeGreaterThanOrEqual(0.75);
     expect(fit.width / fit.height).toBeCloseTo(980 / 125);
     expect(scorePageSize(width, height)).toBe(4);
   }
@@ -65,14 +65,14 @@ it("rotation resizes notation and hitboxes together without restarting playback;
   const calls = vi.mocked(engrave).mock.calls.length;
   expect(
     document.querySelector(".score-sheet")?.getAttribute("data-score-scale"),
-  ).toBe(String(0.9));
+  ).toBe(String(716 / 900));
   width = 620;
   height = 90;
   fireEvent(window, new Event("resize"));
   await waitFor(() =>
     expect(
       document.querySelector(".score-sheet")?.getAttribute("data-score-scale"),
-    ).toBe(String(0.9)),
+    ).toBe(String(0.75)),
   );
   expect(engrave).toHaveBeenCalledTimes(calls);
   fireEvent.click(screen.getByRole("button", { name: "谱面小节 1" }));
@@ -89,6 +89,7 @@ it("rotation resizes notation and hitboxes together without restarting playback;
       p.tracks[0],
       1,
       [0, 3],
+      true,
     ),
   );
   ui.unmount();

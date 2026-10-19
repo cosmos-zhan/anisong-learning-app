@@ -845,14 +845,6 @@ export function PianoWorkspace({
               >
                 {modeTitle}
               </button>
-              {state.sound !== "ready" && (
-                <button
-                  className="sound-enable"
-                  onClick={() => void controller.enable()}
-                >
-                  {state.sound === "off" ? "启用声音" : "重新启用声音"}
-                </button>
-              )}
               <button
                 aria-label="更多钢琴操作"
                 onClick={() => openSheet("more")}
@@ -990,30 +982,43 @@ export function PianoWorkspace({
               >
                 循环{state.loop ? "开" : "关"}
               </button>
-              <button onClick={() => openSheet("labels")}>
+              <button
+                className="piano-transport-secondary"
+                onClick={() => openSheet("labels")}
+              >
                 {labels === "name"
                   ? "音名辅助"
                   : labels === "solfege"
                     ? "唱名辅助"
                     : "标记关闭"}
               </button>
-              <button aria-label="低八度" onClick={() => shiftOctave(-12)}>
+              <button className="piano-transport-secondary" aria-label="低八度" onClick={() => shiftOctave(-12)}>
                 低八度
               </button>
-              <button aria-label="高八度" onClick={() => shiftOctave(12)}>
+              <button className="piano-transport-secondary" aria-label="高八度" onClick={() => shiftOctave(12)}>
                 高八度
               </button>
             </div>
-            <Keyboard
-              start={keyboardStart}
-              octaves={1}
-              labels={labels}
-              target={midi}
-              enabled={state.sound === "ready" && active}
-              resetKey={state.epoch}
-              onDown={(id, n) => controller.press(id, n)}
-              onUp={(id) => controller.release(id)}
-            />
+            <div className="piano-keyboard-region">
+              <Keyboard
+                start={keyboardStart}
+                octaves={1}
+                labels={labels}
+                target={midi}
+                enabled={state.sound === "ready" && active}
+                resetKey={state.epoch}
+                onDown={(id, n) => controller.press(id, n)}
+                onUp={(id) => controller.release(id)}
+              />
+              {state.sound !== "ready" && (
+                <button
+                  className="piano-sound-prompt"
+                  onClick={() => void controller.enable()}
+                >
+                  {state.sound === "off" ? "启用声音" : "重新启用声音"}
+                </button>
+              )}
+            </div>
           </>
         )}
         {sheet && (
@@ -1173,6 +1178,9 @@ export function PianoWorkspace({
                   </>
                 ) : (
                   <div className="sheet-options">
+                    <button onClick={() => openSheet("labels")}>设置音符辅助</button>
+                    <button onClick={() => { shiftOctave(-12); dismiss(); }}>键盘降低八度</button>
+                    <button onClick={() => { shiftOctave(12); dismiss(); }}>键盘升高八度</button>
                     <button
                       onClick={() => {
                         const context = snapshot();

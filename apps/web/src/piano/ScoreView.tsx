@@ -40,6 +40,12 @@ export function ScoreView({
   const [anchor, setAnchor] = useState(range[0]),
     [retry, setRetry] = useState(0);
   const pageSize = scorePageSize(available.width, available.height);
+  // Four bars remain a page. A narrow phone lays them out in several systems
+  // rather than hiding three bars to the right of a mostly empty paper.
+  const wrapWidth =
+    available.width < 600 || available.height > available.width * 0.6
+      ? Math.max(280, Math.floor(available.width / 16) * 16)
+      : 0;
   const eventMeasure = useMemo(
     () =>
       new Map(
@@ -83,7 +89,7 @@ export function ScoreView({
       Math.floor(Math.min(anchor, part.measures.length - 1) / pageSize) *
       pageSize,
     end = Math.min(start + pageSize - 1, part.measures.length - 1),
-    key = `${score.id}:${part.id}:${track.id}:${start}:${end}:${retry}`;
+    key = `${score.id}:${part.id}:${track.id}:${start}:${end}:${retry}:${wrapWidth}`;
   const [layout, setLayout] = useState<{
     key: string;
     bars: BarBox[];
@@ -100,7 +106,7 @@ export function ScoreView({
     const holder = document.createElement("div");
     // The initial fit frame is 1px until layout completes. OSMD must never
     // inherit that provisional width when engraving in a real WebView.
-    holder.style.width = "1024px";
+    holder.style.width = `${wrapWidth || 1024}px`;
     setLoading(true);
     // Keep the compatibility footer while a replacement page is loading.
     // Hiding/showing it per attempt would resize this viewport across the
@@ -119,6 +125,9 @@ export function ScoreView({
         ...result.notes.map((n) => n.y + 18),
         ...result.bars.map((b) => b.y + b.height),
       );
+      // The engraver's provisional 1024px holder must not create phantom
+      // horizontal overflow beyond the intrinsic SVG and its hit targets.
+      holder.style.width = `${width}px`;
       setLayout({ key, ...result, width, height });
     };
     void (async () => {
@@ -127,10 +136,9 @@ export function ScoreView({
         const { engrave } = await import("./engraver");
         if (cancelled) return;
         stage = "LAYOUT";
-        const result = await engrave(holder, score, part, track, 1, [
-          start,
-          end,
-        ]);
+        const result = await engrave(
+          holder, score, part, track, 1, [start, end], !!wrapWidth,
+        );
         if (cancelled) return;
         setCompatible(false);
         install(result);
@@ -163,7 +171,7 @@ export function ScoreView({
       cancelled = true;
       holder.remove();
     };
-  }, [score, part, track, start, end, retry, active, onRenderStatus, key]);
+  }, [score, part, track, start, end, retry, active, onRenderStatus, key, wrapWidth]);
   useEffect(() => {
     if (layout.key !== key) return;
     for (const n of layout.notes)
@@ -188,9 +196,12 @@ export function ScoreView({
       y = note.y * fit.scale;
     if (x < el.scrollLeft + 24 || x > el.scrollLeft + el.clientWidth - 24)
       el.scrollLeft = Math.max(0, x - el.clientWidth * 0.4);
-    if (y < el.scrollTop + 24 || y > el.scrollTop + el.clientHeight - 16)
+    // If the complete sheet fits, don't scroll down to a label and clip the
+    // clef/key signature at the top in a short landscape.
+    if (fit.height <= el.clientHeight + 1) el.scrollTop = 0;
+    else if (y < el.scrollTop + 24 || y > el.scrollTop + el.clientHeight - 16)
       el.scrollTop = Math.max(0, y - el.clientHeight * 0.75);
-  }, [active, activeId, layout, key, fit.scale]);
+  }, [active, activeId, layout, key, fit.scale, fit.height]);
   const ready = layout.key === key && !loading && !error;
   return (
     <div

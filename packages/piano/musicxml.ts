@@ -397,7 +397,9 @@ export function partXml(score: Score, partId: string, window?:[number,number]) {
     node.remove();
   const result=(
     '<?xml version="1.0" encoding="UTF-8"?>\n' +
-    new XMLSerializer().serializeToString(doc)
+    // Chromium preserves the source XML declaration when serializing a Document;
+    // serializing only its root avoids a second declaration in cached page XML.
+    new XMLSerializer().serializeToString(doc.documentElement)
   );
   if(!window){if(!partXmlCache.has(score))partXmlCache.set(score,new Map());partXmlCache.get(score)!.set(partId,result);}
   return result;

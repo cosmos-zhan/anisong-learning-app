@@ -165,6 +165,14 @@ describe("MusicXML and musical timeline", () => {
     expect(doc.querySelectorAll("part")).toHaveLength(1);
     expect(doc.querySelector("part")?.getAttribute("id")).toBe("P2");
   });
+  it("serializes declaration-bearing MusicXML through cached part/page extraction with one declaration", () => {
+    const s = parseMusicXml('<?xml version="1.0" encoding="UTF-8"?>\n' +
+      fixture(Array.from({length: 8}, () => note("D"))));
+    for (const xml of [partXml(s, "P1"), partXml(s, "P1", [0, 3]), partXml(s, "P1", [4, 7])]) {
+      expect(xml.match(/<\?xml/g)).toHaveLength(1);
+      expect(new DOMParser().parseFromString(xml, "application/xml").querySelector("parsererror")).toBeNull();
+    }
+  });
   it("spells fixed solfege and accidentals instead of reducing everything to pitch class", () => {
     expect(pitchLabel({ step: "D", alter: -1, octave: 5 })).toBe("D♭5");
     expect(pitchLabel({ step: "F", alter: 1, octave: 4 }, true)).toBe("Fa♯");

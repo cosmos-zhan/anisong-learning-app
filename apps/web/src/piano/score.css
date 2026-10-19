@@ -72,13 +72,14 @@
 .score-fitted .score-fit-frame {
   position: relative;
   flex: none;
-  margin: 0 auto;
+  margin: auto;
 }
 .score-fitted .score-sheet {
   position: absolute;
   min-width: 0;
   padding: 0;
   transform-origin: top left;
+  overflow: hidden;
 }
 .score-fitted .score-sheet > div:first-child > div {
   min-height: 0;
@@ -122,4 +123,14 @@
 .score-fitted .score-overlays {
   width: 100%;
   height: 100%;
+}
+@container (max-height: 130px) {
+  .score-fitted .score-viewport { inset: 2px 36px; }
+  .score-fitted .score-page-controls > span {
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .score-fitted.is-compatible .score-viewport { top: 22px; }
 }
