@@ -10,7 +10,7 @@
 
 **钢琴手机入口：** [现有测试站](https://anisong-learning-lab.woolly-mochi-2205.chatgpt.site/#piano)（同一 ChatGPT 账号）。默认载入《春日影》用户曲谱；“自动试听”下点小节即可听当前轨道，包括和弦；“等待弹对”限单音，可明确选择最高音单音练习。从曲库选择「小小的练习曲」可练习八小节 CC0 谱，也可导入 `.musicxml` / `.xml` / `.mxl`。详见 [钢琴手机验收](docs/piano-mobile-testing.md)、[架构与恢复](docs/piano-architecture.md)、[交付记录](docs/piano-delivery.md)。
 
-**钢琴截图反馈修复（0.3.5）：** 左对齐准备列表、固定4小节翻页、可读字号与滚动、可见视口高度、至少112px的横屏琴键。详见 [变更与手机验收](docs/ui-r1-piano-phone-fixes.md)。
+**钢琴横竖屏修复（0.3.6）：** 真实 Chromium 10种尺寸/安全边距截图检查、XML声明修复、竖屏谱面换行与键盘高度上限、短横屏合并工具栏。CI自动检查并保存浏览器截图。详见 [实测记录与手机验收](docs/ui-r1-piano-responsive.md)。
 
 **钢琴谱面与横屏比例（0.3.4，历史）：** 默认4小节单行、聚焦当前谱表、等比适配真实五线谱；短横屏压缩顶部间距。每轮交付均需完整 App 构建，详见 [本批对照与验收](docs/ui-r1-piano-score.md)。
 

@@ -9,7 +9,7 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode = (System.getenv("VERSION_CODE") ?: "1").toInteger()
-        versionName = System.getenv("VERSION_NAME") ?: "0.3.5"
+        versionName = System.getenv("VERSION_NAME") ?: new groovy.json.JsonSlurper().parse(rootProject.file("../../package.json")).version.toString()
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
             noCompress 'wav', 'mp3'
