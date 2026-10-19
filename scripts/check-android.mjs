@@ -16,6 +16,7 @@ const commands = [
         [
           "-p",
           "apps/android",
+          ":app:clean",
           ":app:testDebugUnitTest",
           ":app:assembleDebug",
           "--no-daemon",
@@ -28,6 +29,7 @@ const commands = [
           process.env.ANISONG_GRADLE || "apps/android/gradlew",
           "-p",
           "apps/android",
+          ":app:clean",
           ":app:testDebugUnitTest",
           ":app:assembleDebug",
           "--no-daemon",
