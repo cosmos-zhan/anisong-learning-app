@@ -1,0 +1,136 @@
+/* The paper, notation and hit targets share one aspect ratio at every viewport. */
+.score-window.score-fitted {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  overflow: hidden;
+  background: #fcfbf4;
+  border-radius: inherit;
+}
+.score-fitted .score-page-controls {
+  display: contents;
+  color: #75847d;
+}
+.score-fitted .score-page-controls > span {
+  position: absolute;
+  top: 4px;
+  left: 48px;
+  right: 48px;
+  text-align: center;
+  line-height: 14px;
+  font-size: 10px;
+  white-space: nowrap;
+}
+.piano-workspace .score-fitted .score-page-controls > button {
+  position: absolute;
+  left: 0;
+  top: calc(50% - 22px);
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 8px;
+  color: #286653;
+  background: transparent;
+  border: 0;
+  border-radius: 10px;
+  z-index: 3;
+}
+.piano-workspace .score-fitted .score-page-controls > .score-page-next {
+  left: auto;
+  right: 0;
+  transform: rotate(180deg);
+}
+.score-fitted .score-viewport {
+  position: absolute;
+  inset: 22px 40px 4px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  overflow: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-x pan-y;
+  scrollbar-width: thin;
+  min-width: 0;
+  min-height: 0;
+}
+
+.score-fitted .score-compatibility {
+  position: absolute;
+  top: 1px;
+  bottom: auto;
+  left: 32px;
+  right: 32px;
+  padding: 0;
+  background: transparent;
+  text-align: center;
+  color: #75847d;
+  white-space: nowrap;
+  z-index: 4;
+}
+.score-fitted .score-fit-frame {
+  position: relative;
+  flex: none;
+  margin: auto;
+}
+.score-fitted .score-sheet {
+  position: absolute;
+  min-width: 0;
+  padding: 0;
+  transform-origin: top left;
+  overflow: hidden;
+}
+.score-fitted .score-sheet > div:first-child > div {
+  min-height: 0;
+}
+.score-fitted .score-sheet svg {
+  max-width: none;
+}
+.score-fitted .note-label {
+  color: #75847d;
+  background: #fcfbf4e6;
+  font-size: 13px;
+  font-weight: 500;
+}
+.score-fitted .note-label.current {
+  color: #fffdf7;
+  background: #286653;
+}
+.piano-workspace .score-fitted .measure-hit {
+  border-radius: 8px;
+  box-shadow: none;
+}
+.piano-workspace .score-fitted .measure-hit.in-range {
+  background: #e0ecdf66;
+}
+.piano-workspace .score-fitted .measure-hit.active-measure {
+  background: #8fbc8f40;
+  box-shadow: inset 3px 0 #286653;
+}
+
+/* The compatibility notice shares the page caption, never the staff height. */
+.score-fitted.is-compatible .score-page-controls > span {
+  visibility: hidden;
+}
+.piano-workspace .score-fitted .score-compatibility button {
+  min-height: 20px;
+  height: 20px;
+  padding: 0 4px;
+  font-size: 10px;
+  background: transparent;
+}
+.score-fitted .score-overlays {
+  width: 100%;
+  height: 100%;
+}
+@container (max-height: 130px) {
+  .score-fitted .score-viewport { inset: 2px 36px; }
+  .score-fitted .score-page-controls > span {
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .score-fitted.is-compatible .score-viewport { top: 22px; }
+}

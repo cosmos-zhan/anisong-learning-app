@@ -29,7 +29,7 @@ Pages 的构建自动读取 CF_PAGES_COMMIT_SHA、CF_PAGES_BRANCH 写入页面�
 
 ## Android Actions
 
-Android debug APK workflow 在手动 workflow_dispatch、android-test-* tag、或PR修改Android/原生桥/构建配置时执行；日常歌词和UI push 不强制构建 APK。JDK21、Node24、SDK36、Gradle wrapper 一起固定；npm ci 后 check、cap sync、testDebugUnitTest 与 assembleDebug。产物 retention 30天，登录 GitHub 在成功 run 下载。不要填写并未存在的 run/artifact链接。
+Android debug APK workflow 在手动 workflow_dispatch、android-test-* tag、或PR修改Android/原生桥/构建配置时执行；包括歌词与 CSS 在内的每轮修改均须完整构建 APK。main / feature / fix push、所有 PR、手动或 android-test-* tag 均触发；同分支旧构建可取消，但交付时最终提交必须成功。JDK21、Node24、SDK36、Gradle wrapper 一起固定；npm ci 后执行 npm run android:check，依次完成前端检查、两项构建产物交互校验、Capacitor 同步、testDebugUnitTest 与 assembleDebug。产物 retention 30天，登录 GitHub 在成功 run 下载。不要填写并未存在的 run/artifact链接。
 
 运行没有涉及 Cloudflare付费服务、Firebase邀请、商用录音或正式发布签名。
 

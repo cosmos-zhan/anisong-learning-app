@@ -2,13 +2,12 @@ name: Android debug APK
 on:
   workflow_dispatch:
   pull_request:
-    paths:
-      - 'apps/android/**'
-      - 'packages/audio-native/**'
-      - 'capacitor.config.ts'
-      - '.github/workflows/android.yml'
   push:
+    branches: ['main', 'feature/**', 'fix/**']
     tags: ['android-test-*']
+concurrency:
+  group: android-${{ github.event_name }}-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
@@ -20,6 +19,9 @@ jobs:
         with:
           node-version: '24'
           cache: npm
+      - name: Preview version metadata
+        id: version
+        run: node scripts/prepare-android-preview.mjs
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -31,13 +33,34 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
       - run: npm ci
-      - run: npm run check
-      - run: npx cap sync android
-      - run: chmod +x apps/android/gradlew
-      - name: Build debug APK and native unit tests
+      - name: Restore fixed debug signer when configured
+        if: github.event_name != 'pull_request'
         env:
-          VERSION_CODE: ${{ github.run_number }}
-        run: apps/android/gradlew -p apps/android :app:testDebugUnitTest :app:assembleDebug --stacktrace
+          DEBUG_KEYSTORE: ${{ secrets.ANDROID_DEBUG_KEYSTORE_BASE64 }}
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import base64, os
+          from pathlib import Path
+          data = os.environ.get('DEBUG_KEYSTORE', '')
+          env = Path(os.environ['GITHUB_ENV'])
+          if data:
+              path = Path.home() / '.android/debug.keystore'
+              path.parent.mkdir(exist_ok=True)
+              path.write_bytes(base64.b64decode(data, validate=True))
+              path.chmod(0o600)
+          with env.open('a') as f:
+              f.write('PREVIEW_SIGNING=' + ('repository-secret' if data else 'ephemeral-debug') + '\n')
+          PY
+      - name: Complete App check and debug APK
+        run: npm run android:check
+      - name: Validate public APK and prepare downloads
+        run: python3 scripts/verify-public-apk.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-preview-${{ github.sha }}
+          path: preview-dist
+          retention-days: 30
       - uses: actions/upload-artifact@v4
         with:
           name: anisong-debug-${{ github.sha }}
@@ -48,3 +71,24 @@ jobs:
         with:
           name: android-build-reports
           path: apps/android/app/build/reports
+  publish:
+    needs: apk
+    if: >-
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature/piano-p0')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/download-artifact@v4
+        with:
+          name: android-preview-${{ github.sha }}
+          path: preview-dist
+      - name: Publish Alpha APK to GitHub Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/publish-android-preview.mjs
