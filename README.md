@@ -99,14 +99,14 @@ npm run dev
 | 使用与测试 | 开发与维护 |
 | --- | --- |
 | [手机测试](docs/mobile-testing.md) | [架构说明](docs/architecture.md) |
-| [钢琴测试](docs/piano-mobile-testing.md) | [钢琴架构](docs/piano-architecture.md) |
+| [钢琴测试](https://github.com/cosmos-zhan/anisong-learning-app/blob/feature/piano-p0/docs/piano-mobile-testing.md) | [钢琴架构](https://github.com/cosmos-zhan/anisong-learning-app/blob/feature/piano-p0/docs/piano-architecture.md) |
 | [问题反馈](docs/feedback.md) | [云端恢复与交接](docs/maintenance.md) |
-| [横竖屏验收](docs/ui-r1-piano-responsive.md) | [网页部署](docs/deployment.md) |
+| [横竖屏验收](https://github.com/cosmos-zhan/anisong-learning-app/blob/feature/piano-p0/docs/ui-r1-piano-responsive.md) | [网页部署](docs/deployment.md) |
 | [歌词需求](docs/requirements.md) | [Android 测试版发布](docs/android-previews.md) |
-| [钢琴需求](docs/piano-requirements.md) | [开发中的 PR #3](https://github.com/cosmos-zhan/anisong-learning-app/pull/3) |
+| [钢琴需求](https://github.com/cosmos-zhan/anisong-learning-app/blob/feature/piano-p0/docs/piano-requirements.md) | [开发中的 PR #3](https://github.com/cosmos-zhan/anisong-learning-app/pull/3) |
 
 遇到问题时，优先使用播放器内的“反馈”，附复现步骤和截图；提交前可查看自动收集的非敏感练习信息。本机导入的音频、歌词与乐谱不会通过反馈上传。
 
 ## 许可证
 
-源码使用 [MIT License](LICENSE)。内置原创音频与示例谱使用 CC0；第三方许可见 [依赖说明](docs/piano-third-party.md)。请仅导入你有权使用的素材。
+源码使用 [MIT License](LICENSE)。内置原创音频与示例谱使用 CC0；第三方许可见 [依赖说明](https://github.com/cosmos-zhan/anisong-learning-app/blob/feature/piano-p0/docs/piano-third-party.md)。请仅导入你有权使用的素材。

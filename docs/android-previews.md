@@ -1,5 +1,7 @@
 # Android 预发布测试包
 
+当前自动发布实现位于 `feature/piano-p0`（PR #3）；功能验收合并前，主分支保留原有构建基线。首个已发布测试版：[v0.3.6-alpha.1](https://github.com/cosmos-zhan/anisong-learning-app/releases/tag/v0.3.6-alpha.1)。
+
 ## 手机下载
 
 打开 [GitHub Releases](https://github.com/cosmos-zhan/anisong-learning-app/releases)，选择标有 **Pre-release** 的版本。在 Assets 中直接下载 `anisong-…-debug.apk`，打开安装。无需下载 Source code ZIP，也无需到 Actions 中找临时构建产物。当前仍为 Alpha，不标记正式版或 latest 正式发行。
@@ -44,4 +46,4 @@ Android 覆盖安装要求包名相同、签名相同、安装版本码递增。
 - `npm run test:release` 检查版本格式、公开素材、已有版本不可变、上传与发布顺序、失败保留草稿和权限错误。
 - `scripts/verify-public-apk.py` 检查真实 APK；`scripts/publish-android-preview.mjs` 执行发布。网络和权限错误必须明确失败。
 - 发布后读回 Releases 的 prerelease / draft 状态、标签、附件大小与 SHA-256 digest，再给出真实下载链接。
-- 若发布失败且已有草稿，重跑同一源提交可补完附件；不移动既有版本标签、不覆盖不同源提交的附件。
+- 若发布失败且已有草稿，只重跑失败的发布作业、复用同一构建产物，可补完附件；重新构建导致字节变化时不会自动替换已有草稿附件；不移动既有版本标签、不覆盖不同源提交的附件。
