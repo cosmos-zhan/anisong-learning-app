@@ -8,7 +8,7 @@ mkdirSync(output, { recursive: true });
 // Compile the actual synth source for OfflineAudioContext, never a duplicate DSP
 // implementation. PCM is rendered by Chromium's real Web Audio graph.
 const bundle = await build({ configFile: false, logLevel: "error", build: { write: false, lib: { entry: resolve("packages/piano/audio.ts"), formats: ["es"] } } });
-const code = bundle.output.find(o => o.type === "chunk").code;
+const code = (Array.isArray(bundle) ? bundle[0] : bundle).output.find(o => o.type === "chunk").code;
 const browser = await chromium.launch({ executablePath: process.env.BROWSER_EXECUTABLE_PATH || undefined, args: ["--no-sandbox", "--disable-dev-shm-usage"] });
 const mime = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".wav": "audio/wav", ".musicxml": "application/xml" };
 const results = [], errors = [];
@@ -59,7 +59,7 @@ try {
           if (key === "state") return "running";
           if (key === "resume" || key === "close") return async () => {};
           const value=Reflect.get(target,key,target);return typeof value==="function"?value.bind(target):value;
-        }}); }
+        },set(target,key,value) { return Reflect.set(target,key,value,target); }}); }
       };
       const synth = new SynthPiano(); await synth.enable();
       if (kind === "cancel") { synth.note("future", 69, .3, .2); synth.stop(); }
