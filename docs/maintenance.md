@@ -1,5 +1,7 @@
 # Work 会话恢复与交接
 
+Android 公测分发按 [预发布指南](android-previews.md) 维护：每次提高 package 版本与安装版本码，可信发布分支的完整 App 构建通过后自动发布 GitHub Pre-release。公开包只含 CC0 示例。固定签名从仓库 Secret 恢复，不上传 keystore、私人歌曲或私有 APK；未配置签名时应明确覆盖安装限制。
+
 1. 先读 README、requirements、delivery、known-issues 与 test-results。
 2. GitHub 连接必须有目标仓库 Contents 写权限；Actions/Workflow 修改还需相应权限。不要修改 cosmos-zhan/Aria。
 3. 克隆最新 main，执行 npm ci 与 npm run check。在 feature/ 或 fix/ 分支修改并开 PR。不要覆盖用户新提交；重读远程 HEAD 后再更新分支。

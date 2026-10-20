@@ -1,73 +1,112 @@
-# Anisong Learning App · P0
+# Anisong Learning App
 
-面向 Android 手机的歌词片段练习与钢琴学谱 App。React + TypeScript + Vite，共享歌曲、版本、反馈与 CI；学唱使用音频片段，学谱使用结构化乐谱生成真实声音。
+用喜欢的动画歌曲，练习一句歌词、一段旋律。
 
-**正式验收依据：** [歌词任务书](docs/requirements.md) · [钢琴模块任务书 Piano P0 v1.0](docs/piano-requirements.md)。AI 识别、简谱、外接 MIDI 与商业曲库不在本轮范围。
+一款面向手机的音乐练习工具：导入本地音频和歌词，反复练习选中的片段；或导入 MusicXML 乐谱，边看五线谱边用虚拟钢琴练习。
 
-**默认试用歌曲：** [春日影（CRYCHIC ver.）整曲试听](https://anisong-learning-lab.woolly-mochi-2205.chatgpt.site/?song=haruhikage-crychic#lyrics)。私有测试站已接入用户提供的 MP3 和 42 句 LRC，打开即可点句循环，或点“播放整曲”，无需重新导入。钢琴页已接入用户提供的 7 声部、140 小节 MXL 总谱，可直接点小节试听原轨（含和弦），等待弹对仍使用单音练习，见 [试用边界](docs/private-score.md)。[素材状态与操作](docs/haruhikage-trial.md) · [私有音频构建与恢复](docs/private-audio.md)。录音、歌词和该曲谱不进入 GitHub；普通克隆/CI 不带这些私人素材，仍可本地导入。
+[下载 Android 测试版](https://github.com/cosmos-zhan/anisong-learning-app/releases) · [网页试用](https://anisong-learning-lab.woolly-mochi-2205.chatgpt.site) · [报告问题](https://github.com/cosmos-zhan/anisong-learning-app/issues/new/choose)
 
-**手机反馈修复：** [歌词跳转与谱面兼容修复记录](docs/mobile-bugfixes.md)（完整缓冲后按句跳转；当前每页4小节，空间不足时保留字号并滚动；精细排版失败自动显示兼容谱）。
+> 项目处于 **Alpha 开发阶段**。Releases 中标注 **Pre-release** 的 APK 用于体验和反馈，不代表正式版。网页试用目前需要项目所有者的 ChatGPT 账号；公开 APK 可独立使用。
 
-**钢琴手机入口：** [现有测试站](https://anisong-learning-lab.woolly-mochi-2205.chatgpt.site/#piano)（同一 ChatGPT 账号）。默认载入《春日影》用户曲谱；“自动试听”下点小节即可听当前轨道，包括和弦；“等待弹对”限单音，可明确选择最高音单音练习。从曲库选择「小小的练习曲」可练习八小节 CC0 谱，也可导入 `.musicxml` / `.xml` / `.mxl`。详见 [钢琴手机验收](docs/piano-mobile-testing.md)、[架构与恢复](docs/piano-architecture.md)、[交付记录](docs/piano-delivery.md)。
+## 功能
 
-**钢琴横竖屏修复（0.3.6）：** 真实 Chromium 10种尺寸/安全边距截图检查、XML声明修复、竖屏谱面换行与键盘高度上限、短横屏合并工具栏。CI自动检查并保存浏览器截图。详见 [实测记录与手机验收](docs/ui-r1-piano-responsive.md)。
+| 歌词学唱 | 钢琴学谱 |
+| --- | --- |
+| 导入本地音频与 `.lrc` 歌词 | 导入 `.musicxml`、`.xml`、`.mxl` 乐谱 |
+| 点击单句试听并循环 | 查看五线谱、选择声部与小节 |
+| 选择连续多句反复练习 | 单小节或连续小节循环试听 |
+| 调节速度并保持音高 | 自动试听、等待弹对、自由弹奏 |
+| 微调片段的起止时间 | 支持黑白键与多点触控的发声键盘 |
+| 保存本机素材和练习设置 | 当前音符高亮、音名与固定唱名辅助 |
 
-**钢琴谱面与横屏比例（0.3.4，历史）：** 默认4小节单行、聚焦当前谱表、等比适配真实五线谱；短横屏压缩顶部间距。每轮交付均需完整 App 构建，详见 [本批对照与验收](docs/ui-r1-piano-score.md)。
+两种练习共用曲库、歌曲资料和反馈入口。练习中可以生成包含版本、选中片段、速度等信息的报告，再提交到 GitHub Issues。
 
-**界面 R1 第一批（0.3.1）：** 钢琴控制带、小节网格、独立速度抽屉及返回层级已调整，见 [第一批变更与手机验收](docs/ui-r1-piano-batch1.md)。
+## 下载与安装
 
-**界面 R1（0.3.0）已接入：** 练习 / 曲库 / 设置主导航、统一歌曲详情与资料关联、独立学唱 / 钢琴练习页、横屏抽屉和本机练习恢复。见 [新版页面、架构与手机验收](docs/ui-r1.md)。
+1. 在手机打开 [Releases](https://github.com/cosmos-zhan/anisong-learning-app/releases)，选择最新的 **Pre-release**。
+2. 展开 **Assets**，下载名称以 `anisong-` 开头的 `.apk`。无需下载源码压缩包或解压 Actions 产物。
+3. 打开 APK，并按 Android 提示允许当前浏览器安装应用。
+4. 选择内置原创示例，或在曲库中导入自己的素材。
+
+公开测试包只包含 CC0 原创示例。春日影等用户私人音频、歌词和曲谱不进入源码或公开 APK，可在本机导入；私有网页试用中的素材与公开包不同。
+
+Alpha 包使用调试签名。配置固定 CI 签名后，同签名且版本码递增的包可覆盖更新；从私人测试包切换、或未配置固定签名时，可能无法覆盖安装。请保留有练习记录的旧版。详见 [测试版发布与签名](docs/android-previews.md)。
 
 ## 开始练习
 
-私有测试站打开练习首页；在「曲库 → 春日影」点整曲试听，或进入学唱 / 钢琴练习。在曲库选择「小小的练习曲」可切换 CC0 功能示例。导入音频后，即使没有 LRC 也可试听整曲；导入对应 `.lrc` 后，点歌词立即播放并循环该句。「多句连续」依次点起始与结束句，可反向选择。页面内本地导入的音频、歌词与路径不会上传；内置 MP3 是用户在 Work 上传后明确要求加入私有预览的文件。
+**学唱：** 曲库 → 选择歌曲 → 歌词学唱 → 点击一句歌词。需要练习多句时，选择起始句和结束句，再调节速度或片段边界。
 
-演示为 35.5 秒原创器乐，LRC 标记与音乐乐句边界匹配。第 2 行日文只是任务书中的界面示例，音频没有演唱这句文字；不可把演示当成已完成日文歌词对齐验证。第 2 乐句 16.3–21.1 秒，0.75× 理论耗时 6.4 秒。真实歌曲的歌词对齐由用户本地导入匹配的 LRC 验证。
+**学谱：** 曲库 → 选择歌曲 → 钢琴学谱 → 选择声部与小节范围 → 开始练习。自动试听演奏选中轨道；等待弹对根据真实触键推进，目前限单音轨。和弦轨可试听，或明确选择最高音单音练习。
 
-## 云端恢复与开发
+手机横屏适合演奏；竖屏会将谱面分行，密集乐段可在谱面内滑动。第一次弹琴需点击“启用声音”，也可直接点小节试听。
 
-需要 Node.js 24（最低 22.13）。完整源码已进入 main；在新的云端环境执行：
+## 开发
+
+技术栈：React、TypeScript、Vite、Capacitor、Kotlin / Media3、OpenSheetMusicDisplay、Web Audio。
+
+需要 Node.js 24。Android 构建另外需要 JDK 21、Android SDK 36。
 
 ```bash
 git clone https://github.com/cosmos-zhan/anisong-learning-app.git
 cd anisong-learning-app
+# 钢琴与新版界面当前位于 PR #3，合并前使用此分支：
+git switch --track origin/feature/piano-p0
 npm ci
-npm run check
 npm run dev
 ```
 
-钢琴 PR #3 尚待手机验收时，克隆后先执行 `git switch --track origin/feature/piano-p0`；合并后直接使用 main。
+| 命令 | 用途 |
+| --- | --- |
+| `npm run check` | 类型、Lint、核心测试、发布流程测试与网页构建 |
+| `npm run test:browser` | 真实 Chromium 中的手机比例、旋转、谱面和触键交互 |
+| `npm run android:check` | 完整 App 检查、Capacitor 同步、原生测试与 debug APK |
+| `npm run build` | 输出网页静态文件到 `dist/` |
 
-目标仓库已创建并授权，PR #1 已在网页与 Android CI 通过后合并 main。实际交付状态见 [docs/delivery.md](docs/delivery.md)。`npm run dev` 是云端开发用，不是长期手机预览。默认端口 4173，正式网页使用静态 `dist/`，无需后台服务。
+浏览器测试首次需运行 `npx playwright-core install --with-deps chromium`。APK 输出到 `apps/android/app/build/outputs/apk/debug/app-debug.apk`。
 
-- `npm run typecheck`：TypeScript 严格类型检查。
-- `npm run lint`：ESLint。
-- `npm test`：Vitest，包含业务、音频适配器与 React DOM 交互测试。
-- `npm run build`：生成构建 SHA / 分支 / 时间，再构建 `dist/`。
-- `npm run android:sync`：构建共享前端并同步原生项目。
-- `npm run android:check`（`android:debug` 同义）：每轮修改必须执行的完整 App 检查。依次验证前端、构建产物交互、Capacitor 同步、原生单元测试、debug APK，需要 JDK 21、Android SDK 36。
+### 版本与测试包
 
-`main` 用于稳定版本；后续变更在 `feature/*` / `fix/*`，开 PR，CI 通过、手机预览复测后合并。不要把未经手机验证的体验标记为真机验收通过。
+版本号位于 `package.json`，Android 安装版本码位于 `.github/android-preview.json`。更新两者并推送到发布分支后，Actions 会在完整 App 构建通过后，将新版本的 APK、SHA-256 校验文件和构建信息发布为 **Pre-release**。已发布版本不覆盖；普通 PR 只检查与构建。
 
-## 工程结构
+当前开发发布分支为 `feature/piano-p0`；合并后 `main` 同样自动发布。规则、权限与签名恢复见 [发布指南](docs/android-previews.md)。
+
+## 项目结构
 
 | 目录 | 内容 |
 | --- | --- |
-| `apps/web/src` | React 手机界面、导入、反馈 |
-| `packages/core` | LRC 解析、范围校验、Controller、诊断报告 |
-| `packages/piano` | MusicXML/MXL、PPQ 时间线、练习控制、Web Audio 合成钢琴、本地乐谱保存 |
-| `packages/audio-web` | HTMLAudioElement 真实播放与独立边界计时 |
-| `packages/audio-native` | Capacitor JS 桥接 |
-| `apps/android` | Capacitor Android、Media3 插件、Gradle wrapper |
-| `public/demo` | CC0 原创音频、LRC、版权说明 |
-| `tests` | Vitest 业务与交互回归测试 |
-| `.github/workflows` | push / PR 网页检查与完整 APK 构建 |
-| `docs` | 架构、部署、手机测试、反馈、交接、已知问题 |
+| `apps/web` | 手机网页与共享界面 |
+| `apps/android` | Capacitor Android、Media3 音频适配 |
+| `packages/core` | 歌曲、歌词、片段范围、反馈与播放器状态 |
+| `packages/piano` | 乐谱解析、音乐时间线、练习状态与声音合成 |
+| `packages/audio-*` | 浏览器与原生音频接口 |
+| `public/demo` | CC0 原创音频、歌词与示例乐谱 |
+| `scripts` | 构建、产物验证与测试版发布 |
+| `tests` | 核心逻辑与界面交互测试 |
+| `docs` | 架构、测试、部署和维护文档 |
 
-阅读：[架构](docs/architecture.md) · [手机测试](docs/mobile-testing.md) · [反馈](docs/feedback.md) · [部署](docs/deployment.md) · [维护与交接](docs/maintenance.md) · [已知问题](docs/known-issues.md) · [测试证据](docs/test-results.md)。
+## 当前边界
 
-源码 MIT；自制演示音频与八小节钢琴谱 CC0；OSMD 为 BSD-3-Clause，fflate 为 MIT，见 [第三方许可](docs/piano-third-party.md)。无需客户端密钥，不包含音频上传、录音或云账号。
+- Android16 真机听感、触控手感和特定 WebView 行为仍需手机测试；CI 通过不等于真机验收。
+- 等待弹对暂不支持双手和弦；简谱、MIDI 导入、外接 MIDI 键盘和 AI 识谱尚未实现。
+- 歌词与乐谱共用歌曲管理，暂不自动同步。
+- 网页循环可能存在解码或调度间隙；当前不提供锁屏后台练习。
+- Cloudflare Pages 账号接入尚未完成；现有网页使用独立私有测试站。
 
-钢琴 UI R1 第二批（准备摘要、模式 / 声部 / 标记独立面板、和弦冲突流程）见 [ui-r1-piano-batch2.md](docs/ui-r1-piano-batch2.md)。
+完整限制见 [已知问题](docs/known-issues.md)。
 
-学唱 UI R1（歌词主区、底部圆形播放器与可取消微调）见 [ui-r1-lyrics.md](docs/ui-r1-lyrics.md)。
+## 文档与反馈
+
+| 使用与测试 | 开发与维护 |
+| --- | --- |
+| [手机测试](docs/mobile-testing.md) | [架构说明](docs/architecture.md) |
+| [钢琴测试](docs/piano-mobile-testing.md) | [钢琴架构](docs/piano-architecture.md) |
+| [问题反馈](docs/feedback.md) | [云端恢复与交接](docs/maintenance.md) |
+| [横竖屏验收](docs/ui-r1-piano-responsive.md) | [网页部署](docs/deployment.md) |
+| [歌词需求](docs/requirements.md) | [Android 测试版发布](docs/android-previews.md) |
+| [钢琴需求](docs/piano-requirements.md) | [开发中的 PR #3](https://github.com/cosmos-zhan/anisong-learning-app/pull/3) |
+
+遇到问题时，优先使用播放器内的“反馈”，附复现步骤和截图；提交前可查看自动收集的非敏感练习信息。本机导入的音频、歌词与乐谱不会通过反馈上传。
+
+## 许可证
+
+源码使用 [MIT License](LICENSE)。内置原创音频与示例谱使用 CC0；第三方许可见 [依赖说明](docs/piano-third-party.md)。请仅导入你有权使用的素材。

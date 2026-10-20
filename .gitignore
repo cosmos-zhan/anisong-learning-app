@@ -2,6 +2,8 @@ node_modules/
 dist/
 coverage/
 test-results/
+preview-dist/
+__pycache__/
 .openai/*local*
 .openai/*.env*
 *.log

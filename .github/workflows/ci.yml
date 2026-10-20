@@ -17,6 +17,7 @@ jobs:
       - run: npm run typecheck
       - run: npm run lint
       - run: npm test -- --reporter=default --reporter=junit --outputFile.junit=test-results.xml
+      - run: npm run test:release
       - run: npm run build
       - run: node --experimental-vm-modules scripts/verify-built-app.mjs
       - run: node scripts/verify-lyrics-build.mjs
