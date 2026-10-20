@@ -21,8 +21,14 @@ export class WebAudioEngine implements AudioEngine {
   this.audio.addEventListener('ended',this.atBoundary);
   this.audio.addEventListener('pause',this.onPause);
   this.audio.addEventListener('error',this.onError);
+  this.audio.addEventListener('timeupdate',this.onTimeUpdate);
+  if(navigator.mediaSession){
+   navigator.mediaSession.setActionHandler('play',()=>{void this.play().then(()=>this.emit({type:'playing',playing:true})).catch(()=>this.emit({type:'error',code:'PLAY_BLOCKED'}));});
+   navigator.mediaSession.setActionHandler('pause',()=>{this.pause();this.emit({type:'playing',playing:false});});
+  }
  }
  private emit(e:EngineEvent){for(const fn of this.listeners)fn(e);}
+ private onTimeUpdate=()=>{if(this.intended&&this.range){if(this.audio.currentTime>=this.range.end)this.atBoundary();else this.emit({type:'position',position:this.audio.currentTime});}};
  private onPause=()=>{if(this.intended&&this.audio.paused&&!this.audio.ended){this.intended=false;this.stopTimer();this.emit({type:'playing',playing:false});}};
  private onError=()=>{this.pause();this.emit({type:'error',code:'DECODE'});};
  private releaseUrl(){if(this.ownedUrl){URL.revokeObjectURL(this.ownedUrl);this.ownedUrl=null;}}
@@ -95,5 +101,5 @@ export class WebAudioEngine implements AudioEngine {
   }).catch(()=>{if(revision===this.revision&&this.intended){this.pause();this.emit({type:'error',code:'SEEK'});}}).finally(()=>{this.boundaryPending=false;});
  };
  onEvent(fn:(event:EngineEvent)=>void){this.listeners.add(fn);return ()=>this.listeners.delete(fn);}
- dispose(){++this.loadRevision;this.cancelLoad?.();this.pause();this.releaseUrl();this.audio.removeEventListener('ended',this.atBoundary);this.audio.removeEventListener('pause',this.onPause);this.audio.removeEventListener('error',this.onError);this.audio.removeAttribute('src');this.audio.load();this.listeners.clear();}
+ dispose(){++this.loadRevision;this.cancelLoad?.();this.pause();this.releaseUrl();this.audio.removeEventListener('ended',this.atBoundary);this.audio.removeEventListener('pause',this.onPause);this.audio.removeEventListener('error',this.onError);this.audio.removeEventListener('timeupdate',this.onTimeUpdate);if(navigator.mediaSession){navigator.mediaSession.setActionHandler('play',null);navigator.mediaSession.setActionHandler('pause',null);}this.audio.removeAttribute('src');this.audio.load();this.listeners.clear();}
 }

@@ -104,3 +104,25 @@ export interface PianoAudio {
   dispose(): void;
   onInterruption?(listener: () => void): () => void;
 }
+
+export interface PianoSequence {
+  notes: { at: number; duration: number; midi: number }[];
+  duration: number;
+  position: number;
+  speed: number;
+  loop: boolean;
+}
+export type PianoPlaybackEvent =
+  | { type: "position"; position: number; rounds?: number }
+  | { type: "playing"; playing: boolean }
+  | { type: "loop"; rounds: number }
+  | { type: "end" }
+  | { type: "error"; code: string };
+export interface PianoPlayback {
+  play(sequence: PianoSequence): Promise<void>;
+  stop(): void;
+  setLoop(loop: boolean): void;
+  sync(): void;
+  subscribe(listener: (event: PianoPlaybackEvent) => void): () => void;
+  dispose(): void;
+}

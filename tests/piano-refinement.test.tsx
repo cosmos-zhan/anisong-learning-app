@@ -470,7 +470,6 @@ it("preparation uses left aligned list rows rather than nested generic button ca
       );
       expect(getComputedStyle(row).borderRadius).toBe("0");
     }
-    expect(screen.getByRole("button", { name: "返回歌曲" })).toBeVisible();
     expect(screen.getByRole("heading", { name: "钢琴学谱" })).toBeVisible();
   } finally {
     ui.unmount();

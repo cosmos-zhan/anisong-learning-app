@@ -6,6 +6,8 @@ import {
   useSyncExternalStore,
 } from "react";
 import { PianoController } from "../../../../packages/piano/controller";
+import { isNative } from "../../../../packages/audio-native";
+import { NativePianoPlayback } from "../../../../packages/audio-native/piano";
 import { SynthPiano } from "../../../../packages/piano/audio";
 import { parseMusicXml, readScore } from "../../../../packages/piano/musicxml";
 import {
@@ -96,7 +98,7 @@ export function PianoWorkspace({
   const changedRef = useRef(onChanged);
   changedRef.current = onChanged;
   const [controller] = useState(
-    () => provided ?? new PianoController(new SynthPiano()),
+    () => provided ?? new PianoController(new SynthPiano(), isNative() ? new NativePianoPlayback() : undefined),
   );
   const state = useSyncExternalStore(
     controller.subscribe,
@@ -401,12 +403,13 @@ export function PianoWorkspace({
     }, 1000);
     const hide = () => {
       if (document.hidden) {
-        controller.pause("切到后台已暂停，返回后点击播放继续。");
+        if (!controller.backgroundPlayback || controller.getSnapshot().mode !== "listen")
+          controller.pause("交互练习已暂停，返回后继续；Android 自动试听可后台播放。");
         flush();
-      }
+      } else controller.syncPlayback();
     };
     const leave = () => {
-      controller.pause();
+      if (!controller.backgroundPlayback) controller.pause();
       flush();
     };
     const resize = () => {
@@ -718,9 +721,6 @@ export function PianoWorkspace({
         ) : view === "prepare" ? (
           <div className="piano-preparation">
             <header className="preparation-header">
-              <button aria-label="返回歌曲" onClick={onExit}>
-                <Icon name="back" />
-              </button>
               <h1>钢琴学谱</h1>
             </header>
             <p className="preparation-intro">选好一小段，开始练琴。</p>

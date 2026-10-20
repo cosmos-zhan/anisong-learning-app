@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { App } from "./App";
 import { PianoWorkspace } from "./piano/PianoWorkspace";
+import { Icon } from "./components/Icon";
 import { Feedback } from "./components/Feedback";
 import {
   DEMO_SONG,
@@ -76,6 +77,8 @@ export function Workspace() {
     [prefs, setPrefs] = useState(preferences),
     [notice, setNotice] = useState(""),
     [newTitle, setNewTitle] = useState("");
+  const scrollArea = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (scrollArea.current) scrollArea.current.scrollTop = 0; }, [page, song.id]);
   const [feedback, setFeedback] = useState(false);
   const navigate = useCallback((next: Page) => {
     if (currentPage() === next) {
@@ -165,6 +168,13 @@ export function Workspace() {
     last = records[0],
     lastSong = catalog.find((s) => s.id === last?.songId) ?? song;
   const focus = page === "lyrics" || page === "piano";
+  const headerTitle: Partial<Record<Page, string>> = {
+    home: "ANISONG", library: "我的曲库", settings: "设置", song: song.title,
+    materials: "歌曲资料", "piano-prep": "钢琴学谱", recents: "最近练习", about: "关于 Anisong",
+  };
+  const backTarget: Partial<Record<Page, Page>> = {
+    song: "library", materials: "song", "piano-prep": "song", recents: "home", about: "settings",
+  };
   const goPractice = (module: "lyrics" | "piano", target = song) =>
     choose(target, module === "lyrics" ? "lyrics" : "piano-prep");
   const description = (r: PracticeRecord) =>
@@ -196,11 +206,16 @@ export function Workspace() {
       data-revision={revision}
     >
       {!focus && (
-        <header className="shell-header">
-          <span className="wordmark">♫ ANISONG</span>
-          <span>一小段，也能慢慢学会</span>
+        <header className="shell-header" aria-label="页面导航">
+          {backTarget[page] ? (
+            <button className="shell-back" aria-label={`返回${backTarget[page] === "song" ? "歌曲" : backTarget[page] === "library" ? "曲库" : backTarget[page] === "settings" ? "设置" : "练习"}`}
+              onClick={() => navigate(backTarget[page]!)}><Icon name="back" /></button>
+          ) : <span className="shell-emblem" aria-hidden="true">♫</span>}
+          <strong className="shell-title">{headerTitle[page]}</strong>
+          <span className="shell-caption">一小段，慢慢学会</span>
         </header>
       )}
+      <div className="shell-content" ref={scrollArea}>
       {!focus && (
         <main className="browse">
           {notice && (
@@ -346,9 +361,6 @@ export function Workspace() {
           )}
           {page === "song" && (
             <>
-              <button className="back-link" onClick={() => navigate("library")}>
-                ← 返回曲库
-              </button>
               <div className="detail-hero">
                 <Cover title={song.title} />
                 <p className="eyebrow">
@@ -403,9 +415,6 @@ export function Workspace() {
           )}
           {page === "materials" && (
             <>
-              <button className="back-link" onClick={() => navigate("song")}>
-                ← 返回歌曲
-              </button>
               <h1>添加歌曲资料</h1>
               <p className="helper">
                 选择关联歌曲，分别导入音频、LRC 或 MusicXML。无需一次凑齐。
@@ -461,9 +470,6 @@ export function Workspace() {
           )}
           {page === "recents" && (
             <>
-              <button className="back-link" onClick={() => navigate("home")}>
-                ← 返回练习
-              </button>
               <h1>最近练习</h1>
               <p className="helper">恢复上次设置，点播放后才会发声。</p>
               {records.length ? (
@@ -551,12 +557,6 @@ export function Workspace() {
           )}
           {page === "about" && (
             <>
-              <button
-                className="back-link"
-                onClick={() => navigate("settings")}
-              >
-                ← 返回设置
-              </button>
               <h1>关于 Anisong</h1>
               <p>一小段，也能慢慢学会。</p>
               <section className="settings-card">
@@ -567,7 +567,7 @@ export function Workspace() {
               </section>
               <h2>当前测试版边界</h2>
               <p className="helper">
-                学唱与乐谱不自动同步；钢琴采用合成音色，等待弹对只支持单音轨。切后台、旋转或打开设置会暂停。网页循环可能有短暂停顿。请在
+                学唱与乐谱不自动同步；钢琴采用合成音色，等待弹对只支持单音轨。Android 自动试听和学唱支持后台媒体服务；交互弹奏、旋转或打开练习设置会暂停。网页后台受浏览器限制，循环可能有短暂停顿。请在
                 Android 手机上完成实际听音验收。
               </p>
               <a
@@ -629,6 +629,7 @@ export function Workspace() {
           />
         </div>
       )}
+      </div>
       {!focus && (
         <nav className="bottom-nav" aria-label="主导航">
           {[

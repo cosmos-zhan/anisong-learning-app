@@ -358,18 +358,10 @@ export function App({
           }
         })();
     }
-    const hidden = () => {
-      if (document.hidden && controller.getSnapshot().phase === "playing") {
-        controller.pause();
-        setNotice("离开页面后已暂停，返回时点播放继续。");
-      }
-    };
-    document.addEventListener("visibilitychange", hidden);
     return () => {
       alive.current = false;
       ++loadToken.current;
       ++lyricsToken.current;
-      document.removeEventListener("visibilitychange", hidden);
       if (!provided) controller.dispose();
       if (fileUrl.current) URL.revokeObjectURL(fileUrl.current);
     };

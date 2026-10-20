@@ -85,6 +85,7 @@ const gain = () => ({
   disconnect() {},
 });
 globalThis.AudioContext = class {
+  sampleRate = 48000;
   currentTime = 0;
   state = "suspended";
   destination = {};
@@ -95,6 +96,7 @@ globalThis.AudioContext = class {
   async close() {
     this.state = "closed";
   }
+  createWaveShaper() { return { curve: null, oversample: "none", connect() { return gain(); } }; }
   createGain() {
     return gain();
   }

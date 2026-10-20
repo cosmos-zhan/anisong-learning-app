@@ -6,6 +6,8 @@ import {
 } from "./timeline";
 import type {
   PianoAudio,
+  PianoPlayback,
+  PianoPlaybackEvent,
   PianoSession,
   PianoState,
   PracticeMode,
@@ -42,8 +44,12 @@ export class PianoController {
     sound: "off",
   };
   private removeInterruption?: () => void;
-  constructor(readonly audio: PianoAudio) {
+  private nativeSequence = false;
+  private removePlayback?: () => void;
+  constructor(readonly audio: PianoAudio, readonly playback?: PianoPlayback) {
+    this.removePlayback = playback?.subscribe(event => this.nativeEvent(event));
     this.removeInterruption = audio.onInterruption?.(() => {
+      if (this.nativeSequence) { this.update({ sound: "off" }); return; }
       this.cancel();
       this.update({
         phase: "paused",
@@ -68,7 +74,28 @@ export class PianoController {
     if (this.timer) clearInterval(this.timer);
     this.timer = undefined;
     this.scheduled.clear();
+    this.nativeSequence = false;
+    this.playback?.stop();
     this.audio.stop();
+  }
+  get backgroundPlayback() { return !!this.playback; }
+  syncPlayback() { if (this.nativeSequence) this.playback?.sync(); }
+  private nativeEvent(event: PianoPlaybackEvent) {
+    if (!this.nativeSequence || !this.score || !this.part) return;
+    if (event.type === "position") {
+      const start = this.part.measures[this.state.range[0]].tick;
+      const last = this.part.measures[this.state.range[1]];
+      const tick = tickAfter(this.score.tempos, start, last.tick + last.duration, event.position, 1);
+      this.update({ tick, step: Math.max(0, this.steps.findIndex(s => s.end > tick)), rounds: event.rounds ?? this.state.rounds });
+    } else if (event.type === "playing") {
+      if (this.state.phase !== "ended") this.update({ phase: event.playing ? "playing" : "paused", message: "" });
+    } else if (event.type === "loop") this.update({ rounds: event.rounds });
+    else if (event.type === "end") {
+      const last = this.part.measures[this.state.range[1]];
+      this.update({ phase: "ended", tick: last.tick + last.duration, step: this.steps.length - 1 });
+    } else if (event.type === "error") {
+      this.cancel(); this.update({ phase: "paused", error: event.code });
+    }
   }
   private rebuild() {
     if (this.score && this.part && this.track)
@@ -263,6 +290,31 @@ export class PianoController {
       message: "",
     });
     if (this.state.mode === "wait") return;
+    if (this.playback && this.score && this.part) {
+      const start = this.part.measures[this.state.range[0]].tick;
+      const last = this.part.measures[this.state.range[1]];
+      const end = last.tick + last.duration;
+      const duration = secondsBetween(this.score.tempos, start, end, 1);
+      this.nativeSequence = true;
+      this.update({ phase: "paused", message: "正在生成钢琴试听音频…" });
+      try {
+        await this.playback.play({
+          notes: this.steps.filter(s => s.pitch).map(s => ({
+            at: secondsBetween(this.score!.tempos, start, s.tick, 1),
+            duration: secondsBetween(this.score!.tempos, s.tick, s.end, 1),
+            midi: s.pitch!.midi,
+          })), duration,
+          position: secondsBetween(this.score.tempos, start, this.state.tick, 1),
+          speed: this.state.speed, loop: this.state.loop,
+        });
+        if (generation === this.generation) this.update({ phase: "playing", message: "" });
+      } catch (error) {
+        if (generation === this.generation) {
+          this.cancel(); this.update({ phase: "paused", error: (error as Error).message, message: "" });
+        }
+      }
+      return;
+    }
     this.originTick = this.state.tick;
     this.originTime = this.audio.now + 0.03;
     this.pump();
@@ -271,7 +323,7 @@ export class PianoController {
   }
   /** The audio clock drives both queued sound and UI position; no synthetic progress clock. */
   pump() {
-    if (this.state.phase !== "playing" || !this.score || !this.steps.length)
+    if (this.nativeSequence || this.state.phase !== "playing" || !this.score || !this.steps.length)
       return;
     const { tempos } = this.score,
       { speed, loop } = this.state,
@@ -380,6 +432,7 @@ export class PianoController {
   }
   setLoop(loop: boolean) {
     this.update({ loop });
+    if (this.nativeSequence) this.playback?.setLoop(loop);
   }
   press(token: string, midi: number) {
     if (this.state.sound !== "ready") {
@@ -442,6 +495,8 @@ export class PianoController {
   dispose() {
     this.cancel();
     this.removeInterruption?.();
+    this.removePlayback?.();
+    this.playback?.dispose();
     this.audio.dispose();
     this.listeners.clear();
   }

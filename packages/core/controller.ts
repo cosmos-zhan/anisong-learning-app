@@ -10,7 +10,7 @@ export class LoopController {
   if(e.type==='position')this.patch({position:e.position});
   if(e.type==='end')this.patch({phase:'ended',position:this.state.range?.end??0});
   if(e.type==='loop')this.patch({rounds:this.state.rounds+1});
-  if(e.type==='playing'&&!e.playing&&this.state.phase==='playing')this.patch({phase:'paused'});
+  if(e.type==='playing'&&this.state.range)this.patch({phase:e.playing?'playing':this.state.phase==='playing'?'paused':this.state.phase});
   if(e.type==='error')this.fail(e.code);
  });}
  getSnapshot=()=>this.state;

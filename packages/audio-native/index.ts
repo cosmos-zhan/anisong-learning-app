@@ -1,6 +1,7 @@
 import { Capacitor,registerPlugin,type PluginListenerHandle } from '@capacitor/core';
+import type { PianoPlaybackEvent, PianoSequence } from '../piano/types';
 import type { AudioEngine,EngineEvent,Range } from '../core/types';
-interface NativeBridge {load(o:{source:string}):Promise<{duration:number}>;setRange(o:Range&{loop:boolean}):Promise<void>;setSpeed(o:{speed:number}):Promise<void>;play():Promise<void>;pause():Promise<void>;seek(o:{position:number}):Promise<void>;pickAudio():Promise<{source:string;name:string}>;addListener(name:string,fn:(e:EngineEvent)=>void):Promise<PluginListenerHandle>;}
+interface NativeBridge {playPiano(sequence:PianoSequence):Promise<void>;stopPiano():Promise<void>;pianoLoop(o:{loop:boolean}):Promise<void>;syncPiano():Promise<void>;load(o:{source:string}):Promise<{duration:number}>;setRange(o:Range&{loop:boolean}):Promise<void>;setSpeed(o:{speed:number}):Promise<void>;play():Promise<void>;pause():Promise<void>;seek(o:{position:number}):Promise<void>;pickAudio():Promise<{source:string;name:string}>;addListener(name:'audioEvent',fn:(e:EngineEvent)=>void):Promise<PluginListenerHandle>;addListener(name:'pianoEvent',fn:(e:PianoPlaybackEvent)=>void):Promise<PluginListenerHandle>;}
 export const bridge=registerPlugin<NativeBridge>('AnisongAudio');
 export const isNative=()=>Capacitor.isNativePlatform()&&Capacitor.getPlatform()==='android';
 export class NativeAudioEngine implements AudioEngine {

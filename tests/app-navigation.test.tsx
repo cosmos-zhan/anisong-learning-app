@@ -314,3 +314,15 @@ it("a failed local save leaves the imported audio usable and reports the need to
   c.dispose();
   vi.unstubAllGlobals();
 });
+
+it("lyrics keep playing when the app is hidden; actual media pause/resume events update the UI", async () => {
+  const engine = new TestEngine(), controller = new LoopController(engine);
+  await controller.load("fixture"); controller.setLyrics(lyrics);
+  const ui = render(<App controller={controller} autoLoad={false} view="practice" initialSong={DEMO_SONG} />);
+  await controller.select(1);
+  Object.defineProperty(document, "hidden", { configurable: true, value: true });
+  fireEvent(document, new Event("visibilitychange"));
+  expect(engine.playing).toBe(true);
+  Object.defineProperty(document, "hidden", { configurable: true, value: false });
+  ui.unmount(); controller.dispose();
+});

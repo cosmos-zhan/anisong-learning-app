@@ -86,6 +86,7 @@ npm run dev
 
 ## 当前边界
 
+- Android 学唱与钢琴自动试听支持系统后台媒体服务；网页后台受浏览器限制，交互弹奏仍在前台进行。见 [本次修复与手机验收](docs/background-audio-navigation.md)。
 - Android16 真机听感、触控手感和特定 WebView 行为仍需手机测试；CI 通过不等于真机验收。
 - 等待弹对暂不支持双手和弦；简谱、MIDI 导入、外接 MIDI 键盘和 AI 识谱尚未实现。
 - 歌词与乐谱共用歌曲管理，暂不自动同步。

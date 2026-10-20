@@ -1511,3 +1511,55 @@ small {
     font-size: 11px;
   }
 }
+
+/* One application frame: only its content scrolls, never the navigation. */
+.app-shell:not(.is-focus) {
+  height: 100dvh;
+  min-height: 0;
+  padding: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+}
+.shell-header {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  min-height: calc(56px + max(env(safe-area-inset-top), var(--safe-area-inset-top, 0px)));
+  padding: max(env(safe-area-inset-top), var(--safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right), var(--safe-area-inset-right, 0px)) 0 max(12px, env(safe-area-inset-left), var(--safe-area-inset-left, 0px));
+  gap: 8px;
+  background: #f6f5ef;
+  border-bottom: 1px solid #203c3414;
+  z-index: 10;
+}
+.shell-header .shell-back, .shell-emblem {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  padding: 0;
+  color: #286653;
+}
+.shell-emblem { font-size: 24px; }
+.shell-title { flex: 1; min-width: 0; font-size: 17px; color: #203c34; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.shell-caption { font-size: 11px; white-space: nowrap; }
+.shell-content { min-height: 0; min-width: 0; overflow-y: auto; overscroll-behavior-y: contain; padding-bottom: 24px; scroll-padding-top: 16px; }
+.is-focus .shell-content { height: 100dvh; padding: 0; overflow: hidden; }
+.app-shell:not(.is-focus) .bottom-nav {
+  position: static;
+  transform: none;
+  width: 100%;
+  max-width: none;
+  padding: 8px max(12px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom), var(--safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left));
+  border-radius: 0;
+  border-top: 1px solid #203c3414;
+  background: #fffdf7;
+}
+.shell-content .piano-preparation { padding-top: 24px; }
+@media (max-width: 359px) { .shell-caption { display: none; } }
+@media (orientation: landscape) and (max-height: 500px) {
+  .shell-header { min-height: calc(48px + max(env(safe-area-inset-top), var(--safe-area-inset-top, 0px))); }
+  .app-shell:not(.is-focus) .bottom-nav { padding-top: 2px; padding-bottom: max(2px, env(safe-area-inset-bottom), var(--safe-area-inset-bottom, 0px)); }
+  .app-shell:not(.is-focus) .bottom-nav button { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 4px 12px; }
+}

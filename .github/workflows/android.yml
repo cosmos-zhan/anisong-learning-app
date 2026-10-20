@@ -54,6 +54,15 @@ jobs:
           PY
       - name: Complete App check and debug APK
         run: npm run android:check
+      - run: npx playwright-core install --with-deps chromium
+      - run: sudo apt-get install -y fonts-noto-cjk
+      - name: Browser navigation, responsive piano and real PCM gate
+        run: npm run test:browser
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-browser-screenshots
+          path: test-results/piano-browser
       - name: Validate public APK and prepare downloads
         run: python3 scripts/verify-public-apk.py
       - uses: actions/upload-artifact@v4

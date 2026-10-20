@@ -1,5 +1,15 @@
 # 部署：Cloudflare Pages 优先，Sites 暂作可用备选
 
+## 当前接入状态（2026-10-20）
+
+已增加 `wrangler.jsonc`、现有 `_redirects` / `_headers` 和构建版本注入。Cloudflare 浏览器实际返回登录页；本次安全登录请求超时，尚未确认登录或部署成功，没有可提供的 Pages URL。不能把私有 Sites 网址当作 Pages 地址。
+
+手机上可独立完成：登录 Cloudflare → Workers & Pages → Create application → Pages → Import an existing Git repository → GitHub 授权仅选 `cosmos-zhan/anisong-learning-app`。这是 Cloudflare 的 GitHub App 授权，与 ChatGPT 的 GitHub 授权分开。
+
+生产分支 `main`；当前钢琴 / 界面更新在 `feature/piano-p0` / PR #3，验收前不合并，开启该分支预览以测试最新代码。选择 Vite、仓库根目录、`npm run build`、输出 `dist`，Production / Preview 环境均设置 `NODE_VERSION=24`。开启 feature/* 和 fix/* 预览；保存并等待真实部署成功后，使用 Dashboard 和 PR 检查返回的 URL。项目名以平台实际可用名称为准，不预先构造 pages.dev URL。
+
+公开 Pages 使用仓库的 CC0 素材，可本地导入歌曲。私人春日影素材不上传公开 Pages；所有者私有 Site 继续保留原有权限和素材。无需把 Cloudflare Token 或歌曲文件提交到 GitHub。
+
 ## Cloudflare Pages GitHub 集成
 
 无需把 Cloudflare API Token 写进源码，也无需给客户端 GitHub Token。最少手机步骤：

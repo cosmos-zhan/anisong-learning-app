@@ -1,5 +1,5 @@
 import { afterEach, it, expect, vi } from "vitest";
-import { SynthPiano } from "../packages/piano/audio";
+import { SynthPiano, pianoEnvelope } from "../packages/piano/audio";
 class Parameter {
   value = 0;
   setValueAtTime = vi.fn();
@@ -23,6 +23,7 @@ class Oscillator {
   onended: (() => void) | null = null;
 }
 class Context {
+  sampleRate = 48000;
   currentTime = 0;
   state = "suspended";
   destination = {};
@@ -35,6 +36,7 @@ class Context {
   close = vi.fn(async () => {
     this.state = "closed";
   });
+  createWaveShaper() { return { curve: null, oversample: "none", connect: vi.fn(() => new Gain()) }; }
   createOscillator() {
     const o = new Oscillator();
     this.oscillators.push(o);
@@ -64,12 +66,12 @@ it("the actual synth adapter schedules real Web Audio nodes, preserves A4 pitch 
   expect(context.oscillators).toHaveLength(6);
   expect(context.oscillators[0].frequency.value).toBe(440);
   expect(context.oscillators[0].start).toHaveBeenCalledWith(1);
-  expect(context.oscillators[0].stop).toHaveBeenCalledWith(1.65);
-  expect(context.oscillators[3].stop).not.toHaveBeenCalled();
+  expect(context.oscillators[0].stop).toHaveBeenCalledWith(1.585);
+  expect(context.oscillators[3].stop).toHaveBeenCalledWith(8.085);
   context.currentTime = 0.2;
   audio.release("two");
   for (const osc of context.oscillators.slice(3))
-    expect(osc.stop).toHaveBeenCalledWith(0.35);
+    expect(osc.stop).toHaveBeenCalledWith(0.28500000000000003);
   audio.stop();
   for (const osc of context.oscillators) expect(osc.stop).toHaveBeenCalled();
   audio.dispose();
@@ -109,5 +111,32 @@ it("an unsuccessful resume returns a user-action error", async () => {
   const audio = new SynthPiano();
   await expect(audio.enable()).rejects.toThrow("启用声音");
   expect(context.oscillators).toHaveLength(0);
+  audio.dispose();
+});
+
+it("cancels a future attack and holds the analytical envelope on rapid release", async () => {
+  const context = new Context();
+  vi.stubGlobal("AudioContext", class { constructor() { return context; } });
+  const audio = new SynthPiano(); await audio.enable();
+  audio.note("queued", 60, 1, 0.5);
+  audio.release("queued");
+  const queued = context.gains[1].gain;
+  expect(queued.cancelScheduledValues).toHaveBeenLastCalledWith(0);
+  expect(queued.setValueAtTime).toHaveBeenLastCalledWith(0, 0);
+  audio.note("tap", 69);
+  context.currentTime = 0.004;
+  audio.release("tap");
+  const tap = context.gains[5].gain;
+  expect(tap.linearRampToValueAtTime).toHaveBeenCalledWith(pianoEnvelope(0.004), 0.004);
+  expect(tap.linearRampToValueAtTime).toHaveBeenLastCalledWith(0, 0.084);
+  expect(() => audio.note("bad", 60, 0, Number.NaN)).toThrow("无效");
+  audio.dispose();
+});
+it("does not generate harmonics above the output Nyquist frequency", async () => {
+  const context = new Context(); context.sampleRate = 24000;
+  vi.stubGlobal("AudioContext", class { constructor() { return context; } });
+  const audio = new SynthPiano(); await audio.enable(); audio.note("high", 120);
+  expect(context.oscillators).toHaveLength(1);
+  expect(context.oscillators.every(o => o.frequency.value < 12000)).toBe(true);
   audio.dispose();
 });
