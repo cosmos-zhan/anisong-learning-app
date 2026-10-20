@@ -26,3 +26,16 @@
 5. 320×640、393×873、740×320、960×432分别覆盖窄屏、长屏、短横屏和宽横屏；每页滚动到底，返回键留在左上，底栏不遮挡最后内容。
 
 尚未完成物理 Android16、锁屏 / 厂商省电、蓝牙耳机和真实听感验收。请不要把 CI 构建成功解释为这些场景已经验收。
+
+## 已执行结果（2026-10-20）
+
+实现提交 [a370ff0](https://github.com/cosmos-zhan/anisong-learning-app/commit/a370ff020746478cb44064525b54123e95589ab3)，浏览器回归适配提交 [9543718](https://github.com/cosmos-zhan/anisong-learning-app/commit/9543718d657a5a3cc1101fb25c133f74675827b7)。发布包来自后者，功能仍在 PR #3，未合并主分支。
+
+- [完整 Android 构建与发布](https://github.com/cosmos-zhan/anisong-learning-app/actions/runs/39395452610)：成功；`npm run android:check` 完整执行，159项前端测试、7项发布规则、9项原生测试通过。实际 APK 包含媒体 Service / foreground 权限，版本码2026102002。
+- [网页 CI](https://github.com/cosmos-zhan/anisong-learning-app/actions/runs/39395452585)：成功；真实 Chromium151，10种钢琴比例 / 安全边距、同会话旋转、真实触键与音频调度；4比例 × 8普通页面的滚动固定导航检查通过。32张普通页面截图已逐页拼图检查，顶部 / 底部导航保持可见。
+- 实际 Web Audio PCM：单音峰值0.062978、RMS0.016381；32音同相叠加峰值0.522341，小于0.56限值；取消未来音符的峰值 / RMS均为0，释放尾部为0。这是数值波形验证，不能代替耳机听感。
+- [v0.3.7-alpha.1](https://github.com/cosmos-zhan/anisong-learning-app/releases/tag/v0.3.7-alpha.1)：服务端已确认公开 Pre-release、非草稿；APK 9,665,234字节，SHA-256 `bbc658165397ce52ec2b38d8c84ab64ef3b8d594b0f58ba66370756dc110ae56`。已下载回读校验，不覆盖旧版附件。
+- 签名 `ephemeral-debug`，尚无固定 CI Secret。不能保证覆盖旧版；请保留原有练习数据。
+- 私有网页仍使用同一个 Site 和原三份私人素材。当前网站源码与 GitHub 应用源码逐文件比对，发布前核对提交对象中的版本 / 导航代码与构建档案，避免只有产物更新而源码记录滞后。私人录音不进入公开 APK。
+
+第一次新增浏览器检查因 Vite lib 返回数组而失败，已修正后重跑成功；失败运行没有发布 APK。Cloudflare 登录请求超时，未确认账号授权，没有 Pages 部署 URL。真机项目仍按上面的手机清单验收。
