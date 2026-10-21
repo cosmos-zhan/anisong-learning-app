@@ -560,7 +560,8 @@ export function PianoWorkspace({
   const currentMeasure = part?.measures.find(
     (m) => state.tick >= m.tick && state.tick < m.tick + m.duration,
   );
-  const running = state.phase === "playing" || state.phase === "waiting";
+  const preparing = state.phase === "preparing";
+  const running = preparing || state.phase === "playing" || state.phase === "waiting";
   const openSheet = (next: PianoSheet) => {
     controller.pause();
     flush();
@@ -859,7 +860,7 @@ export function PianoWorkspace({
               </button>
             </div>
             <div
-              className={`piano-score-stack ${restWaiting || controller.blocked || state.error ? "with-status" : ""}`}
+              className={`piano-score-stack ${preparing || restWaiting || controller.blocked || state.error ? "with-status" : ""}`}
             >
               <section className="staff-region" aria-label="乐谱">
                 {score && part && track ? (
@@ -884,7 +885,7 @@ export function PianoWorkspace({
                 )}
               </section>
               <div
-                className={`piano-status ${restWaiting || controller.blocked || state.error ? "status-action" : ""}`}
+                className={`piano-status ${preparing || restWaiting || controller.blocked || state.error ? "status-action" : ""}`}
                 role="status"
               >
                 <span>
@@ -955,8 +956,9 @@ export function PianoWorkspace({
               <button
                 className="piano-play"
                 aria-label={
-                  running ? "暂停" : state.mode === "wait" ? "开始等待" : "播放"
+                  preparing ? "取消试听准备" : running ? "暂停" : state.mode === "wait" ? "开始等待" : "播放"
                 }
+                aria-busy={preparing || undefined}
                 disabled={
                   !score ||
                   busy ||
@@ -1583,7 +1585,7 @@ export function PianoWorkspace({
             running ? controller.pause() : void controller.play()
           }
         >
-          {running ? "暂停" : state.mode === "wait" ? "开始等待" : "播放"}
+          {preparing ? "取消试听准备" : running ? "暂停" : state.mode === "wait" ? "开始等待" : "播放"}
         </button>
         <button
           aria-label="下一小节"

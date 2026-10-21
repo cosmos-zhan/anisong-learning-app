@@ -667,6 +667,18 @@ small {
 .view-preview .transport > button {
   color: #286653;
 }
+.view-preview .transport > .play-button {
+  background: #286653;
+  color: #fffdf7;
+  box-shadow: 0 4px 12px #203c3414;
+}
+.view-preview .progress {
+  accent-color: #286653;
+}
+.view-materials .file-button,
+.view-materials .imports button {
+  border-color: #b6cdbd;
+}
 .sheet-backdrop {
   position: fixed;
   inset: 0;

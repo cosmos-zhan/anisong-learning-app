@@ -39,8 +39,39 @@ it("pausing during PCM preparation cancels late success and preserves the pause"
   playback.play.mockImplementation(() => new Promise<void>(r => { finish = r; }));
   c.load(demoScore()); const pending = c.play();
   await vi.waitFor(() => expect(playback.play).toHaveBeenCalled());
+  expect(c.getSnapshot().phase).toBe("preparing");
+  const tick = c.getSnapshot().tick;
+  playback.listener?.({ type: "playing", playing: false });
+  playback.listener?.({ type: "position", position: 1 });
+  expect(c.getSnapshot()).toMatchObject({ phase: "preparing", tick });
   c.pause(); finish(); await pending;
   expect(c.getSnapshot().phase).toBe("paused");
+  c.dispose();
+});
+it("a native notification pause is not undone by a late preparation acknowledgement", async () => {
+  const playback = new Playback(), c = new PianoController(new PianoTestAudio(), playback);
+  let finish!: () => void;
+  playback.play.mockImplementation(() => new Promise<void>(resolve => { finish = resolve; }));
+  c.load(demoScore()); const pending = c.play();
+  await vi.waitFor(() => expect(playback.play).toHaveBeenCalled());
+  playback.listener?.({ type: "playing", playing: true });
+  playback.listener?.({ type: "playing", playing: false });
+  finish(); await pending;
+  expect(c.getSnapshot().phase).toBe("paused");
+  c.dispose();
+});
+it("changing loop during PCM preparation overrides the captured native loop setting", async () => {
+  const playback = new Playback(), c = new PianoController(new PianoTestAudio(), playback);
+  let nativeLoop = true, finish!: () => void;
+  playback.setLoop.mockImplementation((loop: boolean) => { nativeLoop = loop; });
+  playback.play.mockImplementation(sequence => new Promise<void>(resolve => {
+    finish = () => { nativeLoop = sequence.loop; resolve(); };
+  }));
+  c.load(demoScore()); const pending = c.play();
+  await vi.waitFor(() => expect(playback.play).toHaveBeenCalled());
+  c.setLoop(false); finish(); await pending;
+  expect(nativeLoop).toBe(false);
+  expect(c.getSnapshot().loop).toBe(false);
   c.dispose();
 });
 it("native preparation failure is visible and waiting mode still requires real keys", async () => {

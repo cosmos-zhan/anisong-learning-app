@@ -15,6 +15,7 @@ import { PianoController } from "../packages/piano/controller";
 import { PianoTestAudio, demoXml, fixture, note } from "./piano-fixtures";
 import { DEMO_SONG } from "../packages/core/song";
 import { Workspace } from "../apps/web/src/Workspace";
+import type { PianoPlayback } from "../packages/piano/types";
 vi.mock("../apps/web/src/piano/ScoreView", () => ({
   ScoreView: ({ onSelect }: { onSelect: (i: number) => void }) => (
     <button onClick={() => onSelect(4)}>选择真实小节回调</button>
@@ -53,6 +54,29 @@ async function practice() {
   await waitFor(() => expect(controller.score).toBeDefined());
   return { audio, controller, user, ui };
 }
+it("native audio preparation remains visible and its cancel button prevents late playback", async () => {
+  let finish!: () => void;
+  const playback: PianoPlayback = {
+    play: vi.fn(() => new Promise<void>(resolve => { finish = resolve; })),
+    stop: vi.fn(), setLoop: vi.fn(), sync: vi.fn(), dispose: vi.fn(),
+    subscribe: () => () => {},
+  };
+  const controller = new PianoController(new PianoTestAudio(), playback);
+  const user = userEvent.setup();
+  const ui = render(<PianoWorkspace song={DEMO_SONG} active view="practice" controller={controller} />);
+  await waitFor(() => expect(controller.score).toBeDefined());
+  await user.click(screen.getByRole("button", { name: "播放" }));
+  const cancel = await screen.findByRole("button", { name: "取消试听准备" });
+  expect(cancel).toBeEnabled();
+  expect(screen.getByText("正在准备试听，可随时取消…")).toBeVisible();
+  expect(cancel).toHaveAttribute("aria-busy", "true");
+  expect(document.querySelector(".piano-score-stack")).toHaveClass("with-status");
+  await user.click(cancel);
+  await act(async () => { finish(); await Promise.resolve(); });
+  expect(controller.getSnapshot().phase).toBe("paused");
+  expect(screen.getByRole("button", { name: "播放" })).toBeEnabled();
+  ui.unmount(); controller.dispose();
+});
 it("range grid pauses, previews reverse selection, commits only on confirm and cancels without changing audio range", async () => {
   const { audio, controller: c, user, ui } = await practice();
   await user.click(screen.getByRole("button", { name: "选择真实小节回调" }));

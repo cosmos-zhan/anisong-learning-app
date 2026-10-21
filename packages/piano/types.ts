@@ -83,7 +83,7 @@ export interface PianoSession {
 }
 export interface PianoState {
   mode: PracticeMode;
-  phase: "ready" | "playing" | "waiting" | "paused" | "ended";
+  phase: "ready" | "preparing" | "playing" | "waiting" | "paused" | "ended";
   speed: number;
   loop: boolean;
   range: [number, number];

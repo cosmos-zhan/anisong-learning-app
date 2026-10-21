@@ -83,11 +83,15 @@ export class PianoController {
   private nativeEvent(event: PianoPlaybackEvent) {
     if (!this.nativeSequence || !this.score || !this.part) return;
     if (event.type === "position") {
+      if (this.state.phase === "preparing") return;
       const start = this.part.measures[this.state.range[0]].tick;
       const last = this.part.measures[this.state.range[1]];
       const tick = tickAfter(this.score.tempos, start, last.tick + last.duration, event.position, 1);
       this.update({ tick, step: Math.max(0, this.steps.findIndex(s => s.end > tick)), rounds: event.rounds ?? this.state.rounds });
     } else if (event.type === "playing") {
+      // Clearing the previous media item emits pause before PCM is ready.
+      // Keep the preparation cancellable until the new player actually starts.
+      if (this.state.phase === "preparing" && !event.playing) return;
       if (this.state.phase !== "ended") this.update({ phase: event.playing ? "playing" : "paused", message: "" });
     } else if (event.type === "loop") this.update({ rounds: event.rounds });
     else if (event.type === "end") {
@@ -285,7 +289,7 @@ export class PianoController {
       this.update({ tick: this.steps[0].tick, step: 0 });
     this.update({
       sound: "ready",
-      phase: this.state.mode === "wait" ? "waiting" : "playing",
+      phase: this.state.mode === "wait" ? "waiting" : this.playback ? "preparing" : "playing",
       error: "",
       message: "",
     });
@@ -296,7 +300,7 @@ export class PianoController {
       const end = last.tick + last.duration;
       const duration = secondsBetween(this.score.tempos, start, end, 1);
       this.nativeSequence = true;
-      this.update({ phase: "paused", message: "正在生成钢琴试听音频…" });
+      this.update({ phase: "preparing", message: "正在准备试听，可随时取消…" });
       try {
         await this.playback.play({
           notes: this.steps.filter(s => s.pitch).map(s => ({
@@ -307,7 +311,13 @@ export class PianoController {
           position: secondsBetween(this.score.tempos, start, this.state.tick, 1),
           speed: this.state.speed, loop: this.state.loop,
         });
-        if (generation === this.generation) this.update({ phase: "playing", message: "" });
+        if (generation === this.generation) {
+          // Rendering captured the old loop value; apply any change made while
+          // it was running before handing control back to the player UI.
+          this.playback.setLoop(this.state.loop);
+          if (this.state.phase === "preparing")
+            this.update({ phase: "playing", message: "" });
+        }
       } catch (error) {
         if (generation === this.generation) {
           this.cancel(); this.update({ phase: "paused", error: (error as Error).message, message: "" });

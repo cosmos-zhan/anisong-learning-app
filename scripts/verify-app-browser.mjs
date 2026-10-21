@@ -39,6 +39,13 @@ try {
         assert(b.x<=20 && b.y<=30, `${name}: back is not top left`);
         assert.equal(await page.getByRole("button", {name:/^返回(歌曲|曲库|设置|练习)$/}).count(), 1, `${name}: duplicate back button`);
       }
+      if (name === "song") {
+        const theme = await page.locator(".view-preview .play-button").evaluate(el => ({
+          background: getComputedStyle(el).backgroundColor, color: getComputedStyle(el).color,
+        }));
+        assert.equal(theme.background, "rgb(40, 102, 83)", "song preview kept legacy blue controls");
+        assert.equal(theme.color, "rgb(255, 253, 247)", "song preview play label contrast");
+      }
       const geometry = await page.evaluate(() => ({ height:document.body.scrollHeight, width:document.body.scrollWidth, scroll:document.querySelector(".shell-content").scrollTop }));
       assert(geometry.width <= width+1 && geometry.height<=height+1, `${name}: document overflow ${JSON.stringify(geometry)}`);
       await page.screenshot({ path: resolve(output, `app-${name}-${width}x${height}.png`) });
