@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, type ReactNode } from "react";
 export type DismissSheet = (afterClose?: () => void) => void;
 const HISTORY_KEY = "anisongSheet";
+let sheetSequence = 0;
 export function Sheet({
   title,
   onClose,
@@ -44,7 +45,9 @@ export function Sheet({
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
     const entry = {
-      id: crypto.randomUUID(),
+      // A navigation marker, not a security token. HTTP development previews
+      // do not expose randomUUID, but must still open and dismiss panels.
+      id: crypto.randomUUID?.() ?? `sheet-${Date.now()}-${++sheetSequence}`,
       url: location.href,
       closing: false,
       popped: false,

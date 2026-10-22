@@ -88,3 +88,18 @@ it("missing annotations are explicit and disabled without changing original lyri
   expect(screen.getByText("这首歌暂无中文译文")).toBeVisible();
   ui.unmount(); controller.dispose();
 });
+it("display panel remains usable on HTTP previews without randomUUID", async () => {
+  const descriptor=Object.getOwnPropertyDescriptor(crypto,"randomUUID");
+  Object.defineProperty(crypto,"randomUUID",{configurable:true,value:undefined});
+  const {controller,ui,user}=await setup();
+  try {
+    await user.click(screen.getByRole("button",{name:"歌词显示"}));
+    expect(screen.getByRole("dialog",{name:"歌词显示"})).toBeVisible();
+    await user.click(screen.getByRole("button",{name:"完成"}));
+    await waitFor(()=>expect(screen.queryByRole("dialog")).toBeNull());
+    expect(screen.getByLabelText("歌词列表")).toBeVisible();
+  } finally {
+    if(descriptor)Object.defineProperty(crypto,"randomUUID",descriptor);
+    ui.unmount();controller.dispose();
+  }
+});

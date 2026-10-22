@@ -1,6 +1,6 @@
 {
   "name": "anisong-learning-app",
-  "version": "0.3.9",
+  "version": "0.3.9-alpha.2",
   "private": true,
   "type": "module",
   "engines": {
