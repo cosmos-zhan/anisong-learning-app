@@ -1,5 +1,7 @@
 import type { CSSProperties } from "react";
 import type { PlayerState } from "../../../../packages/core/types";
+import { currentLyric, type LyricsDisplay } from "../../../../packages/core/lyrics-display";
+import { useLyricFollow } from "./useLyricFollow";
 import { Icon } from "../components/Icon";
 import "./lyrics.css";
 
@@ -20,6 +22,9 @@ export function LyricsPractice({
   multi,
   anchor,
   notice,
+  display,
+  sheetOpen,
+  onDisplay,
   onSelect,
   onMode,
   onCancel,
@@ -36,6 +41,9 @@ export function LyricsPractice({
   multi: boolean;
   anchor: number | null;
   notice: string;
+  display: LyricsDisplay;
+  sheetOpen: boolean;
+  onDisplay: (value: LyricsDisplay) => void;
   onSelect: (index: number) => void;
   onMode: (multi: boolean) => void;
   onCancel: () => void;
@@ -43,11 +51,15 @@ export function LyricsPractice({
   onPlay: () => void;
   onMove: (delta: number) => void;
   onLoop: () => void;
-  onSheet: (sheet: "speed" | "trim" | "more") => void;
+  onSheet: (sheet: "speed" | "trim" | "more" | "display") => void;
   onExit: () => void;
 }) {
   const { range, selection } = state,
     playing = state.phase === "playing";
+  const currentIndex = currentLyric(state.lines, state.position);
+  const follow = useLyricFollow(currentIndex, display.autoScroll,
+    anchor !== null || sheetOpen || state.phase === "loading",
+    `${display.romaji}:${display.translation}:${state.lines.length}`);
   const disabled = !range || state.phase === "loading";
   const urgentNotice = /失败|无法|超时|不足|不可用|失效/.test(notice);
   const position = range
@@ -66,7 +78,7 @@ export function LyricsPractice({
       ? `已点第 ${anchor + 1} 句，请点结束句`
       : multi
         ? selection
-          ? `已选${selectionTitle.replace("第 ", "")}，可重新点选起点`
+          ? "点起句，再点尾句"
           : "先点起始，再点结束，可反向选择"
         : "点一句，从这里开始练";
   return (
@@ -79,6 +91,9 @@ export function LyricsPractice({
           <h1>{title}</h1>
           <p>{subtitle}</p>
         </div>
+        <button className="lyrics-display-entry" aria-label="歌词显示" onClick={() => onSheet("display")}>
+          <Icon name="languages" /><span>显示</span>
+        </button>
         <button aria-label="更多学唱操作" onClick={() => onSheet("more")}>
           <Icon name="more" />
         </button>
@@ -101,16 +116,23 @@ export function LyricsPractice({
               多句
             </button>
           </div>
-          <span className="selection-badge" aria-label="当前选中歌词">
-            {selectionTitle}
-          </span>
+          <button className="lyrics-follow" aria-pressed={display.autoScroll}
+            onClick={() => { follow.resume(); onDisplay({ ...display, autoScroll: !display.autoScroll }); }}>
+            <Icon name="follow" />
+            {display.autoScroll ? (follow.browsing ? "跟随已暂停" : "自动滚动 开") : "自动滚动 关"}
+          </button>
         </div>
         <div className="selection-help" role="status">
+          <span className="selection-badge" aria-label="当前选中歌词">{selectionTitle}</span>
           <span>{helper}</span>
           {anchor !== null && <button onClick={onCancel}>取消</button>}
         </div>
       </section>
-      <div className="lyrics" aria-label="歌词列表">
+      <div className="lyrics-stage">
+      <div className="lyrics" aria-label="歌词列表" ref={follow.list}
+        onWheel={follow.suspend} onTouchMove={follow.suspend}
+        onKeyDown={event => { if (["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End"].includes(event.key)) follow.suspend(); }}
+        onPointerDown={event => { const rect = event.currentTarget.getBoundingClientRect(); if (event.clientX >= rect.right - 16) follow.suspend(); }}>
         {!state.lines.length ? (
           <div className="empty">
             {state.phase === "loading"
@@ -121,28 +143,32 @@ export function LyricsPractice({
           state.lines.map((line, index) => {
             const selected =
               !!selection && index >= selection[0] && index <= selection[1];
-            const current =
-              playing &&
-              state.position >= line.start &&
-              state.position <
-                (state.lines[index + 1]?.start ?? state.duration);
+            const current = index === currentIndex;
             return (
               <button
                 key={`${line.start}-${index}`}
+                data-line={index}
                 aria-label={`第 ${index + 1} 句 ${line.text}`}
                 aria-pressed={selected || anchor === index}
                 aria-current={current ? "true" : undefined}
-                className={`lyric ${selected ? "selected" : ""} ${anchor === index ? "anchor" : ""}`}
-                onClick={() => onSelect(index)}
+                className={`lyric ${selected ? "selected" : ""} ${selection?.[0] === index ? "range-first" : ""} ${selection?.[1] === index ? "range-last" : ""} ${anchor === index ? "anchor" : ""}`}
+                onClick={() => { if (!multi || anchor !== null) follow.resume(); onSelect(index); }}
               >
                 <span className="line-number" aria-hidden="true">
                   {String(index + 1).padStart(2, "0")}
                 </span>
-                <span className="lyric-text">{line.text}</span>
+                <span className="lyric-content">
+                  {current && <span className="lyric-current-label">当前句</span>}
+                  <span className="lyric-text">{line.text}</span>
+                  {display.romaji && line.romaji && <span className="lyric-romaji">{line.romaji}</span>}
+                  {display.translation && line.translation && <span className="lyric-translation">{line.translation}</span>}
+                </span>
               </button>
             );
           })
         )}
+      </div>
+      {display.autoScroll && follow.browsing && <button className="lyrics-return" onClick={() => { follow.resume(); }}>回到当前句</button>}
       </div>
       <section className="controls lyrics-player" aria-label="播放器">
         <div className="range-summary">
@@ -174,7 +200,7 @@ export function LyricsPractice({
           <button
             aria-label="上一句"
             disabled={disabled || !selection || selection[0] === 0}
-            onClick={() => onMove(-1)}
+            onClick={() => { follow.resume(); onMove(-1); }}
           >
             <Icon name="previous" />
           </button>
@@ -191,7 +217,7 @@ export function LyricsPractice({
             disabled={
               disabled || !selection || selection[1] === state.lines.length - 1
             }
-            onClick={() => onMove(1)}
+            onClick={() => { follow.resume(); onMove(1); }}
           >
             <Icon name="next" />
           </button>

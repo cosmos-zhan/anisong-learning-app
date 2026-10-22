@@ -1,4 +1,4 @@
-export interface LyricLine { start:number; text:string }
+export interface LyricLine { start:number; text:string; romaji?:string; translation?:string }
 export interface Range { start:number; end:number }
 export type Phase='empty'|'loading'|'ready'|'playing'|'paused'|'ended'|'error';
 export type EngineEvent={type:'position';position:number}|{type:'playing';playing:boolean}|{type:'end'}|{type:'loop'}|{type:'error';code:string};

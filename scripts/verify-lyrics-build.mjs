@@ -47,7 +47,7 @@ const until = async predicate => {
 const click = node => { if (!node) throw new Error('Production lyric control missing'); node.dispatchEvent(new window.MouseEvent('click', { bubbles: true })); };
 const exactButton = text => [...document.querySelectorAll('button')].find(b => b.textContent.trim() === text);
 const lyricText = readFileSync(resolve(dist, config.lyrics?.src ?? 'demo/demo.lrc'), 'utf8');
-const starts = [...lyricText.matchAll(/\[(\d+):(\d+(?:\.\d+)?)\]/g)].map(match => Number(match[1]) * 60 + Number(match[2]));
+const starts = [...new Set([...lyricText.matchAll(/\[(\d+):(\d+(?:\.\d+)?)\]/g)].map(match => Number(match[1]) * 60 + Number(match[2])))].sort((a,b)=>a-b);
 try {
   const entry = html.match(/src="([^\"]+\.js)"/)[1];
   await import(pathToFileURL(resolve(dist, entry)));

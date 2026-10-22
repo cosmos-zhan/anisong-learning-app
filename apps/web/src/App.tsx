@@ -21,6 +21,8 @@ import { HARUHIKAGE, isHaruhikage } from "../../../packages/core/presets";
 import { OfficialReference } from "./components/OfficialReference";
 import { Sheet } from "./components/Sheet";
 import { LyricsPractice } from "./lyrics/LyricsPractice";
+import { LyricsDisplayPanel } from "./lyrics/LyricsDisplayPanel";
+import { lyricsDisplay, saveLyricsDisplay, type LyricsDisplay } from "../../../packages/core/lyrics-display";
 import { TrimRange } from "./lyrics/TrimRange";
 import {
   materialStore,
@@ -88,7 +90,12 @@ export function App({
         : "此部署未包含内置音频。可导入本地 MP3 试听，再导入匹配 LRC 进行逐句循环。"
       : "",
   );
-  const [sheet, setSheet] = useState<"speed" | "trim" | "more" | null>(null);
+  const [sheet, setSheet] = useState<"speed" | "trim" | "more" | "display" | null>(null);
+  const [display, setDisplay] = useState(lyricsDisplay);
+  const changeDisplay = (value: LyricsDisplay) => {
+    setDisplay(value);
+    if (!saveLyricsDisplay(value)) setNotice("显示偏好无法保存；本次仍然生效，重启后会恢复默认。");
+  };
   const songId = initialSong?.id ?? "demo-original";
   const [multi, setMulti] = useState(false);
   const [anchor, setAnchor] = useState<number | null>(null);
@@ -532,9 +539,8 @@ export function App({
     );
     void controller.select(i);
   };
-  const openSheet = (next: "speed" | "trim" | "more") => {
-    setAnchor(null);
-    controller.pause();
+  const openSheet = (next: "speed" | "trim" | "more" | "display") => {
+    if (next !== "display") { setAnchor(null); controller.pause(); }
     flushRef.current();
     setSheet(next);
   };
@@ -577,6 +583,9 @@ export function App({
           multi={multi}
           anchor={anchor}
           notice={notice}
+          display={display}
+          sheetOpen={!!sheet}
+          onDisplay={changeDisplay}
           onSelect={select}
           onMode={chooseMode}
           onCancel={() => setAnchor(null)}
@@ -987,13 +996,15 @@ export function App({
                 ? view === "practice"
                   ? "微调片段"
                   : "片段边界"
-                : "更多学唱操作"
+                : sheet === "display" ? "歌词显示" : "更多学唱操作"
           }
           onClose={() => setSheet(null)}
         >
           {(dismiss) => (
             <>
-              {sheet === "speed" ? (
+              {sheet === "display" ? (
+                <LyricsDisplayPanel lines={state.lines} value={display} onChange={changeDisplay} onClose={() => dismiss()} />
+              ) : sheet === "speed" ? (
                 <div
                   className="sheet-options speed-options"
                   role="group"
@@ -1077,7 +1088,7 @@ export function App({
           )}
         </Sheet>
       )}
-      {feedback && <Feedback state={feedback} onClose={closeFeedback} />}
+      {feedback && <Feedback state={feedback} context={{ lyricsDisplay: display }} onClose={closeFeedback} />}
     </main>
   );
 }

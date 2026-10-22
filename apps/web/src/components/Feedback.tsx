@@ -35,6 +35,7 @@ export function Feedback({
             version,
             navigator.userAgent,
             diagnostics,
+            context,
           )
         : diagnosticReport(
             fields,
