@@ -99,6 +99,19 @@ class AnisongAudioPlugin : Plugin() {
             } catch (_: Exception) { call.reject("NATIVE") }
         }, ContextCompat.getMainExecutor(context))
     }
+    @PluginMethod
+    fun storeAudio(call: PluginCall) {
+        val encoded = call.getString("base64") ?: return call.reject("LOAD")
+        val hash = call.getString("sha256") ?: return call.reject("LOAD")
+        if (encoded.length > 42 * 1024 * 1024) return call.reject("LOAD")
+        metadataWorker.execute {
+            try {
+                val bytes = android.util.Base64.decode(encoded, android.util.Base64.DEFAULT)
+                DownloadedAudioStore.store(context.filesDir, hash, bytes)
+                call.resolve(JSObject().put("source", "downloaded:$hash"))
+            } catch (_: Exception) { call.reject("LOAD") }
+        }
+    }
     private fun metadata(title: String) = MediaMetadata.Builder().setTitle(title)
         .setArtist("Anisong Learning").build()
     @PluginMethod
@@ -106,7 +119,9 @@ class AnisongAudioPlugin : Plugin() {
         val source = call.getString("source") ?: return@main call.reject("LOAD")
         if (!AudioSource.allowed(source)) return@main call.reject("LOAD")
         val assetPath = AudioSource.assetPath(source)
-        val next = Uri.parse(source)
+        val downloaded = AudioSource.downloadHash(source)?.let { DownloadedAudioStore.file(context.filesDir, it) }
+        if (downloaded != null && !downloaded.isFile) return@main call.reject("LOAD")
+        val next = if (downloaded != null) Uri.fromFile(downloaded) else Uri.parse(source)
         val revision = ++loadRevision
         kind = "lyrics"
         pendingLoad?.reject("LOAD")

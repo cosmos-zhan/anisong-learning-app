@@ -12,5 +12,7 @@ object AudioSource {
     }
 
     fun allowed(source: String): Boolean =
-        (source.startsWith("content://") && source.length > "content://".length) || assetPath(source) != null
+        (source.startsWith("content://") && source.length > "content://".length) || assetPath(source) != null || downloadHash(source) != null
+    fun downloadHash(source: String): String? =
+        source.removePrefix("downloaded:").takeIf { source.startsWith("downloaded:") && Regex("[a-f0-9]{64}").matches(it) }
 }

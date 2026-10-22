@@ -9,6 +9,7 @@ import { LoopController } from "../../../packages/core/controller";
 import { WebAudioEngine } from "../../../packages/audio-web";
 import {
   NativeAudioEngine,
+  nativeDownloadedAudio,
   isNative,
   bridge,
 } from "../../../packages/audio-native";
@@ -245,7 +246,9 @@ export function App({
       if (!audio) return false;
       const token = ++loadToken.current;
       const url = audio.blob ? URL.createObjectURL(audio.blob) : undefined;
-      const loaded = await controller.load(url ?? audio.source ?? "");
+      const source = isNative() && audio.blob ? await nativeDownloadedAudio(audio.blob) : (url ?? audio.source ?? "");
+      if (token !== loadToken.current) { if (url) URL.revokeObjectURL(url); return true; }
+      const loaded = await controller.load(source);
       if (token !== loadToken.current) {
         if (url) URL.revokeObjectURL(url);
         return true;

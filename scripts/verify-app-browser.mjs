@@ -22,7 +22,7 @@ try {
       return route.fulfill({ body: readFileSync(path), contentType: mime[extname(path)] || "application/octet-stream" });
     });
     const page = await context.newPage(); page.on("pageerror", e => errors.push(e.message));
-    for (const name of ["home", "library", "song", "materials", "piano-prep", "settings", "recents", "about"]) {
+    for (const name of ["home", "library", "downloads", "song", "materials", "piano-prep", "settings", "recents", "about"]) {
       await page.goto(`https://anisong.test/?song=demo-original#${name}`);
       await page.locator(".shell-title").waitFor();
       await page.evaluate(() => document.fonts.ready);

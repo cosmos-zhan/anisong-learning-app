@@ -43,6 +43,7 @@ import {
 import { Icon } from "../components/Icon";
 import { Sheet } from "../components/Sheet";
 import {
+  materialStore,
   preferences,
   rememberPractice,
   saveMaterialSummary,
@@ -196,6 +197,10 @@ export function PianoWorkspace({
         savedAt: new Date().toISOString(),
       });
       if (loadToken !== token.current) return;
+      const packageRecord = await materialStore.get(`${song.id}:download`);
+      if (loadToken !== token.current) return;
+      if (packageRecord?.download) await materialStore.put({id:`${song.id}:score`,name:next.title,text:next.xml});
+      if (loadToken !== token.current) return;
       localStorage.setItem(`anisong:lastScore:${song.id}`, key);
       rememberSong({
         ...song,
@@ -335,6 +340,11 @@ export function PianoWorkspace({
     setBusy(true);
     void (async () => {
       try {
+        const downloaded = await materialStore.get(`${song.id}:score`);
+        if (loadToken !== token.current) return;
+        const packageRecord = await materialStore.get(`${song.id}:download`);
+        if (loadToken !== token.current) return;
+        if (downloaded?.text && packageRecord?.download) { install(parseMusicXml(downloaded.text, downloaded.name), loadToken, true); return; }
         const updatedPreset =
           isHaruhikage(song) &&
           bundledScore &&

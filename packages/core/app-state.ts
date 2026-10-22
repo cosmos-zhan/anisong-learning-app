@@ -86,6 +86,10 @@ export interface LocalMaterial {
   text?: string;
   source?: string;
   name: string;
+  download?: {
+    songId: string; title: string; revision: string; bytes: number;
+    downloadedAt: string; summary: MaterialSummary;
+  };
 }
 async function materialTransaction<T>(
   mode: IDBTransactionMode,
@@ -115,10 +119,31 @@ async function materialTransaction<T>(
   }
 }
 export const materialStore = {
+  all: () => materialTransaction<LocalMaterial[]>("readonly", s => s.getAll()),
   get: (id: string) =>
     materialTransaction<LocalMaterial | undefined>("readonly", (s) =>
       s.get(id),
     ),
   put: (value: LocalMaterial) =>
     materialTransaction("readwrite", (s) => s.put(value)),
+  putMany: async (values: LocalMaterial[], signal?: AbortSignal) => {
+    if (signal?.aborted) throw new DOMException("已取消", "AbortError");
+    const db = await new Promise<IDBDatabase>((resolve, reject) => {
+      const r = indexedDB.open("anisong-materials", 1);
+      r.onupgradeneeded = () => r.result.createObjectStore("materials", { keyPath: "id" });
+      r.onsuccess = () => resolve(r.result); r.onerror = () => reject(r.error);
+    });
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const tx = db.transaction("materials", "readwrite");
+        const abort = () => tx.abort();
+        signal?.addEventListener("abort", abort, { once: true });
+        tx.oncomplete = () => { signal?.removeEventListener("abort", abort); resolve(); };
+        tx.onabort = tx.onerror = () => { signal?.removeEventListener("abort", abort); reject(tx.error ?? new DOMException("保存已取消", "AbortError")); };
+        if (signal?.aborted) { tx.abort(); return; }
+        const store = tx.objectStore("materials");
+        for (const value of values) store.put(value);
+      });
+    } finally { db.close(); }
+  },
 };

@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "title": "Anisong 原创示例源",
+  "songs": [
+    {
+      "id": "demo-original",
+      "title": "小小的练习曲",
+      "revision": "1",
+      "audio": {
+        "url": "demo.wav",
+        "name": "demo.wav",
+        "bytes": 1565594,
+        "sha256": "cf9a0f5173d2fffbc51b7b7bf2312b5c4a78a026fc6f52f500d91a89f491a759"
+      },
+      "lyrics": {
+        "url": "demo.lrc",
+        "name": "demo.lrc",
+        "bytes": 360,
+        "sha256": "7d27f6bf644a36c881239ab9144d2601cfe7e0dc63b0f01cce4118d32d364c07"
+      },
+      "score": {
+        "url": "piano-demo.musicxml",
+        "name": "piano-demo.musicxml",
+        "bytes": 4250,
+        "sha256": "d859d422e4b08e007c2480b2dfb1fcfb5e5677a92c8a81183ee2271adac9c981"
+      }
+    }
+  ]
+}

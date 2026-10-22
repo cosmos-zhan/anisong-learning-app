@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { DownloadsPage } from "./downloads/DownloadsPage";
 import { App } from "./App";
 import { PianoWorkspace } from "./piano/PianoWorkspace";
 import { Icon } from "./components/Icon";
@@ -12,6 +13,9 @@ import {
 } from "../../../packages/core/song";
 import { HARUHIKAGE, isHaruhikage } from "../../../packages/core/presets";
 import {
+  materialStore,
+  saveMaterialSummary,
+  type LocalMaterial,
   materialSummary,
   preferences,
   practiceRecords,
@@ -26,6 +30,7 @@ import "./piano/practice-layout.css";
 const pages = [
   "home",
   "library",
+  "downloads",
   "settings",
   "song",
   "materials",
@@ -77,6 +82,8 @@ export function Workspace() {
     [prefs, setPrefs] = useState(preferences),
     [notice, setNotice] = useState(""),
     [newTitle, setNewTitle] = useState("");
+  const [downloads, setDownloads] = useState<LocalMaterial[]>([]);
+  useEffect(()=>{let alive=true;void materialStore.all().then(rows=>{if(alive)setDownloads(rows.filter(r=>r.download));}).catch(()=>{});return()=>{alive=false;};},[revision]);
   const scrollArea = useRef<HTMLDivElement>(null);
   useEffect(() => { if (scrollArea.current) scrollArea.current.scrollTop = 0; }, [page, song.id]);
   const [feedback, setFeedback] = useState(false);
@@ -137,7 +144,7 @@ export function Workspace() {
   }, [song.id]);
   const catalog = Array.from(
     new Map(
-      [HARUHIKAGE, DEMO_SONG, ...songs(), song].map((s) => [s.id, s]),
+      [HARUHIKAGE, DEMO_SONG, ...songs(), ...downloads.map(row=>({id:row.download!.songId,title:row.download!.title,scoreIds:[],updatedAt:row.download!.downloadedAt})), song].map((s) => [s.id, s]),
     ).values(),
   );
   const summary = (s: Song): MaterialSummary => {
@@ -152,6 +159,7 @@ export function Workspace() {
               ...(media.score ? { score: "内置曲谱" } : {}),
             }
           : {}),
+      ...downloads.find(row=>row.download?.songId===s.id)?.download?.summary,
       ...local,
     };
   };
@@ -170,10 +178,10 @@ export function Workspace() {
   const focus = page === "lyrics" || page === "piano";
   const headerTitle: Partial<Record<Page, string>> = {
     home: "ANISONG", library: "我的曲库", settings: "设置", song: song.title,
-    materials: "歌曲资料", "piano-prep": "钢琴学谱", recents: "最近练习", about: "关于 Anisong",
+    downloads: "在线素材", materials: "歌曲资料", "piano-prep": "钢琴学谱", recents: "最近练习", about: "关于 Anisong",
   };
   const backTarget: Partial<Record<Page, Page>> = {
-    song: "library", materials: "song", "piano-prep": "song", recents: "home", about: "settings",
+    downloads: "library", song: "library", materials: "song", "piano-prep": "song", recents: "home", about: "settings",
   };
   const goPractice = (module: "lyrics" | "piano", target = song) =>
     choose(target, module === "lyrics" ? "lyrics" : "piano-prep");
@@ -223,6 +231,10 @@ export function Workspace() {
               {notice}
             </p>
           )}
+          {page === "downloads" && <DownloadsPage onSaved={row=>{
+            try{rememberSong({id:row.download!.songId,title:row.download!.title,scoreIds:[],updatedAt:row.download!.downloadedAt});saveMaterialSummary(row.download!.songId,row.download!.summary);}catch{/* Canonical package and metadata are in IndexedDB. */}
+            setVisited({lyrics:false,piano:false});changed();
+          }} onOpen={(id,title)=>choose({id,title,scoreIds:[],updatedAt:""})} />}
           {page === "home" && (
             <>
               <div className="page-heading">
@@ -297,6 +309,7 @@ export function Workspace() {
                   ＋ 导入
                 </button>
               </div>
+              <button className="download-library-entry" onClick={()=>navigate("downloads")}>↓ 在线素材 · 下载到本地</button>
               <input
                 className="search-field"
                 aria-label="搜索歌曲"
@@ -643,7 +656,7 @@ export function Workspace() {
               aria-current={
                 page === target ||
                 (target === "library" &&
-                  ["song", "materials"].includes(page)) ||
+                  ["song", "materials", "downloads"].includes(page)) ||
                 (target === "home" && ["recents", "piano-prep"].includes(page))
                   ? "page"
                   : undefined

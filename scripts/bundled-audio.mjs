@@ -49,8 +49,13 @@ if(scoreAvailable){
  const hash=createHash('sha256').update(content).digest('hex');const name=`haruhikage-crychic-${hash.slice(0,12)}.${scoreIsMxl?'mxl':'musicxml'}`;
  writeFileSync(join(output,name),content);score={src:`private-media/${name}`,sha256:hash,bytes:content.length,...(scoreIsMxl?{preferredPartId:'P2',preferredTrackId:'1:1'}:{})};
 }
+if (available) {
+ const entry = value => value ? {url:value.src.split('/').at(-1),name:value.src.split('/').at(-1),bytes:value.bytes,sha256:value.sha256} : undefined;
+ writeFileSync(join(output,'catalog.json'),JSON.stringify({schema:1,title:'私人练习素材',songs:[{id:'haruhikage-crychic',title:'春日影',revision:[sha256,lyrics?.sha256,score?.sha256].filter(Boolean).map(h=>h.slice(0,12)).join('-'),audio:entry({src:filename,bytes:audio.length,sha256}),...(lyrics?{lyrics:entry(lyrics)}:{}),...(score?{score:entry(score)}:{})}]},null,2)+'\n');
+}
 writeFileSync('apps/web/src/bundled-audio.json', JSON.stringify({
   available,
+  catalog: available ? 'private-media/catalog.json' : null,
   src: available ? `private-media/${filename}` : '',
   sha256,
   bytes: audio?.length ?? 0,
