@@ -126,6 +126,13 @@ export const materialStore = {
     ),
   put: (value: LocalMaterial) =>
     materialTransaction("readwrite", (s) => s.put(value)),
+  removeDownload: (songId:string) => {
+    if(!/^[a-z0-9][a-z0-9-]{0,79}$/.test(songId))throw new Error('无效歌曲编号。');
+    return materialTransaction('readwrite',store=>{
+      for(const kind of ['audio','lyrics','score'])store.delete(`${songId}:${kind}`);
+      return store.delete(`${songId}:download`);
+    });
+  },
   putMany: async (values: LocalMaterial[], signal?: AbortSignal) => {
     if (signal?.aborted) throw new DOMException("已取消", "AbortError");
     const db = await new Promise<IDBDatabase>((resolve, reject) => {

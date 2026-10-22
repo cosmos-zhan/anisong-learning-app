@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { DownloadsPage } from "./downloads/DownloadsPage";
+import { downloadManager } from "../../../packages/core/download-manager";
 import { App } from "./App";
 import { PianoWorkspace } from "./piano/PianoWorkspace";
 import { Icon } from "./components/Icon";
@@ -83,6 +84,8 @@ export function Workspace() {
     [notice, setNotice] = useState(""),
     [newTitle, setNewTitle] = useState("");
   const [downloads, setDownloads] = useState<LocalMaterial[]>([]);
+  const downloadTasks=useSyncExternalStore(downloadManager.subscribe,downloadManager.snapshot);
+  const pendingDownloads=downloadTasks.filter(t=>['queued','downloading','cancelling'].includes(t.status)).length;
   useEffect(()=>{let alive=true;void materialStore.all().then(rows=>{if(alive)setDownloads(rows.filter(r=>r.download));}).catch(()=>{});return()=>{alive=false;};},[revision]);
   const scrollArea = useRef<HTMLDivElement>(null);
   useEffect(() => { if (scrollArea.current) scrollArea.current.scrollTop = 0; }, [page, song.id]);
@@ -109,6 +112,11 @@ export function Workspace() {
     }));
   }, [page, song.id]);
   const changed = useCallback(() => refresh((n) => n + 1), []);
+  const downloaded=useCallback((row:LocalMaterial)=>{
+    try{rememberSong({id:row.download!.songId,title:row.download!.title,scoreIds:[],updatedAt:row.download!.downloadedAt});saveMaterialSummary(row.download!.songId,row.download!.summary);}catch{/* Canonical metadata remains in IndexedDB. */}
+    if(row.download?.songId===song.id)setVisited({lyrics:false,piano:false});changed();
+  },[changed,song.id]);
+  useEffect(()=>downloadManager.onSaved(downloaded),[downloaded]);
   const choose = (next: Song, destination: Page = "song") => {
     if (next.id !== song.id) {
       setVisited({ lyrics: false, piano: false });
@@ -178,7 +186,7 @@ export function Workspace() {
   const focus = page === "lyrics" || page === "piano";
   const headerTitle: Partial<Record<Page, string>> = {
     home: "ANISONG", library: "我的曲库", settings: "设置", song: song.title,
-    downloads: "在线素材", materials: "歌曲资料", "piano-prep": "钢琴学谱", recents: "最近练习", about: "关于 Anisong",
+    downloads: "下载管理", materials: "歌曲资料", "piano-prep": "钢琴学谱", recents: "最近练习", about: "关于 Anisong",
   };
   const backTarget: Partial<Record<Page, Page>> = {
     downloads: "library", song: "library", materials: "song", "piano-prep": "song", recents: "home", about: "settings",
@@ -231,10 +239,10 @@ export function Workspace() {
               {notice}
             </p>
           )}
-          {page === "downloads" && <DownloadsPage onSaved={row=>{
-            try{rememberSong({id:row.download!.songId,title:row.download!.title,scoreIds:[],updatedAt:row.download!.downloadedAt});saveMaterialSummary(row.download!.songId,row.download!.summary);}catch{/* Canonical package and metadata are in IndexedDB. */}
-            setVisited({lyrics:false,piano:false});changed();
-          }} onOpen={(id,title)=>choose({id,title,scoreIds:[],updatedAt:""})} />}
+          {page === "downloads" && <DownloadsPage onSaved={downloaded} onRemoved={id=>{
+            try{localStorage.removeItem(`anisong:materials:${id}`);}catch{/* Optional summary mirror. */}
+            if(id===song.id)setVisited({lyrics:false,piano:false});changed();
+          }} onOpen={(id,title,destination)=>choose({id,title,scoreIds:[],updatedAt:""},destination??'song')} />}
           {page === "home" && (
             <>
               <div className="page-heading">
@@ -283,6 +291,7 @@ export function Workspace() {
                 </span>
                 <b>→</b>
               </button>
+              <button className="download-library-entry" onClick={()=>navigate('downloads')}>↓ 我的下载 · {downloads.length} 首{pendingDownloads?` · ${pendingDownloads} 项进行中`:''}</button>
               <div className="section-heading">
                 <h2>最近练习</h2>
                 <button onClick={() => navigate("recents")}>查看全部 →</button>
@@ -309,7 +318,7 @@ export function Workspace() {
                   ＋ 导入
                 </button>
               </div>
-              <button className="download-library-entry" onClick={()=>navigate("downloads")}>↓ 在线素材 · 下载到本地</button>
+              <button className="download-library-entry" onClick={()=>navigate("downloads")}>↓ 下载管理 · {downloads.length} 首已下载{pendingDownloads?` · ${pendingDownloads} 项进行中`:''}</button>
               <input
                 className="search-field"
                 aria-label="搜索歌曲"
