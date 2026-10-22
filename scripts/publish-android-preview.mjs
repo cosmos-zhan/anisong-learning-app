@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { requireReleaseSigner } from "./android-signing.mjs";
 import { appendFileSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { publicBuild, publishPreview, sha256 } from "./android-preview.mjs";
@@ -10,6 +11,7 @@ assert.equal(info.repository, process.env.GITHUB_REPOSITORY);
 assert.equal(info.publicMediaOnly, true);
 publicBuild(info.mediaConfig, info.frontendVersion, info.sha);
 assert.equal(info.frontendVersion.appVersion, info.version);
+requireReleaseSigner(info, JSON.parse(readFileSync('.github/android-preview.json', 'utf8')));
 const files = [info.apkName, "build-info.json", "SHA256SUMS.txt"].map(name => {
   assert(!name.includes("/") && !name.includes("\\"));
   return { name, path: resolve(directory, name) };

@@ -50,6 +50,16 @@ App仅向用户填入的目录Origin附加访问码，带码请求拒绝HTTP重�
 
 ## 当前交付边界
 
+### 普通 Node / Docker 主机
+
+`services/media-source/server.mjs` 提供 Node 24+ HTTP 服务，复用 Worker 的访问码、CORS、只读路由和禁止公开缓存规则。生成部署包时同时包含 Node 服务、Dockerfile 与 `NODE-DEPLOY.txt`，无需 Cloudflare 登录、R2 或额外 npm 依赖。App 仍填写同样的 HTTPS 目录地址和访问码。
+
+在私人部署目录执行 `node --env-file=.dev.vars server.mjs`，默认只监听 `127.0.0.1:8787`。线上由已授权主机的 HTTPS 反向代理接入；代理必须保留 Authorization，不缓存响应，不将 assets 另行挂成公开静态目录。允许的网页 Origin 通过 `.dev.vars` 中的 `ALLOWED_ORIGINS` 配置，保留 Android 的 `https://localhost`。
+
+Docker 镜像只包含服务代码，素材及访问码以只读卷注入；`.dockerignore` 排除素材和凭据。`MEDIA_TOKEN_FILE` 可接入主机的 secret 文件。设置容器用户的最小读取权限，不要公开整个部署目录。具体命令见包内 `NODE-DEPLOY.txt`。
+
+真实 HTTP 测试覆盖目录/音频未授权拒绝、CORS 预检、下载、HEAD、字节范围、无效范围与符号链接拒绝。客户端会校验文件哈希后事务保存。普通主机需要所有者提供或授权实际 HTTPS 托管；生成包和本地测试不等于线上服务已部署。
+
 服务端权限和App接入有自动化测试；真实浏览器回归使用相同Worker处理函数与真实CC0文件，测试跨域认证、错误码拒绝、离线恢复和实际播放。这不是Cloudflare线上服务验收。
 
 截至本批开发，Cloudflare仍需所有者登录授权；尚未提供或宣称独立私人服务URL。现有所有者私有测试站的“下载本站私人练习素材”继续可用，其访问权限未扩大。公开APK仍只含原创示例。GitHub固定签名Secret需独立确认后配置，详见 [签名指南](android-previews.md)。

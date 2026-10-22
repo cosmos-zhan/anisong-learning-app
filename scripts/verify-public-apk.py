@@ -37,6 +37,10 @@ verified = subprocess.check_output([str(tools / "apksigner"), "verify", "--verbo
 assert "Verified using v2 scheme (APK Signature Scheme v2): true" in verified
 cert = next(line.split(": ", 1)[1].lower() for line in verified.splitlines() if "certificate SHA-256 digest" in line)
 assert re.fullmatch(r"[0-9a-f]{64}", cert)
+policy = json.loads((repo / ".github/android-preview.json").read_text())
+if os.environ.get("PREVIEW_SIGNING") == "repository-secret":
+    assert cert == policy["signerSha256"], "Fixed APK certificate differs from the recovered signer"
+
 reports = list((repo / "apps/android/app/build/test-results/testDebugUnitTest").glob("TEST-*.xml"))
 tests = 0
 for report in reports:

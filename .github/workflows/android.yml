@@ -34,28 +34,24 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
       - run: npm ci
-      - name: Restore fixed debug signer when configured
+      - name: Verify and restore fixed debug signer
         if: github.event_name != 'pull_request'
         env:
           DEBUG_KEYSTORE: ${{ secrets.ANDROID_DEBUG_KEYSTORE_BASE64 }}
-        shell: bash
-        run: |
-          python3 - <<'PY'
-          import base64, os
-          from pathlib import Path
-          data = os.environ.get('DEBUG_KEYSTORE', '')
-          env = Path(os.environ['GITHUB_ENV'])
-          if data:
-              path = Path.home() / '.android/debug.keystore'
-              path.parent.mkdir(exist_ok=True)
-              path.write_bytes(base64.b64decode(data, validate=True))
-              path.chmod(0o600)
-          with env.open('a') as f:
-              f.write('PREVIEW_SIGNING=' + ('repository-secret' if data else 'ephemeral-debug') + '\n')
-          PY
+          REQUIRE_FIXED_SIGNING: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature/piano-p0') }}
+        run: node scripts/android-signing.mjs
       - name: Complete App check and debug APK
         run: npm run android:check
-      - run: npx playwright-core install --with-deps chromium
+      - name: Bound browser dependency downloads
+        run: |
+          sudo tee /etc/apt/apt.conf.d/80-anisong-timeouts >/dev/null <<'APT'
+          Acquire::Retries "2";
+          Acquire::http::Timeout "30";
+          Acquire::https::Timeout "30";
+          APT
+      - name: Install browser and system dependencies
+        timeout-minutes: 6
+        run: npx playwright-core install --with-deps chromium
       - name: Install CJK fonts with bounded network retries
         timeout-minutes: 4
         run: sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y fonts-noto-cjk

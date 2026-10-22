@@ -24,6 +24,10 @@
 
 ## 固定签名与覆盖更新
 
+后续发行已准备固定证书校验：`.github/android-preview.json` 保存恢复备份的公开证书指纹；发布分支缺少签名 Secret 时立即停止，APK 实际证书不匹配时也拒绝发布。普通 PR / 修复分支仍可用临时签名完成测试，但其 APK 不作为新版发行。
+
+固定证书 SHA-256：`fb5aea5b476670889a4749b1229a3fb24c0d1b77662d78c579deea3b52052447`。它来自所有者的既有私人备份，没有重新生成。设置 Secret 是独立的账号配置步骤。GitHub 的 0.4.2 与 0.5.0 公开包使用了不同临时证书，不能通过固定这个旧备份来补回那些已丢失的临时私钥。不要卸载仍有练习数据的旧 App。
+
 Android 覆盖安装要求包名相同、签名相同、安装版本码递增。不同云端 runner 自动生成的 debug key 不保证相同。工作流支持仓库 Actions Secret **ANDROID_DEBUG_KEYSTORE_BASE64**：在可信 push 构建时还原到 runner 的 `.android/debug.keystore`，构建后仅公开证书指纹。PR 构建不读取该签名 Secret。
 
 推荐由项目所有者一次性配置已有测试签名，之后每个版本自动复用。已有私人签名备份为 `Anisong-debug-signing-20261019.zip`，其中包含恢复说明。后续 Work 可以从所有者的私人文件中恢复备份，将 keystore 编码为一行 base64，供所有者粘贴到 GitHub：

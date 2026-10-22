@@ -13,7 +13,7 @@
     "lint": "eslint apps packages tests",
     "test": "node scripts/version.mjs && vitest run",
     "test:browser": "node scripts/verify-piano-browser.mjs && node scripts/verify-app-browser.mjs && node scripts/verify-lyrics-browser.mjs && node scripts/verify-downloads-browser.mjs",
-    "test:release": "node --test scripts/android-preview.test.mjs",
+    "test:release": "node --test scripts/android-preview.test.mjs scripts/android-signing.test.mjs services/media-source/server.test.mjs",
     "check": "npm run typecheck && npm run lint && npm test && npm run test:release && npm run build",
     "android:sync": "npm run build && cap sync android",
     "android:debug": "npm run android:check",
