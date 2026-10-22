@@ -9,6 +9,15 @@ export interface RemoteSong {
 }
 export interface MediaCatalog { schema: 1; title: string; songs: RemoteSong[] }
 export interface DownloadProgress { phase: string; received: number; total: number }
+export interface SourceAccess { origin: string; token: string }
+// Credentials belong to the source selected by the user, never to a manifest's arbitrary URLs.
+export function sourceAccess(address: string, token: string): SourceAccess | undefined {
+  if (!token.trim()) return;
+  if (!/^[A-Za-z0-9_-]{32,128}$/.test(token.trim())) throw new Error("访问码应为 32–128 位字母、数字、下划线或短横线。");
+  const url = sourceUrl(address);
+  if (url.protocol !== 'https:') throw new Error("私人素材访问码只能通过 HTTPS 使用。");
+  return { origin: url.origin, token: token.trim() };
+}
 const LIMITS = { audio: 30 * 1024 * 1024, lyrics: 128 * 1024, score: 4 * 1024 * 1024 };
 const abortCheck = (signal: AbortSignal) => { if (signal.aborted) throw new DOMException("下载已取消", "AbortError"); };
 export function sourceUrl(input: string, base = location.href): URL {
@@ -40,9 +49,13 @@ export function parseCatalog(value: unknown, address: string): MediaCatalog {
   return { schema: 1, title: d.title.trim(), songs };
 }
 
-async function bytesFrom(url: string, limit: number, signal: AbortSignal, progress?: (received: number) => void): Promise<Uint8Array> {
+async function bytesFrom(url: string, limit: number, signal: AbortSignal, progress?: (received: number) => void, access?: SourceAccess): Promise<Uint8Array> {
   abortCheck(signal);
-  const response = await fetch(url, { signal, credentials: 'same-origin', cache: 'no-store' });
+  const authorized = access && new URL(url).origin === access.origin;
+  const response = await fetch(url, { signal, credentials: 'same-origin', cache: 'no-store',
+    ...(authorized ? { headers: { Authorization: `Bearer ${access.token}` }, redirect: 'error' as const } : {}) });
+  if (response.status === 401) throw new Error("素材源需要有效访问码。请向素材源所有者获取访问码后重试。");
+  if (response.status === 403) throw new Error("素材源拒绝访问（HTTP 403）。请检查访问码及允许访问的应用地址。");
   if (!response.ok) throw new Error(`下载失败（HTTP ${response.status}）。请检查地址或访问授权。`);
   if (Number(response.headers.get('content-length')) > limit) throw new Error("下载文件超过目录声明的大小，已停止。");
   const reader = response.body?.getReader();
@@ -67,13 +80,13 @@ async function bytesFrom(url: string, limit: number, signal: AbortSignal, progre
   for (const chunk of chunks) { result.set(chunk, offset); offset += chunk.length; }
   return result;
 }
-export async function loadCatalog(address: string, signal: AbortSignal): Promise<MediaCatalog> {
+export async function loadCatalog(address: string, signal: AbortSignal, access?: SourceAccess): Promise<MediaCatalog> {
   const url = sourceUrl(address).href;
-  const bytes = await bytesFrom(url, 512 * 1024, signal);
+  const bytes = await bytesFrom(url, 512 * 1024, signal, undefined, access);
   try { return parseCatalog(JSON.parse(new TextDecoder('utf-8', {fatal:true}).decode(bytes)), url); }
   catch (error) { if (error instanceof SyntaxError) throw new Error("地址返回的不是歌曲目录，可能是登录页或分享页面。请使用目录 JSON 的直链。"); throw error; }
 }
-export async function downloadSong(song: RemoteSong, signal: AbortSignal, progress: (value: DownloadProgress) => void): Promise<LocalMaterial> {
+export async function downloadSong(song: RemoteSong, signal: AbortSignal, progress: (value: DownloadProgress) => void, access?: SourceAccess): Promise<LocalMaterial> {
   if (!crypto.subtle) throw new Error("当前环境无法校验文件，请通过 HTTPS 打开应用。");
   const total = song.audio.bytes + (song.lyrics?.bytes ?? 0) + (song.score?.bytes ?? 0);
   let received = 0;
@@ -82,7 +95,7 @@ export async function downloadSong(song: RemoteSong, signal: AbortSignal, progre
   for (const key of ['audio', 'lyrics', 'score'] as const) {
     const asset = song[key]; if (!asset) continue;
     const phase = { audio:'下载音频', lyrics:'下载歌词', score:'下载乐谱' }[key];
-    const data = await bytesFrom(asset.url, asset.bytes, signal, n => progress({phase,received:received+n,total}));
+    const data = await bytesFrom(asset.url, asset.bytes, signal, n => progress({phase,received:received+n,total}), access);
     if (data.length !== asset.bytes) throw new Error("文件下载不完整，原有本地资料已保留。请重试。");
     progress({phase:'校验文件',received:received+data.length,total});
     const buffer = data.buffer as ArrayBuffer;

@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto';
 import {Blob as NodeBlob} from 'node:buffer';
 import {webcrypto,createHash} from 'node:crypto';
 import {beforeEach,afterEach,it,expect,vi} from 'vitest';
-import {parseCatalog,downloadSong,loadCatalog,sourceUrl,type RemoteSong} from '../packages/core/downloads';
+import {parseCatalog,downloadSong,loadCatalog,sourceUrl,sourceAccess,type RemoteSong} from '../packages/core/downloads';
 import {materialStore} from '../packages/core/app-state';
 import {fixture,note} from './piano-fixtures';
 const bytes = (s:string)=>new TextEncoder().encode(s);
@@ -59,4 +59,27 @@ it('rejects sign-in HTML and HTTP errors as catalogs',async()=>{
  await expect(loadCatalog('https://source.test/catalog.json',new AbortController().signal)).rejects.toThrow('登录页');
  vi.stubGlobal('fetch',vi.fn(async()=>new Response('',{status:403})));
  await expect(loadCatalog('https://source.test/catalog.json',new AbortController().signal)).rejects.toThrow('403');
+});
+it('sends a private access code only to its exact HTTPS origin and refuses redirects there',async()=>{
+ const code='test-access-code-01234567890123456789';
+ const auth=sourceAccess('https://source.test/catalog.json',code)!;
+ expect(sourceAccess('https://source.test/catalog.json','')).toBeUndefined();
+ expect(()=>sourceAccess('https://source.test/catalog.json','short')).toThrow('访问码');
+ expect(()=>sourceAccess('http://localhost/catalog.json',code)).toThrow('HTTPS');
+ const fetcher=vi.fn(async()=>new Response(JSON.stringify({schema:1,title:'Private',songs:[song()]})));
+ vi.stubGlobal('fetch',fetcher);
+ await loadCatalog('https://source.test/catalog.json',new AbortController().signal,auth);
+ expect(fetcher.mock.calls[0]).toEqual(['https://source.test/catalog.json',expect.objectContaining({headers:{Authorization:`Bearer ${code}`},redirect:'error'})]);
+ const s=song();s.lyrics!.url='https://cdn.test/lyrics';
+ vi.stubGlobal('fetch',vi.fn(async(input:string)=>new Response(content[new URL(input).pathname.slice(1) as keyof typeof content])));
+ await downloadSong(s,new AbortController().signal,()=>{},auth);
+ const calls=vi.mocked(fetch).mock.calls;
+ expect(calls[0][1]).toMatchObject({headers:{Authorization:`Bearer ${code}`},redirect:'error'});
+ expect(calls[1][1]?.headers).toBeUndefined();
+ expect(calls[1][1]?.redirect).toBeUndefined();
+ expect(JSON.stringify(await materialStore.all())).not.toContain(code);
+});
+it('explains missing/invalid private source authorization without exposing the code',async()=>{
+ vi.stubGlobal('fetch',vi.fn(async()=>new Response('',{status:401})));
+ await expect(loadCatalog('https://source.test/catalog.json',new AbortController().signal)).rejects.toThrow('访问码');
 });
