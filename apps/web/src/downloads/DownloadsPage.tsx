@@ -17,7 +17,7 @@ export function DownloadsPage({onSaved,onOpen}:{onSaved:(row:LocalMaterial)=>voi
     request.current?.abort();const controller=new AbortController();request.current=controller;
     setBusy(true);setError('');setNotice('');
     const timeout=setTimeout(()=>controller.abort(new Error('下载超时，请检查网络后重试。')),120000);
-    try{await action(controller.signal);}catch(e){if(mounted.current){setError(controller.signal.aborted?(controller.signal.reason instanceof Error&&controller.signal.reason.name!=='AbortError'?controller.signal.reason.message:'已取消，原有本地资料已保留。'):(e instanceof TypeError?'无法连接素材源。请检查网络、访问权限和素材服务的跨域设置。':(e as Error).message));}}
+    try{await action(controller.signal);}catch(e){if(mounted.current){setError(controller.signal.aborted?(controller.signal.reason instanceof Error&&controller.signal.reason.name!=='AbortError'?controller.signal.reason.message:'已取消，原有本地资料已保留。'):(e instanceof DOMException&&e.name==='QuotaExceededError'?'本地空间不足，原有资料已保留。请清理设备空间后重试。':e instanceof TypeError?'无法连接素材源。请检查网络、访问权限和素材服务的跨域设置。':(e as Error).message));}}
     finally{clearTimeout(timeout);if(mounted.current&&request.current===controller){setBusy(false);setActive('');setProgress(undefined);}}
   };
   const read = (url:string) => {setCatalog(undefined);void run(async signal=>{const next=await loadCatalog(url,signal);if(!mounted.current||signal.aborted)return;setCatalog(next);setAddress(url);try{localStorage.setItem('anisong:mediaSource',url);}catch{/* URL preference is optional. */}});};
