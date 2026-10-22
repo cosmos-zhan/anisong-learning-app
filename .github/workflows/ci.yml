@@ -7,6 +7,7 @@ permissions:
 jobs:
   web:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -22,7 +23,9 @@ jobs:
       - run: node --experimental-vm-modules scripts/verify-built-app.mjs
       - run: node scripts/verify-lyrics-build.mjs
       - run: npx playwright-core install --with-deps chromium
-      - run: sudo apt-get install -y fonts-noto-cjk
+      - name: Install CJK fonts with bounded network retries
+        timeout-minutes: 4
+        run: sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y fonts-noto-cjk
       - run: npm run test:browser
       - uses: actions/upload-artifact@v4
         if: always()
