@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import {zipSync,strToU8} from 'fflate';
 
 // User-provided recordings are build inputs, never public repository content.
 // Each build states honestly whether its private input was available.
@@ -49,13 +50,21 @@ if(scoreAvailable){
  const hash=createHash('sha256').update(content).digest('hex');const name=`haruhikage-crychic-${hash.slice(0,12)}.${scoreIsMxl?'mxl':'musicxml'}`;
  writeFileSync(join(output,name),content);score={src:`private-media/${name}`,sha256:hash,bytes:content.length,...(scoreIsMxl?{preferredPartId:'P2',preferredTrackId:'1:1'}:{})};
 }
+let practicePackage=null;
 if (available) {
  const entry = value => value ? {url:value.src.split('/').at(-1),name:value.src.split('/').at(-1),bytes:value.bytes,sha256:value.sha256} : undefined;
  writeFileSync(join(output,'catalog.json'),JSON.stringify({schema:1,title:'私人练习素材',songs:[{id:'haruhikage-crychic',title:'春日影',revision:[sha256,lyrics?.sha256,score?.sha256].filter(Boolean).map(h=>h.slice(0,12)).join('-'),audio:entry({src:filename,bytes:audio.length,sha256}),...(lyrics?{lyrics:entry(lyrics)}:{}),...(score?{score:entry(score)}:{})}]},null,2)+'\n');
+ const catalog=readFileSync(join(output,'catalog.json'));
+ const files={'catalog.json':strToU8(catalog.toString('utf8')),[filename]:audio};
+ for(const asset of [lyrics,score])if(asset)files[asset.src.split('/').at(-1)]=readFileSync(join(output,asset.src.split('/').at(-1)));
+ const data=zipSync(files,{level:0}),name='haruhikage-crychic.anisong.zip';
+ writeFileSync(join(output,name),data);
+ practicePackage={src:`private-media/${name}`,bytes:data.length,sha256:createHash('sha256').update(data).digest('hex')};
 }
 writeFileSync('apps/web/src/bundled-audio.json', JSON.stringify({
   available,
   catalog: available ? 'private-media/catalog.json' : null,
+  package: practicePackage,
   src: available ? `private-media/${filename}` : '',
   sha256,
   bytes: audio?.length ?? 0,

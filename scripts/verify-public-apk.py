@@ -16,7 +16,7 @@ sha = os.environ["GITHUB_SHA"]
 version = os.environ["VERSION_NAME"]
 code = int(os.environ["VERSION_CODE"])
 config = json.loads((repo / "apps/web/src/bundled-audio.json").read_text())
-assert not any(config.get(k) for k in ["available", "src", "bytes", "audio", "lyrics", "score"]), "Private bundled inputs in public build"
+assert not any(config.get(k) for k in ["available", "src", "bytes", "audio", "lyrics", "score", "package"]), "Private bundled inputs in public build"
 assert re.fullmatch(r"[0-9a-f]{40}", sha)
 with zipfile.ZipFile(apk) as z:
     assert not any("private-media/" in n or n.endswith((".keystore", ".jks", ".pk8")) for n in z.namelist()), "Private asset/key in APK"

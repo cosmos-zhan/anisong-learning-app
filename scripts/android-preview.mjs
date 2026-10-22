@@ -10,7 +10,7 @@ export function previewVersion(version, versionCode) {
   return { version: name, tag: `v${name}`, versionCode, apkName: `anisong-${name}-debug.apk` };
 }
 export function publicBuild(config, version, sha) {
-  assert(config.available === false && !config.audio && config.lyrics === null && config.score === null && config.bytes === 0 && config.src === "",
+  assert(config.available === false && !config.audio && !config.package && config.lyrics === null && config.score === null && config.bytes === 0 && config.src === "",
     "Public previews must not contain private bundled media");
   assert.match(sha, /^[0-9a-f]{40}$/);
   assert.equal(version.sha, sha.slice(0, 12), "APK frontend SHA does not match source");

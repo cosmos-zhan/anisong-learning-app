@@ -13,7 +13,7 @@ test("regular and explicit prerelease versions become preview downloads", () => 
 test("private media or wrong frontend SHA cannot be published", () => {
   const sha = "a".repeat(40), version = { sha: sha.slice(0, 12) };
   publicBuild({ available: false, bytes: 0, src: "", lyrics: null, score: null }, version, sha);
-  for (const config of [{ available: true }, { score: {} }, { lyrics: {} }, { src: "song.mp3" }])
+  for (const config of [{ available: true }, { score: {} }, { lyrics: {} }, { src: "song.mp3" }, {package:{src:'private.zip'}}])
     assert.throws(() => publicBuild(config, version, sha));
   assert.throws(() => publicBuild({}, { sha: "wrong" }, sha));
 });

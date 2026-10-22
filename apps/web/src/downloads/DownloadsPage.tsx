@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { downloadSong, loadCatalog, sourceAccess, type SourceAccess, type MediaCatalog, type DownloadProgress, type RemoteSong } from "../../../../packages/core/downloads";
 import { materialStore, type LocalMaterial } from "../../../../packages/core/app-state";
 import media from "../bundled-audio.json";
+import { importMediaPackage } from "../../../../packages/core/media-package";
 import "./downloads.css";
 const size = (bytes:number) => bytes < 1024*1024 ? `${Math.ceil(bytes/1024)} KB` : `${(bytes/1024/1024).toFixed(1)} MB`;
 export function DownloadsPage({onSaved,onOpen}:{onSaved:(row:LocalMaterial)=>void;onOpen:(id:string,title:string)=>void}) {
@@ -14,6 +15,7 @@ export function DownloadsPage({onSaved,onOpen}:{onSaved:(row:LocalMaterial)=>voi
   const [progress,setProgress]=useState<DownloadProgress>(),[error,setError]=useState(''),[notice,setNotice]=useState('');
   const request=useRef<AbortController|null>(null);
   const mounted=useRef(true);
+  const privatePackage=media.package as {src:string;bytes:number;sha256:string}|null;
   useEffect(()=>{mounted.current=true;void materialStore.all().then(rows=>{if(mounted.current)setRecords(rows.filter(r=>r.download));}).catch(()=>setError('无法读取本地下载记录。'));return()=>{mounted.current=false;request.current?.abort();};},[]);
   const run = async (action:(signal:AbortSignal)=>Promise<void>) => {
     request.current?.abort();const controller=new AbortController();request.current=controller;
@@ -29,8 +31,19 @@ export function DownloadsPage({onSaved,onOpen}:{onSaved:(row:LocalMaterial)=>voi
     setRecords(previous=>[row,...previous.filter(r=>r.download?.songId!==song.id)]);
     onSaved(row);setNotice('已下载并保存到此设备，可以离线练习。');
   });};
+  const importPackage = (file:File) => {void run(async signal=>{
+    const row=await importMediaPackage(file,signal,p=>{if(mounted.current)setProgress(p);});
+    if(!mounted.current)return;
+    setRecords(previous=>[row,...previous.filter(r=>r.download?.songId!==row.download?.songId)]);
+    onSaved(row);setNotice('素材包已导入并保存到此设备，可以离线练习。');
+  });};
   return <div className="downloads-page">
     <div className="page-heading"><div><p className="eyebrow">保存一次，随时练习</p><h1>在线素材</h1></div></div>
+    <section className="download-package" aria-label="素材包"><h2>一次导入，一起保存</h2><p className="helper">将音频、歌词和乐谱装在一个素材包中。从私人网页下载后，在这里选择文件，无需解压或填写访问码。</p>
+      {privatePackage&&<a className="download-package-export" href={`${import.meta.env.BASE_URL}${privatePackage.src}`} download="春日影-CRYCHIC.anisong.zip">下载春日影素材包 · {size(privatePackage.bytes)}</a>}
+      <label className={`download-package-import${busy?' is-disabled':''}`}>选择素材包导入<input type="file" aria-label="选择素材包导入" accept=".zip,.anisong.zip,application/zip" disabled={busy} onChange={e=>{const file=e.currentTarget.files?.[0];e.currentTarget.value='';if(file)importPackage(file);}}/></label>
+      <p className="helper">选择 .anisong.zip 文件。只在本机读取，不会上传。覆盖同一歌曲前请保留原素材包。</p>
+    </section>
     <form className="download-source" onSubmit={e=>{e.preventDefault();read(address.trim());}}>
       <label>素材源地址<input type="url" required value={address} onChange={e=>{setAddress(e.target.value);setCatalog(undefined);setToken('');access.current=undefined;}} disabled={busy} placeholder="https://…/catalog.json" /></label>
       <label>访问码（私人素材源可选）<input type="password" autoComplete="off" spellCheck={false} value={token} onChange={e=>{setToken(e.target.value);setCatalog(undefined);access.current=undefined;}} disabled={busy} placeholder="由素材源所有者提供" maxLength={128}/></label>
@@ -40,7 +53,7 @@ export function DownloadsPage({onSaved,onOpen}:{onSaved:(row:LocalMaterial)=>voi
       <button type="button" disabled={busy} onClick={()=>{setToken('');read(new URL(`${import.meta.env.BASE_URL}demo/catalog.json`,location.href).href,'');}}>试用原创示例源</button>
     </form>
     <p className="helper">下载音频、歌词和乐谱到本地。更新应用后继续使用；清除数据或卸载应用会删除本地素材。</p>
-    {busy&&<div className="download-progress" role="status"><strong>{progress?.phase??'读取歌曲目录…'}</strong>{progress&&<><progress aria-label="素材下载进度" max={progress.total} value={progress.received}/><span>{size(progress.received)} / {size(progress.total)}</span></>}<button onClick={()=>request.current?.abort()}>取消下载</button></div>}
+    {busy&&<div className="download-progress" role="status"><strong>{progress?.phase??'读取歌曲目录…'}</strong>{progress&&<><progress aria-label="素材下载进度" max={progress.total} value={progress.received}/><span>{size(progress.received)} / {size(progress.total)}</span></>}<button onClick={()=>request.current?.abort()}>取消操作</button></div>}
     {error&&<p className="error" role="alert">{error}</p>}{notice&&<p className="download-notice" role="status">{notice}</p>}
     {catalog&&<section aria-label="在线歌曲列表"><h2>{catalog.title}</h2>{catalog.songs.map(song=>{
       const saved=records.find(r=>r.download?.songId===song.id)?.download;

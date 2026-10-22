@@ -3,6 +3,7 @@ import {readFileSync,existsSync,mkdirSync,writeFileSync} from 'node:fs';
 import {resolve,extname,sep} from 'node:path';
 import {chromium} from 'playwright-core';
 import mediaWorker from '../services/media-source/worker.ts';
+import {zipSync,strToU8} from 'fflate';
 const root=resolve('dist'),output=resolve('test-results/piano-browser');mkdirSync(output,{recursive:true});
 const browser=await chromium.launch({args:['--no-sandbox','--disable-dev-shm-usage']});
 const results=[],errors=[];
@@ -52,6 +53,16 @@ try {
   await page.getByText('已下载并保存到此设备，可以离线练习。',{exact:true}).waitFor();
   assert.equal(authorizedFiles,4,'Private catalog and three actual media files must be authenticated');
   assert.equal(await page.evaluate(code=>JSON.stringify({...localStorage}).includes(code),accessCode),false,'Never persist the access code');
+  // The replacement for cloud-browser login: download a private package in the user's browser,
+  // then import its real bytes through the App file picker with the media server unavailable.
+  blockMedia=true;
+  const packFiles={};for(const [name,path] of assetPaths)packFiles[name.slice(1)]=readFileSync(path);
+  const badCatalog=structuredClone(privateCatalog);badCatalog.songs[0].lyrics.sha256='0'.repeat(64);
+  await page.getByLabel('选择素材包导入',{exact:true}).setInputFiles({name:'bad.anisong.zip',mimeType:'application/zip',buffer:Buffer.from(zipSync({'catalog.json':strToU8(JSON.stringify(badCatalog)),...packFiles}))});
+  await page.getByRole('alert').filter({hasText:'文件校验不一致'}).waitFor();
+  await page.getByLabel('选择素材包导入',{exact:true}).setInputFiles({name:'demo.anisong.zip',mimeType:'application/zip',buffer:Buffer.from(zipSync({'catalog.json':strToU8(JSON.stringify(privateCatalog)),...packFiles}))});
+  await page.getByText('素材包已导入并保存到此设备，可以离线练习。',{exact:true}).waitFor();
+  await page.getByRole('region',{name:'本地下载',exact:true}).getByRole('button').waitFor();
   await page.screenshot({path:resolve(output,`downloads-${width}x${height}.png`)});
   blockMedia=true;
   await page.goto('https://anisong.test/?song=demo-original#lyrics');
@@ -61,7 +72,7 @@ try {
   await page.goto('https://anisong.test/?song=demo-original#piano-prep');
   await page.getByRole('button',{name:'进入钢琴练习 →',exact:true}).waitFor();
   assert.equal(blocked,0,'Saved audio, LRC and score must load without contacting the media host after a page reload');
-  results.push({width,height,downloaded:true,privateSource:true,invalidCodeRejected:true,codeNotPersisted:true,reloadWithMediaUnavailable:true,realLocalPlayback:true,scoreRestored:true});
+  results.push({width,height,downloaded:true,privateSource:true,invalidCodeRejected:true,codeNotPersisted:true,offlinePackageImport:true,corruptPackageRejected:true,reloadWithMediaUnavailable:true,realLocalPlayback:true,scoreRestored:true});
   await context.close();
  }
  assert.deepEqual(errors,[]);writeFileSync(resolve(output,'downloads-results.json'),JSON.stringify(results,null,2));console.log(JSON.stringify({check:'downloads-browser',results}));

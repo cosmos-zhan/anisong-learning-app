@@ -87,6 +87,11 @@ export async function loadCatalog(address: string, signal: AbortSignal, access?:
   catch (error) { if (error instanceof SyntaxError) throw new Error("地址返回的不是歌曲目录，可能是登录页或分享页面。请使用目录 JSON 的直链。"); throw error; }
 }
 export async function downloadSong(song: RemoteSong, signal: AbortSignal, progress: (value: DownloadProgress) => void, access?: SourceAccess): Promise<LocalMaterial> {
+  return saveSongMaterials(song, signal, progress, (asset, report) => bytesFrom(asset.url, asset.bytes, signal, report, access));
+}
+// URL downloads and offline packages share validation and the same atomic storage transaction.
+export async function saveSongMaterials(song: RemoteSong, signal: AbortSignal, progress: (value: DownloadProgress) => void,
+  read: (asset: RemoteAsset, report: (received: number) => void) => Promise<Uint8Array>): Promise<LocalMaterial> {
   if (!crypto.subtle) throw new Error("当前环境无法校验文件，请通过 HTTPS 打开应用。");
   const total = song.audio.bytes + (song.lyrics?.bytes ?? 0) + (song.score?.bytes ?? 0);
   let received = 0;
@@ -95,7 +100,7 @@ export async function downloadSong(song: RemoteSong, signal: AbortSignal, progre
   for (const key of ['audio', 'lyrics', 'score'] as const) {
     const asset = song[key]; if (!asset) continue;
     const phase = { audio:'下载音频', lyrics:'下载歌词', score:'下载乐谱' }[key];
-    const data = await bytesFrom(asset.url, asset.bytes, signal, n => progress({phase,received:received+n,total}), access);
+    const data = await read(asset, n => progress({phase,received:received+n,total}));
     if (data.length !== asset.bytes) throw new Error("文件下载不完整，原有本地资料已保留。请重试。");
     progress({phase:'校验文件',received:received+data.length,total});
     const buffer = data.buffer as ArrayBuffer;
