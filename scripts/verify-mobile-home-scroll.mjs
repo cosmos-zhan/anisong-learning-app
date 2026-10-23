@@ -21,8 +21,15 @@ async function swipe(cdp, width, height) {
   await cdp.send('Input.dispatchTouchEvent', {type:'touchEnd',touchPoints:[]});
 }
 try {
-  for (const [width,height] of [[360,800],[393,873],[412,915],[740,360]]) {
+  const cases = [[360,800,'normal'],[393,873,'normal'],[412,915,'normal'],[740,360,'normal']];
+  if (!live) cases.push([393,873,'oversized-visual-viewport']);
+  for (const [width,height,scenario] of cases) {
     const context = await browser.newContext({viewport:{width,height},deviceScaleFactor:3,isMobile:true,hasTouch:true});
+    if (scenario === 'oversized-visual-viewport') await context.addInitScript(()=>{
+      // Emulate an inaccurate initial JS viewport measurement. Layout still has
+      // the real mobile viewport; the app must remain scrollable without clicks.
+      Object.defineProperty(window.visualViewport,'height',{configurable:true,get:()=>2000});
+    });
     if (!live) await context.route('https://anisong.test/**', route=>{
       const pathname = new URL(route.request().url()).pathname;
       const path = resolve(root,'.'+decodeURIComponent(pathname==='/'?'/index.html':pathname));
@@ -47,8 +54,8 @@ try {
         nodes:[document.documentElement,document.body,document.getElementById('root'),document.querySelector('.app-shell'),document.querySelector('.shell-content')].map(el=>({tag:el.tagName,classes:el.className,top:el.scrollTop,height:el.clientHeight,content:el.scrollHeight,overflow:getComputedStyle(el).overflowY,touch:getComputedStyle(el).touchAction})),
       }));
       // Evidence is captured after the gesture, never as a prerequisite to it.
-      await page.screenshot({path:resolve(output,`mobile-home-${live?'live':'built'}-${entry}-${width}x${height}.png`)});
-      const result={check:'mobile-first-home-touch',live,entry,width,height,passed,...geometry,errors};
+      await page.screenshot({path:resolve(output,`mobile-home-${live?'live':'built'}-${scenario}-${entry}-${width}x${height}.png`)});
+      const result={check:'mobile-first-home-touch',live,scenario,entry,width,height,passed,...geometry,errors};
       results.push(result);console.log(JSON.stringify(result));
     }
     await context.close();

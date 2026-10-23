@@ -41,8 +41,6 @@ jobs:
         timeout-minutes: 4
         run: sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y fonts-noto-cjk
       - run: npm run test:browser
-      - name: First mobile touch without screenshot warmup
-        run: node scripts/verify-mobile-home-scroll.mjs
       - name: Public domain mobile scroll diagnostics
         run: node scripts/verify-mobile-home-scroll.mjs --live --report-only
       - uses: actions/upload-artifact@v4

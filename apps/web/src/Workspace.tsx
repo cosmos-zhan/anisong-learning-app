@@ -5,7 +5,6 @@ import { App } from "./App";
 import { PianoWorkspace } from "./piano/PianoWorkspace";
 import { Icon } from "./components/Icon";
 import { Feedback } from "./components/Feedback";
-import { useAppViewport } from "./useAppViewport";
 import { AppUpdates } from "./components/AppUpdates";
 import {
   DEMO_SONG,
@@ -76,7 +75,6 @@ export function Cover({
   );
 }
 export function Workspace() {
-  useAppViewport();
   const [page, setPage] = useState<Page>(currentPage),
     [song, setSong] = useState<Song>(() => initialSong(location.search));
   const [visited, setVisited] = useState({ lyrics: false, piano: false });
