@@ -44,6 +44,11 @@ jobs:
         run: npm run android:check
       - name: Bound browser dependency downloads
         run: |
+          for apt_source_file in /etc/apt/apt-mirrors.txt /etc/apt/sources.list.d/ubuntu.sources /etc/apt/sources.list; do
+            if [ -f "$apt_source_file" ]; then
+              sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g; s|https://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' "$apt_source_file"
+            fi
+          done
           sudo tee /etc/apt/apt.conf.d/80-anisong-timeouts >/dev/null <<'APT'
           Acquire::Retries "2";
           Acquire::http::Timeout "30";

@@ -10,6 +10,7 @@ export function preferredSource(bundled?: string | null): string {
   const fallback = bundled ? new URL(bundled, location.href).href : DEFAULT_SOURCE;
   try {
     const previous = localStorage.getItem('anisong:mediaSource');
-    return !previous || previous === PREVIOUS_DEMO_SOURCE ? fallback : previous;
+    const localDemo = new URL('demo/catalog.json', location.href).href;
+    return !previous || previous === PREVIOUS_DEMO_SOURCE || previous === localDemo ? fallback : previous;
   } catch { return fallback; }
 }

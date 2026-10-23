@@ -11,6 +11,8 @@ it('migrates the previous example default while preserving a user-selected sourc
   expect(preferredSource()).toBe(DEFAULT_SOURCE);
   localStorage.setItem('anisong:mediaSource', PREVIOUS_DEMO_SOURCE);
   expect(preferredSource()).toBe(DEFAULT_SOURCE);
+  localStorage.setItem('anisong:mediaSource', new URL('demo/catalog.json', location.href).href);
+  expect(preferredSource()).toBe(DEFAULT_SOURCE);
   localStorage.setItem('anisong:mediaSource', 'https://mine.test/catalog.json');
   expect(preferredSource()).toBe('https://mine.test/catalog.json');
 });
