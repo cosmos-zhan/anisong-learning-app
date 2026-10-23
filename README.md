@@ -4,9 +4,9 @@
 
 一款面向手机的音乐练习工具：导入本地音频和歌词，反复练习选中的片段；或导入 MusicXML 乐谱，边看五线谱边用虚拟钢琴练习。
 
-[下载 Android 测试版](https://github.com/cosmos-zhan/anisong-learning-app/releases) · [网页试用](https://anisong-learning-lab.woolly-mochi-2205.chatgpt.site) · [报告问题](https://github.com/cosmos-zhan/anisong-learning-app/issues/new/choose)
+[下载 Android 测试版](https://github.com/cosmos-zhan/anisong-learning-app/releases) · [网页试用](https://anisong.sekifufu.xyz/) · [报告问题](https://github.com/cosmos-zhan/anisong-learning-app/issues/new/choose)
 
-> 项目处于 **Alpha 开发阶段**。Releases 中标注 **Pre-release** 的 APK 用于体验和反馈，不代表正式版。网页试用目前需要项目所有者的 ChatGPT 账号；公开 APK 可独立使用。
+> 项目处于 **Alpha 开发阶段**。Releases 中标注 **Pre-release** 的 APK 用于体验和反馈，不代表正式版。上方网页试用为公开站点，无需项目所有者的 ChatGPT 账号。
 
 ## 功能
 
@@ -90,7 +90,7 @@ npm run dev
 - 等待弹对暂不支持双手和弦；简谱、MIDI 导入、外接 MIDI 键盘和 AI 识谱尚未实现。
 - 歌词与乐谱共用歌曲管理，暂不自动同步。
 - 网页循环可能存在解码或调度间隙；当前不提供锁屏后台练习。
-- Cloudflare Pages 账号接入尚未完成；现有网页使用独立私有测试站。
+- 网页试用使用公开域名 `anisong.sekifufu.xyz`；所有者私有测试站仅用于内部测试。
 
 完整限制见 [已知问题](docs/known-issues.md)。
 
