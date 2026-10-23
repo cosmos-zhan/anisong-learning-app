@@ -1,4 +1,14 @@
-# 私人素材服务（0.4.1）
+# 素材服务与可选私人部署
+
+## 当前默认服务（0.6.1）
+
+独立素材服务已部署到 <https://anisong-media-source.woolly-mochi-2205.chatgpt.site>，目录为 `/catalog.json`。现有服务使用私有 R2 存储和服务端读写接口；按所有者授权启用 `PUBLIC_DOWNLOADS=true`，目录与媒体 GET / HEAD / Range 可匿名读取，公开 CORS 允许网页和 Android `https://localhost`，App 默认不显示访问码输入，也不内置密钥。
+
+管理员上传使用独立 `ADMIN_TOKEN`，接口为 `PUT /api/admin/files/<文件名>`；素材不进入公开 GitHub 或 APK。增加歌曲采用“文件先上传、完整目录最后更新”，具体格式、限制和验收见 [新增歌曲](adding-songs.md)。该服务页面目前只提供地址复制与连接检查，没有管理员上传界面。
+
+下文保留的是仓库内 **可选的受限静态 Worker / Node 模板（0.4.1）**，用于另建私人源，与当前默认服务的实现和公开读取策略不同。它不是当前服务的上传工具；不要用旧部署包覆盖当前服务。默认春日影无需执行以下访问码步骤。固定 CI 签名也已配置，最新状态见 [签名指南](android-previews.md)。
+
+## 历史模板与使用范围
 
 **0.5.0主流程：** [App内下载管理](download-manager.md)提供在线列表、队列和已下载管理；下述Worker是可接入的私人下载源，仍需所有者提供托管授权和实际地址。工作不再依赖云浏览器登录。[素材包](media-packages.md)仅为补充入口，未宣称独立服务已经上线。
 

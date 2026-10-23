@@ -1,6 +1,6 @@
 # Android 预发布测试包
 
-当前自动发布实现位于 `feature/piano-p0`（PR #3）；功能验收合并前，主分支保留原有构建基线。首个已发布测试版：[v0.3.6-alpha.1](https://github.com/cosmos-zhan/anisong-learning-app/releases/tag/v0.3.6-alpha.1)。
+当前开发与预发行分支为 `feature/piano-p0`，`main` 保留原有构建基线。本次目标版本为 **0.6.1-alpha.1**，安装版本码 **2026102302**；具体功能见 [版本说明](app-updates.md)。首个已发布测试版：[v0.3.6-alpha.1](https://github.com/cosmos-zhan/anisong-learning-app/releases/tag/v0.3.6-alpha.1)。
 
 ## 手机下载
 
@@ -40,7 +40,7 @@ Android 覆盖安装要求包名相同、签名相同、安装版本码递增。
 
 ## 公开包与私有试用
 
-本仓库公开。公开 APK 只带 CC0 原创音频、歌词和乐谱，可以本地导入其他已获授权素材。春日影的私人 MP3 / LRC / MXL 继续只在所有者私有测试站和私人构建中使用。
+本仓库公开。公开 APK 只内置 CC0 原创音频、歌词和乐谱，可以本地导入其他素材。0.6.1 默认春日影的 MP3 / LRC / MXL 由所有者授权的独立公开读取服务提供；安装包只包含目录元数据，用户点击后才下载到本机。文件正文不进入 GitHub 源码或公开 APK，管理员凭据也不进入客户端。新增歌曲见 [维护流程](adding-songs.md)。
 
 发布校验同时检查生成的素材配置和真实 APK ZIP 条目。私有 APK 不得直接拿来做公开 Releases 附件；不要将 `private-media` 或签名备份加入 Git。私有测试站不因这次 README / 发布流程修改而重新部署或替换。
 
