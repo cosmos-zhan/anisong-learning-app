@@ -1,4 +1,14 @@
-# 私人素材服务（0.4.1）
+# 素材服务与可选私人部署
+
+## 当前默认服务（0.6.1）
+
+独立素材服务已部署到 <https://anisong-media-source.woolly-mochi-2205.chatgpt.site>，目录为 `/catalog.json`。现有服务使用私有 R2 存储和服务端读写接口；按所有者授权启用 `PUBLIC_DOWNLOADS=true`，目录与媒体 GET / HEAD / Range 可匿名读取，公开 CORS 允许网页和 Android `https://localhost`，App 默认不显示访问码输入，也不内置密钥。
+
+管理员上传使用独立 `ADMIN_TOKEN`，接口为 `PUT /api/admin/files/<文件名>`；素材不进入公开 GitHub 或 APK。增加歌曲采用“文件先上传、完整目录最后更新”，具体格式、限制和验收见 [新增歌曲](adding-songs.md)。该服务页面目前只提供地址复制与连接检查，没有管理员上传界面。
+
+下文保留的是仓库内 **可选的受限静态 Worker / Node 模板（0.4.1）**，用于另建私人源，与当前默认服务的实现和公开读取策略不同。它不是当前服务的上传工具；不要用旧部署包覆盖当前服务。默认春日影无需执行以下访问码步骤。固定 CI 签名也已配置，最新状态见 [签名指南](android-previews.md)。
+
+## 历史模板与使用范围
 
 **0.5.0主流程：** [App内下载管理](download-manager.md)提供在线列表、队列和已下载管理；下述Worker是可接入的私人下载源，仍需所有者提供托管授权和实际地址。工作不再依赖云浏览器登录。[素材包](media-packages.md)仅为补充入口，未宣称独立服务已经上线。
 
@@ -49,6 +59,16 @@ npx wrangler@4 deploy
 App仅向用户填入的目录Origin附加访问码，带码请求拒绝HTTP重定向。目录引用其他域名时不传码；若其他域名也需私有授权，应改为同源地址。本版本不提供多人账号、访问码分享、签名URL生成或后台下载。
 
 ## 当前交付边界
+
+### 普通 Node / Docker 主机
+
+`services/media-source/server.mjs` 提供 Node 24+ HTTP 服务，复用 Worker 的访问码、CORS、只读路由和禁止公开缓存规则。生成部署包时同时包含 Node 服务、Dockerfile 与 `NODE-DEPLOY.txt`，无需 Cloudflare 登录、R2 或额外 npm 依赖。App 仍填写同样的 HTTPS 目录地址和访问码。
+
+在私人部署目录执行 `node --env-file=.dev.vars server.mjs`，默认只监听 `127.0.0.1:8787`。线上由已授权主机的 HTTPS 反向代理接入；代理必须保留 Authorization，不缓存响应，不将 assets 另行挂成公开静态目录。允许的网页 Origin 通过 `.dev.vars` 中的 `ALLOWED_ORIGINS` 配置，保留 Android 的 `https://localhost`。
+
+Docker 镜像只包含服务代码，素材及访问码以只读卷注入；`.dockerignore` 排除素材和凭据。`MEDIA_TOKEN_FILE` 可接入主机的 secret 文件。设置容器用户的最小读取权限，不要公开整个部署目录。具体命令见包内 `NODE-DEPLOY.txt`。
+
+真实 HTTP 测试覆盖目录/音频未授权拒绝、CORS 预检、下载、HEAD、字节范围、无效范围与符号链接拒绝。客户端会校验文件哈希后事务保存。普通主机需要所有者提供或授权实际 HTTPS 托管；生成包和本地测试不等于线上服务已部署。
 
 服务端权限和App接入有自动化测试；真实浏览器回归使用相同Worker处理函数与真实CC0文件，测试跨域认证、错误码拒绝、离线恢复和实际播放。这不是Cloudflare线上服务验收。
 

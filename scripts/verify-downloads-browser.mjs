@@ -46,6 +46,7 @@ try {
   });
   const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
   await page.goto('https://anisong.test/?song=demo-original#downloads');
+  await page.getByRole('heading',{name:'春日影 · CRYCHIC',exact:true}).waitFor();
   await page.getByRole('button',{name:'下载到本地',exact:true}).waitFor();
   await page.getByRole('button',{name:'下载源设置',exact:true}).click();
   await page.getByRole('button',{name:'试用原创示例源',exact:true}).click();

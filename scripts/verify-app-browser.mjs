@@ -12,6 +12,16 @@ const code = (Array.isArray(bundle) ? bundle[0] : bundle).output.find(o => o.typ
 const browser = await chromium.launch({ executablePath: process.env.BROWSER_EXECUTABLE_PATH || undefined, args: ["--no-sandbox", "--disable-dev-shm-usage"] });
 const mime = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".wav": "audio/wav", ".musicxml": "application/xml" };
 const results = [], errors = [];
+async function swipe(page, cdp, frame, width) {
+  const x = Math.round(width / 2), start = Math.round(frame.y + frame.height * .75), distance = Math.min(250, frame.height * .5);
+  // Use actual touchstart/move/end input; no script assigns scrollTop.
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y: start }] });
+  for (let i = 1; i <= 12; i++) {
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y: Math.round(start - distance * i / 12) }] });
+    await page.waitForTimeout(20);
+  }
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+}
 try {
   for (const [width, height] of [[320,640],[393,873],[740,320],[960,432]]) {
     const context = await browser.newContext({ viewport: {width,height}, isMobile: true, hasTouch: true });
@@ -22,6 +32,23 @@ try {
       return route.fulfill({ body: readFileSync(path), contentType: mime[extname(path)] || "application/octet-stream" });
     });
     const page = await context.newPage(); page.on("pageerror", e => errors.push(e.message));
+    // A fresh URL with no hash and no navigation clicks must accept the first touch swipe.
+    await page.goto('https://anisong.test/');
+    await page.locator('.page-home .shell-title').waitFor();
+    await page.screenshot({ path: resolve(output, `first-home-before-touch-${width}x${height}.png`) });
+    const frame = await page.locator('.shell-content').boundingBox();
+    const cdp = await context.newCDPSession(page);
+    console.log(JSON.stringify({check:'initial-touch-frame',width,height,frame,dom:await page.locator('.shell-content').evaluate(el=>({height:el.clientHeight,content:el.scrollHeight,top:el.scrollTop,touch:getComputedStyle(el).touchAction}))}));
+    await swipe(page, cdp, frame, width);
+    await page.waitForFunction(() => document.querySelector('.shell-content').scrollTop > 20, undefined, { timeout: 5000 });
+    const firstScroll = await page.locator('.shell-content').evaluate(el => el.scrollTop);
+    assert(firstScroll > 20, 'First mobile touch scroll required navigation');
+    await page.reload();
+    await page.locator('.page-home .shell-title').waitFor();
+    await page.screenshot({ path: resolve(output, `home-reload-before-touch-${width}x${height}.png`) });
+    await swipe(page, cdp, await page.locator('.shell-content').boundingBox(), width);
+    await page.waitForFunction(() => document.querySelector('.shell-content').scrollTop > 20, undefined, { timeout: 5000 });
+    results.push({ name: 'first-home-touch-scroll', width, height, firstScroll, reloadScroll: await page.locator('.shell-content').evaluate(el => el.scrollTop) });
     for (const name of ["home", "library", "downloads", "song", "materials", "piano-prep", "settings", "recents", "about"]) {
       await page.goto(`https://anisong.test/?song=demo-original#${name}`);
       await page.locator(".shell-title").waitFor();

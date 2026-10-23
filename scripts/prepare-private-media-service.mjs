@@ -33,12 +33,16 @@ try {
  }
  if(readFileSync(join(out,'assets/catalog.json')).length>512*1024)throw new Error('Catalog exceeds 512 KiB.');
  cpSync(join(root,'services/media-source/worker.ts'),join(out,'worker.ts'));
+ for(const name of ['server.mjs','Dockerfile']) cpSync(join(root,'services/media-source',name),join(out,name));
+ writeFileSync(join(out,'.dockerignore'),'*\n!server.mjs\n!worker.ts\n!Dockerfile\n');
+
  const config=JSON.parse(readFileSync(join(root,'services/media-source/wrangler.jsonc'),'utf8'));
  delete config.$schema;config.assets.directory='./assets';config.vars.ALLOWED_ORIGINS=[...new Set(allowed)].join(',');
  writeFileSync(join(out,'wrangler.jsonc'),JSON.stringify(config,null,2)+'\n');
  const token=randomBytes(32).toString('base64url');
  writeFileSync(join(out,'ACCESS-CODE.txt'),token+'\n',{mode:0o600});
- writeFileSync(join(out,'.dev.vars'),'MEDIA_TOKEN='+token+'\n',{mode:0o600});
+ writeFileSync(join(out,'.dev.vars'),'MEDIA_TOKEN='+token+'\nALLOWED_ORIGINS='+[...new Set(allowed)].join(',')+'\n',{mode:0o600});
  writeFileSync(join(out,'README.txt'),'PRIVATE PACKAGE — contains personal media and a local access code. Never upload this folder to GitHub or a public file service.\n\nDeploy only after account authorization:\n1. cd to this folder.\n2. npx wrangler@4 login\n3. npx wrangler@4 secret put MEDIA_TOKEN < ACCESS-CODE.txt\n4. npx wrangler@4 deploy\n5. Verify unauthorized catalog/file requests return 401 and allowed-Origin authenticated downloads work. Missing Secret must return 503.\n6. Paste the actual /catalog.json URL and ACCESS-CODE.txt value separately into App > online materials.\n\nNo R2 bucket is required. Assets are always guarded by run_worker_first. Rotate access using secret put and update the private code; changing a code does not delete downloaded local media. Never pass a Cloudflare API token into the App.\n');
+ writeFileSync(join(out,'NODE-DEPLOY.txt'),'Node 24+ alternative (no Cloudflare login):\n\n1. Keep the whole directory private.\n2. Run: node --env-file=.dev.vars server.mjs\n3. Point an existing HTTPS reverse proxy at 127.0.0.1:8787. Keep authorization headers; do not cache responses or expose assets as static files.\n4. Set ALLOWED_ORIGINS to the exact web origin plus https://localhost. No wildcard.\n5. Validate real catalog and MP3 return 401 without a code before sharing the URL.\n6. App > Download manager > Source settings: HTTPS /catalog.json address + ACCESS-CODE.txt value.\n\nDocker alternative:\n  docker build -t anisong-private-media .\n  docker run --rm --read-only --cap-drop=ALL --security-opt=no-new-privileges -p 127.0.0.1:8787:8787 -v "$PWD/assets:/media:ro" -v "$PWD/ACCESS-CODE.txt:/run/secrets/media_token:ro" -e ALLOWED_ORIGINS=https://localhost anisong-private-media\n\nContainer must be able to read the mounted files; configure group/read permissions for its non-root node user without making the private directory public. Neither media nor access code is copied into the image. Configure TLS at the host. Hosting/account authorization is still required; this package is not a deployed service.\n');
  console.log('Private media deployment folder prepared. No upload performed. Keep its access code private.');
 } catch(error) {rmSync(out,{recursive:true,force:true});throw error;}

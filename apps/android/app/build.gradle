@@ -23,6 +23,17 @@ android {
         targetCompatibility JavaVersion.VERSION_21
     }
     kotlinOptions { jvmTarget = "21" }
+    if (System.getenv("PREVIEW_SIGNING") == "repository-secret") {
+        def fixedDebugKeystore = System.getenv("ANISONG_DEBUG_KEYSTORE")
+        if (!fixedDebugKeystore || !file(fixedDebugKeystore).isFile()) {
+            throw new GradleException("Verified debug keystore path is missing; refusing fallback signing")
+        }
+        signingConfigs {
+            debug {
+                storeFile file(fixedDebugKeystore)
+            }
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false

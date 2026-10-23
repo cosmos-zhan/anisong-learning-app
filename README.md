@@ -26,17 +26,23 @@
 1. 在手机打开 [Releases](https://github.com/cosmos-zhan/anisong-learning-app/releases)，选择最新的 **Pre-release**。
 2. 展开 **Assets**，下载名称以 `anisong-` 开头的 `.apk`。无需下载源码压缩包或解压 Actions 产物。
 3. 打开 APK，并按 Android 提示允许当前浏览器安装应用。
-4. 选择内置原创示例，或在曲库中导入自己的素材。
+4. 在“曲库 → 下载管理”默认查看春日影，直接点击下载音频、歌词和乐谱，无需访问码；也可试用原创示例或导入本机素材。
 
-公开测试包只包含 CC0 原创示例。春日影等用户私人音频、歌词和曲谱不进入源码或公开 APK，可在本机导入；私有网页试用中的素材与公开包不同。
+安装后的 App 可在“设置 → 应用更新”检查包含 Alpha 在内的新版本，并在应用内下载安装包、校验后打开 Android 安装窗口。网页也提供检查和 APK 下载入口。详见 [应用更新与默认素材源](docs/app-updates.md)。
 
-Alpha 包使用调试签名。配置固定 CI 签名后，同签名且版本码递增的包可覆盖更新；从私人测试包切换、或未配置固定签名时，可能无法覆盖安装。请保留有练习记录的旧版。详见 [测试版发布与签名](docs/android-previews.md)。
+当前版本为 **0.6.1-alpha.1**：默认春日影一键下载、修复手机首页首次打开时无法滑动，并支持在应用内检查和下载安装更新。详细行为与验证范围见 [版本说明](docs/app-updates.md)。
+
+公开测试包只内置 CC0 原创示例。春日影的音频、歌词正文和曲谱文件由独立素材服务提供，按所有者授权公开读取，不进入 GitHub 源码或 APK；默认目录无需访问码。
+
+Alpha 包使用调试签名，当前已配置固定 CI 签名。同签名且版本码递增的包可覆盖更新；历史 0.4.2 / 0.5.0 临时签名包与当前签名不同。请保留有练习记录的旧版。详见 [测试版发布与签名](docs/android-previews.md)。
 
 ## 下载管理
 
-首页或曲库 → 下载管理，直接浏览在线歌曲并下载音频、歌词和乐谱。“下载任务”显示真实进度、排队、取消和失败重试；切换App内页面继续下载。“已下载”可离线进入学唱/学谱，或移除下载副本。默认接入真实CC0原创示例源，私人歌曲需要配置受限下载服务。服务需求及验收见 [下载模块](docs/download-manager.md)。
+首页或曲库 → 下载管理，默认显示春日影，点击“下载到本地”即可下载音频、歌词和乐谱。“下载任务”显示真实进度、排队、取消和失败重试；切换 App 内页面继续下载。“已下载”可离线进入学唱/学谱，或移除下载副本。CC0 原创示例源仍可切换使用。服务需求及验收见 [下载模块](docs/download-manager.md)。
 
-素材源只需配置一次；程序更新与素材分开。现有 `.anisong.zip` 可在“本地导入与存储”补充导入。见 [目录格式](docs/media-downloads.md)、[可选私人服务](docs/private-media-service.md)和 [素材包](docs/media-packages.md)。
+**新增可下载歌曲无需重发 APK**：将音频、可选 LRC / MXL 上传至素材服务，再更新在线目录；用户刷新下载列表即可看到。手机提供文件和歌曲标题后，可由维护者完成上传与验证。目前 App 没有管理员上传界面。完整步骤见 [新增歌曲](docs/adding-songs.md)。
+
+默认源无需配置；自定义源只需配置一次。现有 `.anisong.zip` 可在“本地导入与存储”补充导入。见 [目录格式](docs/media-downloads.md)、[素材服务与可选私人部署](docs/private-media-service.md)和 [素材包](docs/media-packages.md)。
 
 ## 开始练习
 
@@ -55,7 +61,7 @@ Alpha 包使用调试签名。配置固定 CI 签名后，同签名且版本码�
 ```bash
 git clone https://github.com/cosmos-zhan/anisong-learning-app.git
 cd anisong-learning-app
-# 钢琴与新版界面当前位于 PR #3，合并前使用此分支：
+# 当前开发与预发行分支：
 git switch --track origin/feature/piano-p0
 npm ci
 npm run dev
@@ -98,7 +104,7 @@ npm run dev
 - 等待弹对暂不支持双手和弦；简谱、MIDI 导入、外接 MIDI 键盘和 AI 识谱尚未实现。
 - 歌词与乐谱共用歌曲管理，暂不自动同步。
 - 网页循环可能存在解码或调度间隙；当前不提供锁屏后台练习。
-- Cloudflare Pages 账号接入尚未完成；现有网页使用独立私有测试站。
+- Cloudflare Workers 分支预览已通过构建检查；上方网页试用链接仍为所有者私有测试站。
 
 完整限制见 [已知问题](docs/known-issues.md)。
 
@@ -111,7 +117,7 @@ npm run dev
 | [问题反馈](docs/feedback.md) | [云端恢复与交接](docs/maintenance.md) |
 | [横竖屏验收](https://github.com/cosmos-zhan/anisong-learning-app/blob/feature/piano-p0/docs/ui-r1-piano-responsive.md) | [网页部署](docs/deployment.md) |
 | [歌词需求](docs/requirements.md) | [Android 测试版发布](docs/android-previews.md) |
-| [钢琴需求](https://github.com/cosmos-zhan/anisong-learning-app/blob/feature/piano-p0/docs/piano-requirements.md) | [开发中的 PR #3](https://github.com/cosmos-zhan/anisong-learning-app/pull/3) |
+| [钢琴需求](https://github.com/cosmos-zhan/anisong-learning-app/blob/feature/piano-p0/docs/piano-requirements.md) | [新增可下载歌曲](docs/adding-songs.md) |
 
 遇到问题时，优先使用播放器内的“反馈”，附复现步骤和截图；提交前可查看自动收集的非敏感练习信息。本机导入的音频、歌词与乐谱不会通过反馈上传。
 
