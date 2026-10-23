@@ -39,7 +39,12 @@ export function restoreSigner({ encoded, required, expected, destination }) {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   const policy = JSON.parse(readFileSync('.github/android-preview.json', 'utf8'));
-  const signing = restoreSigner({ encoded: process.env.DEBUG_KEYSTORE || '', required: process.env.REQUIRE_FIXED_SIGNING === 'true', expected: policy.signerSha256, destination: resolve(homedir(), '.android/debug.keystore') });
-  if (process.env.GITHUB_ENV) appendFileSync(process.env.GITHUB_ENV, `PREVIEW_SIGNING=${signing}\n`);
+  const destination = resolve(process.env.ANISONG_DEBUG_KEYSTORE || resolve(homedir(), '.android/debug.keystore'));
+  assert(!/[\r\n]/.test(destination), 'Invalid signing key path.');
+  const signing = restoreSigner({ encoded: process.env.DEBUG_KEYSTORE || '', required: process.env.REQUIRE_FIXED_SIGNING === 'true', expected: policy.signerSha256, destination });
+  if (process.env.GITHUB_ENV) {
+    appendFileSync(process.env.GITHUB_ENV, `PREVIEW_SIGNING=${signing}\n`);
+    if (signing === 'repository-secret') appendFileSync(process.env.GITHUB_ENV, `ANISONG_DEBUG_KEYSTORE=${destination}\n`);
+  }
   console.log(signing === 'repository-secret' ? 'Recovered fixed signer verified and restored.' : 'Non-release build: temporary signer allowed.');
 }

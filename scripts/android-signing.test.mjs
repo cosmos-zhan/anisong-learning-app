@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { X509Certificate } from 'node:crypto';
 import { requireReleaseSigner, restoreSigner } from './android-signing.mjs';
@@ -31,5 +31,17 @@ test('restoration checks the real certificate and preserves the existing key on 
     assert.throws(() => restoreSigner({ encoded, required: true, expected: '0'.repeat(64), destination }), /differs/);
     assert.deepEqual(readFileSync(destination), bytes);
     assert(!existsSync(destination + '.restore-' + process.pid));
+    // Exercise the CLI boundary: later Gradle steps must use this exact verified file.
+    mkdirSync(join(dir, '.github'));
+    writeFileSync(join(dir, '.github/android-preview.json'), JSON.stringify({ signerSha256: expected }));
+    const githubEnv = join(dir, 'github-env');
+    const cli = spawnSync(process.execPath, [resolve('scripts/android-signing.mjs')], {
+      cwd: dir, encoding: 'utf8',
+      env: { ...process.env, DEBUG_KEYSTORE: encoded, REQUIRE_FIXED_SIGNING: 'true', ANISONG_DEBUG_KEYSTORE: destination, GITHUB_ENV: githubEnv },
+    });
+    assert.equal(cli.status, 0, cli.stderr);
+    assert.equal(readFileSync(githubEnv, 'utf8'), `PREVIEW_SIGNING=repository-secret\nANISONG_DEBUG_KEYSTORE=${destination}\n`);
+    assert.deepEqual(readFileSync(destination), bytes);
+    assert(!cli.stdout.includes(encoded));
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
