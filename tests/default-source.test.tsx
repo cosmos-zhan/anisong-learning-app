@@ -1,33 +1,34 @@
 import 'fake-indexeddb/auto';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
+import { downloadManager } from '../packages/core/download-manager';
 import { DownloadsPage } from '../apps/web/src/downloads/DownloadsPage';
-import { defaultCatalog, PRIVATE_SOURCE, PREVIOUS_DEMO_SOURCE, preferredSource } from '../packages/core/default-source';
+import { defaultCatalog, DEFAULT_SOURCE, PREVIOUS_DEMO_SOURCE, preferredSource } from '../packages/core/default-source';
 vi.mock('../apps/web/src/bundled-audio.json', () => ({ default: { catalog: null, package: null } }));
-beforeEach(() => { localStorage.clear(); vi.stubGlobal('fetch', vi.fn()); });
+beforeEach(() => { localStorage.clear(); vi.stubGlobal('fetch', vi.fn(async()=>new Response(JSON.stringify(defaultCatalog())))); });
 afterEach(() => vi.unstubAllGlobals());
 it('migrates the previous example default while preserving a user-selected source', () => {
-  expect(preferredSource()).toBe(PRIVATE_SOURCE);
+  expect(preferredSource()).toBe(DEFAULT_SOURCE);
   localStorage.setItem('anisong:mediaSource', PREVIOUS_DEMO_SOURCE);
-  expect(preferredSource()).toBe(PRIVATE_SOURCE);
+  expect(preferredSource()).toBe(DEFAULT_SOURCE);
   localStorage.setItem('anisong:mediaSource', 'https://mine.test/catalog.json');
   expect(preferredSource()).toBe('https://mine.test/catalog.json');
 });
-it('shows Haruhikage immediately and requests the code at download without a manual source URL', async () => {
+it('one click queues Haruhikage with no access dialog, token or manual source URL', async () => {
+  const enqueue=vi.spyOn(downloadManager,'enqueue').mockImplementation(()=>{});
   render(<DownloadsPage onSaved={vi.fn()} onRemoved={vi.fn()} onOpen={vi.fn()}/>);
   await screen.findByRole('heading', { name: '春日影 · CRYCHIC' });
-  expect(fetch).not.toHaveBeenCalled();
+  await waitFor(()=>expect(fetch).toHaveBeenCalledWith(DEFAULT_SOURCE,expect.objectContaining({credentials:'same-origin'})));
+  expect(vi.mocked(fetch).mock.calls[0][1]?.headers).toBeUndefined();
   fireEvent.click(screen.getByRole('button', { name: '下载到本地' }));
-  expect(screen.getByLabelText('素材源地址')).toHaveValue(PRIVATE_SOURCE);
-  expect(screen.getByLabelText('访问码（私人素材源可选）')).toBeVisible();
-  expect(fetch).not.toHaveBeenCalled();
-  const code = 'test-private-source-code-012345678901';
-  vi.stubGlobal('fetch', vi.fn(async () => new Response('', { status: 401 })));
-  fireEvent.change(screen.getByLabelText('访问码（私人素材源可选）'), { target: { value: code } });
-  fireEvent.click(screen.getByRole('button', { name: '查看歌曲' }));
-  await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('访问码'));
-  expect(screen.getByRole('heading', { name: '春日影 · CRYCHIC' })).toBeVisible();
-  expect(fetch).toHaveBeenCalledWith(PRIVATE_SOURCE, expect.objectContaining({ headers: { Authorization: `Bearer ${code}` } }));
-  expect(JSON.stringify({ ...localStorage })).not.toContain(code);
-  expect(defaultCatalog().songs[0].score?.url).toMatch(/^https:\/\/anisong-media-source.*\.mxl$/);
+  expect(enqueue).toHaveBeenCalledWith(expect.objectContaining({id:'haruhikage-crychic'}),undefined);
+  expect(screen.getByRole('tabpanel',{name:'下载任务'})).toBeVisible();
+  expect(screen.queryByLabelText('访问码（私人素材源可选）')).not.toBeInTheDocument();
+  expect(screen.getByRole('button',{name:'下载源设置'})).toHaveAttribute('aria-expanded','false');
+});
+it('the default source settings contain no access-code input',async()=>{
+  render(<DownloadsPage onSaved={vi.fn()} onRemoved={vi.fn()} onOpen={vi.fn()}/>);
+  fireEvent.click(screen.getByRole('button',{name:'下载源设置'}));
+  expect(screen.getByLabelText('素材源地址')).toHaveValue(DEFAULT_SOURCE);
+  expect(screen.queryByLabelText('访问码（私人素材源可选）')).not.toBeInTheDocument();
 });

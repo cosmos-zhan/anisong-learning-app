@@ -26,7 +26,7 @@
 1. 在手机打开 [Releases](https://github.com/cosmos-zhan/anisong-learning-app/releases)，选择最新的 **Pre-release**。
 2. 展开 **Assets**，下载名称以 `anisong-` 开头的 `.apk`。无需下载源码压缩包或解压 Actions 产物。
 3. 打开 APK，并按 Android 提示允许当前浏览器安装应用。
-4. 在“曲库 → 下载管理”默认查看春日影，填写私人素材访问码后下载音频、歌词和乐谱；也可试用原创示例或导入本机素材。
+4. 在“曲库 → 下载管理”默认查看春日影，直接点击下载音频、歌词和乐谱，无需访问码；也可试用原创示例或导入本机素材。
 
 安装后的 App 可在“设置 → 应用更新”检查包含 Alpha 在内的新版本，并在应用内下载安装包、校验后打开 Android 安装窗口。网页也提供检查和 APK 下载入口。详见 [应用更新与默认素材源](docs/app-updates.md)。
 

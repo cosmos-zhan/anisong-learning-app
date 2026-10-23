@@ -1,12 +1,12 @@
-# 0.6.0：默认春日影、首次滚动与应用更新
+# 0.6.1：默认春日影、首次滚动与应用更新
 
 ## 默认下载列表
 
-公开网页和 APK 默认显示春日影 · CRYCHIC，包括 MP3、42 句 LRC 和七声部 MXL 的文件元数据。首次下载时填写素材服务的独立访问码，不再需要手填地址。原来的默认 CC0 示例地址自动迁移；用户自行选择的其他源保留。“试用原创示例源”继续可用。
+公开网页和 APK 默认显示春日影 · CRYCHIC，包括 MP3、42 句 LRC 和七声部 MXL 的文件元数据。默认源无需访问码，直接点击“下载到本地”即可开始，不需要打开源设置。原来的默认 CC0 示例地址自动迁移；用户自行选择的其他源保留。“试用原创示例源”继续可用。
 
-公开源码只包含目录元数据，不包含私人录音、歌词正文、曲谱文件或访问码。访问码只在当前页面内存中使用；文件下载后经大小、SHA-256 与 LRC/MXL 解析验证，再以事务保存到 IndexedDB。Android 练习时将保存的音频转入应用私有文件供 Media3 使用。重新进入下载页需要再次填写访问码，已经保存的素材可离线读取。
+公开源码只包含目录元数据，不包含音频、歌词正文、曲谱文件或访问密钥；文件下载后经大小、SHA-256 与 LRC/MXL 解析验证，再以事务保存到 IndexedDB。Android 练习时将保存的音频转入应用私有文件供 Media3 使用。默认源重新进入下载页也无需输入任何访问码，已经保存的素材可离线读取。
 
-素材入口：`https://anisong-media-source.woolly-mochi-2205.chatgpt.site/catalog.json`。平台入口公开，素材本身仍需要访问码。Cloudflare 分支预览的实际 Origin 已加入服务配置，Android 的 `https://localhost` 与原私人测试站继续获准。逐提交的临时 Cloudflare URL 如需使用，须加入其精确 Origin；请优先使用分支固定预览网址。
+素材入口：`https://anisong-media-source.woolly-mochi-2205.chatgpt.site/catalog.json`。所有者已授权素材直接下载：服务配置 `PUBLIC_DOWNLOADS=true` 后，目录、GET/HEAD 文件和 Range 可匿名读取，公开 CORS 支持网页与 Android。上传和维护仍要求独立管理员凭据，客户端不内置共享密钥。自定义的其他私人源仍可在高级设置中使用临时访问码。
 
 ## 首页首次滚动
 
@@ -24,9 +24,9 @@ Android 原生插件通过 HTTPS 读取公开版本信息和 `build-info.json`�
 
 ## 验证边界
 
-- 本地前端类型、Lint、203 项测试、11 项发布/签名/HTTP 测试、production 构建、产物交互检查与 Capacitor sync 已通过。本地 Gradle 下载被网络阻断，原生结果以当前提交 GitHub Actions 为准。
+- 完整 App、签名与本版本测试结果以 PR #6 对应提交的 GitHub Actions 为准；本地 Gradle 依赖下载受网络限制，不能用前端结果替代 APK 验证。
 - 使用所有者的实际 10,332,066 字节 MP3、LRC、MXL，通过应用下载校验和保存函数，验证离线恢复 42 句歌词、七声部、140 小节。此项使用本地真实文件响应，不能替代线上网络访问或真机听音。
-- 当前云端普通 HTTP 请求仍被平台边缘返回 403/1010，无法在本环境确认无需平台凭据的线上素材直连。不要将默认列表可见、构建成功或持平台凭据的服务测试误写成各端线上下载验收通过。
+- 新增 `verify-live-download-browser.mjs` 线上门禁：只拦截本地构建的 App 页面，不拦截素材服务，直接点下载，不携带访问码或平台凭据。检查真实 MP3/LRC/MXL 的 HTTP 200、离线 42 句歌词、140 小节曲谱和 MP3 解码播放进度；覆盖网页 Origin 与 Android 的 `https://localhost` Origin。结果见当前 push Android 作业的 live gate；不会把本地文件替身当作线上下载通过。
 - Android 16 物理手机的首次触摸、真实下载、媒体听音、系统安装确认与更新后的资料保留仍需实际设备验证。
 
 实现依据：[GitHub Releases API](https://docs.github.com/en/rest/releases/releases)、[Android PackageManager](https://developer.android.com/reference/android/content/pm/PackageManager)、[安全文件共享](https://developer.android.com/training/secure-file-sharing/share-file)。
