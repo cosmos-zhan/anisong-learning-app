@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { loadCatalog, sourceAccess, type SourceAccess, type MediaCatalog, type DownloadProgress } from "../../../../packages/core/downloads";
+import { PRIVATE_SOURCE, preferredSource, defaultCatalog, isDefaultSource } from "../../../../packages/core/default-source";
 import { downloadManager } from "../../../../packages/core/download-manager";
 import { materialStore, type LocalMaterial } from "../../../../packages/core/app-state";
 import { importMediaPackage } from "../../../../packages/core/media-package";
@@ -7,19 +8,19 @@ import media from "../bundled-audio.json";
 import "./downloads.css";
 const size=(bytes:number)=>bytes<1024*1024?`${Math.ceil(bytes/1024)} KB`:`${(bytes/1024/1024).toFixed(1)} MB`;
 const sample=()=>new URL(`${import.meta.env.BASE_URL}demo/catalog.json`,location.href).href;
-const onlineDemo='https://raw.githubusercontent.com/cosmos-zhan/anisong-learning-app/4dba5c242d602e7a408b9208b4d76ed147f866f0/public/demo/catalog.json';
-const defaultSource=()=>media.catalog?new URL(`${import.meta.env.BASE_URL}${media.catalog}`,location.href).href:onlineDemo;
+const defaultSource=()=>media.catalog?new URL(`${import.meta.env.BASE_URL}${media.catalog}`,location.href).href:PRIVATE_SOURCE;
 const running=(status:string)=>['queued','downloading','cancelling'].includes(status);
 type Destination='lyrics'|'piano-prep';
 export function DownloadsPage({onSaved,onRemoved,onOpen}:{onSaved:(row:LocalMaterial)=>void;onRemoved:(id:string)=>void;onOpen:(id:string,title:string,destination?:Destination)=>void}) {
   const [tab,setTab]=useState<'songs'|'tasks'|'local'>('songs');
-  const [address,setAddress]=useState(()=>{try{return localStorage.getItem('anisong:mediaSource')||defaultSource();}catch{return defaultSource();}});
-  const [catalog,setCatalog]=useState<MediaCatalog>(),[records,setRecords]=useState<LocalMaterial[]>([]);
+  const [address,setAddress]=useState(()=>preferredSource(media.catalog?defaultSource():null));
+  const [catalog,setCatalog]=useState<MediaCatalog|undefined>(()=>isDefaultSource(address)?defaultCatalog():undefined),[records,setRecords]=useState<LocalMaterial[]>([]);
   const [token,setToken]=useState(''),[sourceOpen,setSourceOpen]=useState(false),[loading,setLoading]=useState(false);
   const [error,setError]=useState(''),[notice,setNotice]=useState(''),[search,setSearch]=useState(''),[removing,setRemoving]=useState('');
   const [importing,setImporting]=useState(false),[importProgress,setImportProgress]=useState<DownloadProgress>();
   const [deleting,setDeleting]=useState(false);
-  const access=useRef<SourceAccess|undefined>(undefined),request=useRef<AbortController|null>(null),importRequest=useRef<AbortController|null>(null),mounted=useRef(true);
+  const access=useRef<SourceAccess|undefined>(undefined),request=useRef<AbortController|null>(null),importRequest=useRef<AbortController|null>(null),mounted=useRef(true),pendingSong=useRef<string|null>(null);
+  const codeInput=useRef<HTMLInputElement>(null);
   const tasks=useSyncExternalStore(downloadManager.subscribe,downloadManager.snapshot);
   const active=tasks.filter(t=>running(t.status)),finished=tasks.filter(t=>!running(t.status));
   const privatePackage=media.package as {src:string;bytes:number}|null;
@@ -31,12 +32,15 @@ export function DownloadsPage({onSaved,onRemoved,onOpen}:{onSaved:(row:LocalMate
   },[]);
   const read=async(url:string,code=token,activate=true)=>{
     request.current?.abort();const controller=new AbortController();request.current=controller;
-    setLoading(true);setError('');setCatalog(undefined);access.current=undefined;
+    setLoading(true);setError('');if(!isDefaultSource(url))setCatalog(undefined);access.current=undefined;
     const timeout=setTimeout(()=>controller.abort(new Error('读取歌曲列表超时，请检查网络后重试。')),30000);
     try{
-      const auth=sourceAccess(url,code),next=await loadCatalog(url,controller.signal,auth);
+      const auth=sourceAccess(url,code);
+      const next=isDefaultSource(url)&&!auth?defaultCatalog():await loadCatalog(url,controller.signal,auth);
       if(!mounted.current||controller.signal.aborted)return;
-      access.current=auth;setCatalog(next);setAddress(url);if(activate)setTab('songs');
+      access.current=auth;setCatalog(next);setAddress(url);
+      if(pendingSong.current&&auth){const chosen=next.songs.find(s=>s.id===pendingSong.current);if(!chosen)throw new Error('素材源中没有这首歌曲，请刷新后重试。');downloadManager.enqueue(chosen,auth);pendingSong.current=null;setTab('tasks');setSourceOpen(false);setNotice('');}
+      else if(activate)setTab('songs');
       try{localStorage.setItem('anisong:mediaSource',url);}catch{/* Source preference is optional. */}
     }catch(e){if(mounted.current&&request.current===controller){if(!controller.signal.aborted)setError(e instanceof TypeError?'无法读取在线歌曲，请检查网络和素材源权限。已下载歌曲仍可使用。':(e as Error).message);else if(controller.signal.reason instanceof Error&&controller.signal.reason.name!=='AbortError')setError(controller.signal.reason.message);}}
     finally{clearTimeout(timeout);if(mounted.current&&request.current===controller)setLoading(false);}
@@ -62,11 +66,12 @@ export function DownloadsPage({onSaved,onRemoved,onOpen}:{onSaved:(row:LocalMate
     <div className="download-heading"><div><p className="eyebrow">DOWNLOADS · 随时开始练习</p><h1>下载管理</h1><p>{records.length} 首已下载 · {size(total)} 素材</p></div><button className="download-source-toggle" aria-expanded={sourceOpen} onClick={()=>setSourceOpen(!sourceOpen)}>下载源设置</button></div>
     <div className="download-tabs" role="tablist" aria-label="下载分类">{[['songs','在线歌曲',catalog?.songs.length??0],['tasks','下载任务',active.length],['local','已下载',records.length]].map(([key,label,count])=><button role="tab" aria-label={String(label)} aria-selected={tab===key} key={key} onClick={()=>setTab(key as typeof tab)}>{label}<span aria-hidden="true">{count}</span></button>)}</div>
     {sourceOpen&&<form className="download-source" onSubmit={e=>{e.preventDefault();void read(address.trim());}}>
-      <h2>连接素材源</h2><p className="helper">配置一次，之后在歌曲列表直接点下载。默认连接真实的原创示例源；私人歌曲需要单独的下载服务。</p>
-      <label>素材源地址<input type="url" required value={address} onChange={e=>{setAddress(e.target.value);setToken('');}} disabled={loading} placeholder="https://…/catalog.json"/></label>
-      <label>访问码（私人素材源可选）<input type="password" autoComplete="off" value={token} onChange={e=>setToken(e.target.value)} disabled={loading} maxLength={128}/></label>
+      <h2>连接素材源</h2><p className="helper">配置一次，之后在歌曲列表直接点下载。默认提供春日影的音频、歌词和乐谱。填写素材访问码后即可下载，地址已配置。</p>
+      <label>素材源地址<input type="url" required value={address} onChange={e=>{setAddress(e.target.value);setToken('');pendingSong.current=null;}} disabled={loading} placeholder="https://…/catalog.json"/></label>
+      <label>访问码（私人素材源可选）<input ref={codeInput} type="password" autoComplete="off" value={token} onChange={e=>setToken(e.target.value)} disabled={loading} maxLength={128}/></label>
       <p className="helper">访问码仅在本次运行中临时使用，不写入下载记录或反馈。不要填写账号密码或平台API密钥。</p>
       <button className="primary" disabled={loading||!address.trim()}>查看歌曲</button>
+      <button type="button" disabled={loading} onClick={()=>{setToken('');pendingSong.current=null;void read(PRIVATE_SOURCE,'');}}>使用默认春日影素材源</button>
       {media.catalog&&<button type="button" disabled={loading} onClick={()=>{setToken('');void read(defaultSource(),'');}}>下载本站私人练习素材</button>}
       <button type="button" disabled={loading} onClick={()=>{setToken('');void read(sample(),'');}}>试用原创示例源</button>
     </form>}
@@ -77,7 +82,7 @@ export function DownloadsPage({onSaved,onRemoved,onOpen}:{onSaved:(row:LocalMate
       {catalog?.songs.filter(s=>s.title.toLowerCase().includes(search.toLowerCase())).map(song=>{
         const saved=records.find(r=>r.download?.songId===song.id)?.download,task=active.find(t=>t.songId===song.id);
         const bytes=song.audio.bytes+(song.lyrics?.bytes??0)+(song.score?.bytes??0);
-        return <article className="download-row" key={song.id}><div className="download-cover" aria-hidden="true">♪</div><div className="download-row-info"><h3>{song.title}</h3><p>{['音频',song.lyrics&&'歌词',song.score&&'乐谱'].filter(Boolean).join(' · ')} · {size(bytes)}</p><small>{saved?(saved.revision===song.revision?'已下载到此设备':'有素材更新'):task?'已加入下载任务':'下载后可离线练习'}</small></div><div className="download-actions">{saved&&<button onClick={()=>onOpen(song.id,song.title)}>开始练习</button>}<button className="primary" disabled={!!task||importing} onClick={()=>{setNotice('');downloadManager.enqueue(song,access.current);setTab('tasks');}}>{task?'下载中…':saved?'重新下载并替换':'下载到本地'}</button></div></article>;
+        return <article className="download-row" key={song.id}><div className="download-cover" aria-hidden="true">♪</div><div className="download-row-info"><h3>{song.title}</h3><p>{['音频',song.lyrics&&'歌词',song.score&&'乐谱'].filter(Boolean).join(' · ')} · {size(bytes)}</p><small>{saved?(saved.revision===song.revision?'已下载到此设备':'有素材更新'):task?'已加入下载任务':'下载后可离线练习'}</small></div><div className="download-actions">{saved&&<button onClick={()=>onOpen(song.id,song.title)}>开始练习</button>}<button className="primary" disabled={!!task||importing} onClick={()=>{setNotice('');if(isDefaultSource(address)&&!access.current){pendingSong.current=song.id;setSourceOpen(true);setNotice('请输入私人素材访问码，然后点“查看歌曲”开始下载。');requestAnimationFrame(()=>codeInput.current?.focus());return;}downloadManager.enqueue(song,access.current);setTab('tasks');}}>{task?'下载中…':saved?'重新下载并替换':'下载到本地'}</button></div></article>;
       })}
       {!loading&&!catalog&&<div className="download-empty"><span>♫</span><p>在线列表暂不可用</p><small>可在下载源设置中重新连接，或继续练习已下载歌曲。</small><button onClick={()=>setTab('local')}>查看已下载</button></div>}
     </section>}

@@ -1525,15 +1525,17 @@ small {
 }
 
 /* One application frame: only its content scrolls, never the navigation. */
+html, body, #root { height: 100%; min-height: 0; overflow: hidden; }
 .app-shell:not(.is-focus) {
-  height: 100dvh;
+  height: var(--app-height, 100dvh);
   min-height: 0;
   padding: 0;
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
 }
 .shell-header {
+  flex: 0 0 auto;
   width: 100%;
   max-width: none;
   margin: 0;
@@ -1556,9 +1558,10 @@ small {
 .shell-emblem { font-size: 24px; }
 .shell-title { flex: 1; min-width: 0; font-size: 17px; color: #203c34; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .shell-caption { font-size: 11px; white-space: nowrap; }
-.shell-content { min-height: 0; min-width: 0; overflow-y: auto; overscroll-behavior-y: contain; padding-bottom: 24px; scroll-padding-top: 16px; }
-.is-focus .shell-content { height: 100dvh; padding: 0; overflow: hidden; }
+.shell-content { flex: 1 1 0%; min-height: 0; min-width: 0; overflow-y: auto; overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch; padding-bottom: 24px; scroll-padding-top: 16px; }
+.is-focus .shell-content { height: var(--app-height, 100dvh); padding: 0; overflow: hidden; }
 .app-shell:not(.is-focus) .bottom-nav {
+  flex: 0 0 auto;
   position: static;
   transform: none;
   width: 100%;

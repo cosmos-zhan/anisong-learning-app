@@ -22,6 +22,20 @@ try {
       return route.fulfill({ body: readFileSync(path), contentType: mime[extname(path)] || "application/octet-stream" });
     });
     const page = await context.newPage(); page.on("pageerror", e => errors.push(e.message));
+    // A fresh URL with no hash and no navigation clicks must accept the first touch swipe.
+    await page.goto('https://anisong.test/');
+    await page.locator('.page-home .shell-title').waitFor();
+    const frame = await page.locator('.shell-content').boundingBox();
+    const cdp = await context.newCDPSession(page);
+    await cdp.send('Input.synthesizeScrollGesture', { x: Math.round(width / 2), y: Math.round(frame.y + frame.height * .7), yDistance: -250, speed: 500, gestureSourceType: 'touch' });
+    await page.waitForFunction(() => document.querySelector('.shell-content').scrollTop > 20);
+    const firstScroll = await page.locator('.shell-content').evaluate(el => el.scrollTop);
+    assert(firstScroll > 20, 'First mobile touch scroll required navigation');
+    await page.reload();
+    await page.locator('.page-home .shell-title').waitFor();
+    await cdp.send('Input.synthesizeScrollGesture', { x: Math.round(width / 2), y: Math.round(frame.y + frame.height * .7), yDistance: -250, speed: 500, gestureSourceType: 'touch' });
+    await page.waitForFunction(() => document.querySelector('.shell-content').scrollTop > 20);
+    results.push({ name: 'first-home-touch-scroll', width, height, firstScroll, reloadScroll: await page.locator('.shell-content').evaluate(el => el.scrollTop) });
     for (const name of ["home", "library", "downloads", "song", "materials", "piano-prep", "settings", "recents", "about"]) {
       await page.goto(`https://anisong.test/?song=demo-original#${name}`);
       await page.locator(".shell-title").waitFor();

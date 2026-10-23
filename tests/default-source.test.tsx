@@ -1,0 +1,33 @@
+import 'fake-indexeddb/auto';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
+import { DownloadsPage } from '../apps/web/src/downloads/DownloadsPage';
+import { defaultCatalog, PRIVATE_SOURCE, PREVIOUS_DEMO_SOURCE, preferredSource } from '../packages/core/default-source';
+vi.mock('../apps/web/src/bundled-audio.json', () => ({ default: { catalog: null, package: null } }));
+beforeEach(() => { localStorage.clear(); vi.stubGlobal('fetch', vi.fn()); });
+afterEach(() => vi.unstubAllGlobals());
+it('migrates the previous example default while preserving a user-selected source', () => {
+  expect(preferredSource()).toBe(PRIVATE_SOURCE);
+  localStorage.setItem('anisong:mediaSource', PREVIOUS_DEMO_SOURCE);
+  expect(preferredSource()).toBe(PRIVATE_SOURCE);
+  localStorage.setItem('anisong:mediaSource', 'https://mine.test/catalog.json');
+  expect(preferredSource()).toBe('https://mine.test/catalog.json');
+});
+it('shows Haruhikage immediately and requests the code at download without a manual source URL', async () => {
+  render(<DownloadsPage onSaved={vi.fn()} onRemoved={vi.fn()} onOpen={vi.fn()}/>);
+  await screen.findByRole('heading', { name: '春日影 · CRYCHIC' });
+  expect(fetch).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: '下载到本地' }));
+  expect(screen.getByLabelText('素材源地址')).toHaveValue(PRIVATE_SOURCE);
+  expect(screen.getByLabelText('访问码（私人素材源可选）')).toBeVisible();
+  expect(fetch).not.toHaveBeenCalled();
+  const code = 'test-private-source-code-012345678901';
+  vi.stubGlobal('fetch', vi.fn(async () => new Response('', { status: 401 })));
+  fireEvent.change(screen.getByLabelText('访问码（私人素材源可选）'), { target: { value: code } });
+  fireEvent.click(screen.getByRole('button', { name: '查看歌曲' }));
+  await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('访问码'));
+  expect(screen.getByRole('heading', { name: '春日影 · CRYCHIC' })).toBeVisible();
+  expect(fetch).toHaveBeenCalledWith(PRIVATE_SOURCE, expect.objectContaining({ headers: { Authorization: `Bearer ${code}` } }));
+  expect(JSON.stringify({ ...localStorage })).not.toContain(code);
+  expect(defaultCatalog().songs[0].score?.url).toMatch(/^https:\/\/anisong-media-source.*\.mxl$/);
+});

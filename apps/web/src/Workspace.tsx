@@ -5,6 +5,8 @@ import { App } from "./App";
 import { PianoWorkspace } from "./piano/PianoWorkspace";
 import { Icon } from "./components/Icon";
 import { Feedback } from "./components/Feedback";
+import { useAppViewport } from "./useAppViewport";
+import { AppUpdates } from "./components/AppUpdates";
 import {
   DEMO_SONG,
   initialSong,
@@ -74,6 +76,7 @@ export function Cover({
   );
 }
 export function Workspace() {
+  useAppViewport();
   const [page, setPage] = useState<Page>(currentPage),
     [song, setSong] = useState<Song>(() => initialSong(location.search));
   const [visited, setVisited] = useState({ lyrics: false, piano: false });
@@ -505,6 +508,7 @@ export function Workspace() {
             <>
               <p className="eyebrow">MAKE IT YOURS</p>
               <h1>设置</h1>
+              <AppUpdates />
               <section className="settings-card">
                 <h2>练习偏好</h2>
                 <label className="field-label">
