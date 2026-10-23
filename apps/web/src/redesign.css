@@ -1559,6 +1559,7 @@ html, body, #root { height: 100%; min-height: 0; overflow: hidden; }
 .shell-title { flex: 1; min-width: 0; font-size: 17px; color: #203c34; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .shell-caption { font-size: 11px; white-space: nowrap; }
 .shell-content { flex: 1 1 0%; min-height: 0; min-width: 0; overflow-y: auto; overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch; padding-bottom: 24px; scroll-padding-top: 16px; }
+.app-shell:not(.is-focus) .shell-content { touch-action: pan-y; }
 .is-focus .shell-content { height: var(--app-height, 100dvh); padding: 0; overflow: hidden; }
 .app-shell:not(.is-focus) .bottom-nav {
   flex: 0 0 auto;
