@@ -1,6 +1,6 @@
 # Android 预发布测试包
 
-当前开发与预发行分支为 `feature/piano-p0`，`main` 保留原有构建基线。本次目标版本为 **0.6.1-alpha.1**，安装版本码 **2026102302**；具体功能见 [版本说明](app-updates.md)。首个已发布测试版：[v0.3.6-alpha.1](https://github.com/cosmos-zhan/anisong-learning-app/releases/tag/v0.3.6-alpha.1)。
+当前开发与预发行分支为 `feature/piano-p0`，`main` 保留原有构建基线。已发布 **0.6.1-alpha.1**；手机首屏兼容修复目标版本为 **0.6.2-alpha.1**，安装版本码 **2026102401**，尚未发布；具体功能与验证边界见 [版本说明](app-updates.md)。首个已发布测试版：[v0.3.6-alpha.1](https://github.com/cosmos-zhan/anisong-learning-app/releases/tag/v0.3.6-alpha.1)。
 
 ## 手机下载
 

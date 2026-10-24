@@ -4,9 +4,9 @@
 
 一款面向手机的音乐练习工具：导入本地音频和歌词，反复练习选中的片段；或导入 MusicXML 乐谱，边看五线谱边用虚拟钢琴练习。
 
-[下载 Android 测试版](https://github.com/cosmos-zhan/anisong-learning-app/releases) · [网页试用](https://anisong-learning-lab.woolly-mochi-2205.chatgpt.site) · [报告问题](https://github.com/cosmos-zhan/anisong-learning-app/issues/new/choose)
+[下载 Android 测试版](https://github.com/cosmos-zhan/anisong-learning-app/releases) · [网页试用](https://anisong.sekifufu.xyz/) · [报告问题](https://github.com/cosmos-zhan/anisong-learning-app/issues/new/choose)
 
-> 项目处于 **Alpha 开发阶段**。Releases 中标注 **Pre-release** 的 APK 用于体验和反馈，不代表正式版。网页试用目前需要项目所有者的 ChatGPT 账号；公开 APK 可独立使用。
+> 项目处于 **Alpha 开发阶段**。Releases 中标注 **Pre-release** 的 APK 用于体验和反馈，不代表正式版。上方网页试用为公开站点，无需项目所有者的 ChatGPT 账号。
 
 ## 功能
 
@@ -30,7 +30,7 @@
 
 安装后的 App 可在“设置 → 应用更新”检查包含 Alpha 在内的新版本，并在应用内下载安装包、校验后打开 Android 安装窗口。网页也提供检查和 APK 下载入口。详见 [应用更新与默认素材源](docs/app-updates.md)。
 
-当前版本为 **0.6.1-alpha.1**：默认春日影一键下载、修复手机首页首次打开时无法滑动，并支持在应用内检查和下载安装更新。详细行为与验证范围见 [版本说明](docs/app-updates.md)。
+当前开发版本为 **0.6.2-alpha.1**：网页普通页面改用浏览器原生页面滚动，保留固定导航，继续处理 Via 等手机浏览器首页首次无法滑动的问题；保留春日影一键下载和应用内更新。详细行为与验证范围见 [版本说明](docs/app-updates.md)。
 
 公开测试包只内置 CC0 原创示例。春日影的音频、歌词正文和曲谱文件由独立素材服务提供，按所有者授权公开读取，不进入 GitHub 源码或 APK；默认目录无需访问码。
 
@@ -104,7 +104,7 @@ npm run dev
 - 等待弹对暂不支持双手和弦；简谱、MIDI 导入、外接 MIDI 键盘和 AI 识谱尚未实现。
 - 歌词与乐谱共用歌曲管理，暂不自动同步。
 - 网页循环可能存在解码或调度间隙；当前不提供锁屏后台练习。
-- Cloudflare Workers 分支预览已通过构建检查；上方网页试用链接仍为所有者私有测试站。
+- 网页试用主入口为公开站点 `anisong.sekifufu.xyz`；原所有者私有测试站保留作内部测试，不要求公众登录所有者账号。
 
 完整限制见 [已知问题](docs/known-issues.md)。
 
