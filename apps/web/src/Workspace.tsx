@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
+import { Capacitor } from "@capacitor/core";
 import { DownloadsPage } from "./downloads/DownloadsPage";
 import { downloadManager } from "../../../packages/core/download-manager";
 import { App } from "./App";
@@ -89,7 +90,6 @@ export function Workspace() {
   const pendingDownloads=downloadTasks.filter(t=>['queued','downloading','cancelling'].includes(t.status)).length;
   useEffect(()=>{let alive=true;void materialStore.all().then(rows=>{if(alive)setDownloads(rows.filter(r=>r.download));}).catch(()=>{});return()=>{alive=false;};},[revision]);
   const scrollArea = useRef<HTMLDivElement>(null);
-  useEffect(() => { if (scrollArea.current) scrollArea.current.scrollTop = 0; }, [page, song.id]);
   const [feedback, setFeedback] = useState(false);
   const navigate = useCallback((next: Page) => {
     if (currentPage() === next) {
@@ -185,6 +185,15 @@ export function Workspace() {
     last = records[0],
     lastSong = catalog.find((s) => s.id === last?.songId) ?? song;
   const focus = page === "lyrics" || page === "piano";
+  const browserLayout = !Capacitor.isNativePlatform();
+  useLayoutEffect(() => {
+    // Browser shells such as Via need the document itself to advertise that it
+    // can scroll. Native APK pages keep their bounded content scroll frame.
+    document.documentElement.classList.toggle('document-scroll', browserLayout && !focus);
+    const scroller = browserLayout && !focus ? document.scrollingElement : scrollArea.current;
+    if (scroller) scroller.scrollTop = 0;
+    return () => document.documentElement.classList.remove('document-scroll');
+  }, [browserLayout, focus, page, song.id]);
   const headerTitle: Partial<Record<Page, string>> = {
     home: "ANISONG", library: "我的曲库", settings: "设置", song: song.title,
     downloads: "下载管理", materials: "歌曲资料", "piano-prep": "钢琴学谱", recents: "最近练习", about: "关于 Anisong",
@@ -219,7 +228,7 @@ export function Workspace() {
     });
   return (
     <div
-      className={`app-shell ${focus ? "is-focus" : ""} page-${page}`}
+      className={`app-shell ${browserLayout ? "browser-layout" : ""} ${focus ? "is-focus" : ""} page-${page}`}
       data-revision={revision}
     >
       {!focus && (

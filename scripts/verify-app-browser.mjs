@@ -12,8 +12,8 @@ const code = (Array.isArray(bundle) ? bundle[0] : bundle).output.find(o => o.typ
 const browser = await chromium.launch({ executablePath: process.env.BROWSER_EXECUTABLE_PATH || undefined, args: ["--no-sandbox", "--disable-dev-shm-usage"] });
 const mime = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".wav": "audio/wav", ".musicxml": "application/xml" };
 const results = [], errors = [];
-async function swipe(page, cdp, frame, width) {
-  const x = Math.round(width / 2), start = Math.round(frame.y + frame.height * .75), distance = Math.min(250, frame.height * .5);
+async function swipe(page, cdp, frame, width, height) {
+  const x = Math.round(width / 2), start = Math.round(Math.min(height-80,frame.y+frame.height*.75)), distance = Math.min(250,start-80);
   // Use actual touchstart/move/end input; no script assigns scrollTop.
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y: start }] });
   for (let i = 1; i <= 12; i++) {
@@ -39,16 +39,16 @@ try {
     const frame = await page.locator('.shell-content').boundingBox();
     const cdp = await context.newCDPSession(page);
     console.log(JSON.stringify({check:'initial-touch-frame',width,height,frame,dom:await page.locator('.shell-content').evaluate(el=>({height:el.clientHeight,content:el.scrollHeight,top:el.scrollTop,touch:getComputedStyle(el).touchAction}))}));
-    await swipe(page, cdp, frame, width);
-    await page.waitForFunction(() => document.querySelector('.shell-content').scrollTop > 20, undefined, { timeout: 5000 });
-    const firstScroll = await page.locator('.shell-content').evaluate(el => el.scrollTop);
+    await swipe(page, cdp, frame, width, height);
+    await page.waitForFunction(() => Math.max(document.scrollingElement.scrollTop,document.querySelector('.shell-content').scrollTop) > 20, undefined, { timeout: 5000 });
+    const firstScroll = await page.evaluate(() => Math.max(document.scrollingElement.scrollTop,document.querySelector('.shell-content').scrollTop));
     assert(firstScroll > 20, 'First mobile touch scroll required navigation');
     await page.reload();
     await page.locator('.page-home .shell-title').waitFor();
     await page.screenshot({ path: resolve(output, `home-reload-before-touch-${width}x${height}.png`) });
-    await swipe(page, cdp, await page.locator('.shell-content').boundingBox(), width);
-    await page.waitForFunction(() => document.querySelector('.shell-content').scrollTop > 20, undefined, { timeout: 5000 });
-    results.push({ name: 'first-home-touch-scroll', width, height, firstScroll, reloadScroll: await page.locator('.shell-content').evaluate(el => el.scrollTop) });
+    await swipe(page, cdp, await page.locator('.shell-content').boundingBox(), width, height);
+    await page.waitForFunction(() => Math.max(document.scrollingElement.scrollTop,document.querySelector('.shell-content').scrollTop) > 20, undefined, { timeout: 5000 });
+    results.push({ name: 'first-home-touch-scroll', width, height, firstScroll, reloadScroll: await page.evaluate(() => Math.max(document.scrollingElement.scrollTop,document.querySelector('.shell-content').scrollTop)) });
     for (const name of ["home", "library", "downloads", "song", "materials", "piano-prep", "settings", "recents", "about"]) {
       await page.goto(`https://anisong.test/?song=demo-original#${name}`);
       await page.locator(".shell-title").waitFor();
@@ -73,8 +73,10 @@ try {
         assert.equal(theme.background, "rgb(40, 102, 83)", "song preview kept legacy blue controls");
         assert.equal(theme.color, "rgb(255, 253, 247)", "song preview play label contrast");
       }
-      const geometry = await page.evaluate(() => ({ height:document.body.scrollHeight, width:document.body.scrollWidth, scroll:document.querySelector(".shell-content").scrollTop }));
-      assert(geometry.width <= width+1 && geometry.height<=height+1, `${name}: document overflow ${JSON.stringify(geometry)}`);
+      const geometry = await page.evaluate(() => ({ height:document.body.scrollHeight, width:document.body.scrollWidth, scroll:document.scrollingElement.scrollTop }));
+      assert(geometry.width <= width+1, `${name}: horizontal document overflow ${JSON.stringify(geometry)}`);
+      const nav = await page.locator('.bottom-nav').boundingBox();
+      assert(Math.abs(nav.y+nav.height-height)<2,`${name}: bottom navigation left the viewport`);
       await page.screenshot({ path: resolve(output, `app-${name}-${width}x${height}.png`) });
       results.push({ name, width,height,header:after,...geometry });
     }

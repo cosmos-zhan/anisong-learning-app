@@ -55,7 +55,9 @@ try {
       }));
       // Evidence is captured after the gesture, never as a prerequisite to it.
       await page.screenshot({path:resolve(output,`mobile-home-${live?'live':'built'}-${scenario}-${entry}-${width}x${height}.png`)});
-      const result={check:'mobile-first-home-touch',live,scenario,entry,width,height,passed,...geometry,errors};
+      const documentScrolled=geometry.nodes[0].top>20;
+      if (!live) assert(documentScrolled, 'Browser homepage must use native document scrolling for WebView hosts');
+      const result={check:'mobile-first-home-touch',live,scenario,entry,width,height,passed,documentScrolled,...geometry,errors};
       results.push(result);console.log(JSON.stringify(result));
     }
     await context.close();
