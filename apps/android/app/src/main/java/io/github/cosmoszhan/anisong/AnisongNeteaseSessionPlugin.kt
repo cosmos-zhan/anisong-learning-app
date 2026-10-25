@@ -69,7 +69,7 @@ class AnisongNeteaseSessionPlugin : Plugin() {
             val name = iterator.next()
             if (name.lowercase() == "cookie") continue
             require(name.lowercase() in allowedHeaders) { "请求包含不受支持的凭据或请求头。" }
-            builder.header(name, headers.getString(name))
+            builder.header(name, headers.getString(name) ?: throw IllegalArgumentException("请求头无效。"))
         }
         val stored = readCookie()
         val supplied = headers.optString("cookie", headers.optString("Cookie", ""))
