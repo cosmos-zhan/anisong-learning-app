@@ -5,7 +5,7 @@ on:
     - cron: '2-57/5 * * * *'
   push:
     branches: ['main', 'fix/mobile-home-scroll']
-    paths: ['.github/workflows/netease-import.yml', 'scripts/run-netease-jobs.mjs']
+    paths: ['.github/workflows/netease-import.yml', 'scripts/run-netease-jobs.mjs', 'packages/core/netease-player.mjs', 'packages/core/netease-cookie.mjs']
 permissions:
   contents: read
   id-token: write
@@ -15,7 +15,7 @@ concurrency:
 jobs:
   prepare:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 14
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -26,8 +26,14 @@ jobs:
         run: node scripts/run-netease-jobs.mjs --pending
       - name: Prepare audio tools when needed
         if: steps.queue.outputs.pending == 'true'
+        timeout-minutes: 4
         run: |
           if ! command -v ffmpeg || ! command -v ffprobe; then
+            for apt_source_file in /etc/apt/apt-mirrors.txt /etc/apt/sources.list.d/ubuntu.sources /etc/apt/sources.list; do
+              if [ -f "$apt_source_file" ]; then
+                sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g; s|https://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' "$apt_source_file"
+              fi
+            done
             sudo apt-get -o Acquire::Retries=1 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
             sudo apt-get -o Acquire::Retries=1 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y ffmpeg
           fi
