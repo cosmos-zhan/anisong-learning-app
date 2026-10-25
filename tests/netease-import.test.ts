@@ -3,10 +3,10 @@ import {Blob as NodeBlob} from 'node:buffer';
 import {webcrypto} from 'node:crypto';
 import {fixture,note} from './piano-fixtures';
 import {afterEach,beforeEach,expect,test,vi} from 'vitest';
-import {Capacitor,CapacitorHttp} from '@capacitor/core';
+import {Capacitor} from '@capacitor/core';
+import {neteaseNativeTransport} from '../packages/core/netease-session';
 import {materialStore} from '../packages/core/app-state';
 import {parseNetease,importNetease,nativeNeteaseFetch} from '../packages/core/netease';
-vi.mock('@capacitor/core',async original=>({...await original<typeof import('@capacitor/core')>(),CapacitorHttp:{request:vi.fn()}}));
 const bytes=new Uint8Array(1000);bytes.set([73,68,51,4,0,0,0,0,0,0]);
 const calls:string[]=[];
 const json=(data:unknown)=>new Response(JSON.stringify(data),{headers:{'Content-Type':'application/json'}});
@@ -56,7 +56,7 @@ test('cancellation before or during transfer never commits a local import',async
 });
 test('native HTTP uses the device bridge and blocks arbitrary hosts and management credentials',async()=>{
   vi.spyOn(Capacitor,'isNativePlatform').mockReturnValue(true);
-  const request=vi.mocked(CapacitorHttp.request).mockResolvedValue({status:200,headers:{'Content-Type':'audio/mpeg'},data:btoa('ID3audio'),url:'https://m801.music.126.net/test.mp3'});
+  const request=vi.spyOn(neteaseNativeTransport,'request').mockResolvedValue({status:200,headers:{'Content-Type':'audio/mpeg'},data:btoa('ID3audio'),url:'https://m801.music.126.net/test.mp3'});
   expect(await(await nativeNeteaseFetch('https://m801.music.126.net/test.mp3')).text()).toBe('ID3audio');
   expect(request).toHaveBeenCalledWith(expect.objectContaining({responseType:'arraybuffer',disableRedirects:true}));
   await expect(nativeNeteaseFetch('https://evil.test/test.mp3')).rejects.toThrow('来源');
@@ -74,10 +74,18 @@ test('reimporting preserves and reparses a previously imported local score',asyn
 
 test('native cancellation rejects immediately and ignores a late network completion',async()=>{
  vi.spyOn(Capacitor,'isNativePlatform').mockReturnValue(true);
- let finish!:(value:Awaited<ReturnType<typeof CapacitorHttp.request>>)=>void;
- vi.mocked(CapacitorHttp.request).mockImplementationOnce(()=>new Promise(resolve=>{finish=resolve;}));
+ let finish!:(value:Awaited<ReturnType<typeof neteaseNativeTransport.request>>)=>void;
+ const transport=vi.spyOn(neteaseNativeTransport,'request').mockImplementationOnce(()=>new Promise(resolve=>{finish=resolve;}));
  const controller=new AbortController(),pending=nativeNeteaseFetch('https://m801.music.126.net/test.mp3',{signal:controller.signal});
+ await vi.waitFor(()=>expect(transport).toHaveBeenCalled());
  controller.abort();await expect(pending).rejects.toMatchObject({name:'AbortError'});
  finish({status:200,headers:{'Content-Type':'audio/mpeg'},data:btoa('ID3audio'),url:'https://m801.music.126.net/test.mp3'});
  await Promise.resolve();expect(await materialStore.all()).toHaveLength(0);
+});
+
+test('cancelling while loading the encrypted session prevents the native request from starting',async()=>{
+ vi.spyOn(Capacitor,'isNativePlatform').mockReturnValue(true);
+ const transport=vi.spyOn(neteaseNativeTransport,'request'),controller=new AbortController();
+ const pending=nativeNeteaseFetch('https://music.163.com/api/test',{signal:controller.signal});controller.abort();
+ await expect(pending).rejects.toMatchObject({name:'AbortError'});expect(transport).not.toHaveBeenCalled();
 });

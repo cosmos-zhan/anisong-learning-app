@@ -1,12 +1,14 @@
-import {Capacitor,CapacitorHttp} from '@capacitor/core';
+import {Capacitor} from '@capacitor/core';
 import {neteaseApi} from './netease-api.mjs';
 import {saveSongMaterials,type DownloadProgress,type RemoteAsset,type RemoteSong} from './downloads';
 import {materialStore,type LocalMaterial} from './app-state';
+import {getNeteaseSession,neteaseNativeTransport} from './netease-session';
 export interface NeteaseParsed {
   song:{id:string;title:string;artists:string;duration:number;url:string};
   audio:{status:'available'|'unavailable';message:string;bytes?:number};
   lyrics:{lrc:string;lines:{start:number;text:string;romaji?:string;translation?:string}[];counts:{original:number;romaji:number;translation:number};warnings:string[]};
 }
+export const deviceResolverCache=new Map();
 const abort=(signal:AbortSignal)=>{if(signal.aborted)throw new DOMException('已取消','AbortError');};
 // This adapter talks to NetEase from the device. It has no upload endpoint,
 // management credential or remote catalogue write operation.
@@ -16,11 +18,15 @@ export const nativeNeteaseFetch:typeof fetch=async(input,init)=>{
   if(url.protocol!=='https:'||!( ['music.163.com','y.music.163.com','163cn.tv'].includes(url.hostname)||/^(?:[a-z0-9-]+\.)*music\.126\.net$/.test(url.hostname)))throw new Error('网易云返回了不支持的下载来源。');
   const signal=init?.signal;if(signal?.aborted)throw new DOMException('已取消','AbortError');
   const headers:Record<string,string>={};new Headers(init?.headers).forEach((value,key)=>{headers[key]=value;});
-  if(headers.authorization||headers.cookie||headers['oai-sites-authorization'])throw new Error('网易云导入不接受管理凭据。');
+  if(headers.authorization||headers['oai-sites-authorization'])throw new Error('网易云导入不接受管理凭据。');
+  const session=await getNeteaseSession();
+  if(signal?.aborted)throw new DOMException('已取消','AbortError');
+  if(headers.cookie&&(url.hostname!=='music.163.com'||headers.cookie!==session))throw new Error('网易云导入不接受外部凭据。');
+  if(url.hostname==='music.163.com'&&session)headers.cookie=session;
   return new Promise<Response>((resolve,reject)=>{
     const cancelled=()=>reject(new DOMException('已取消','AbortError'));
     signal?.addEventListener('abort',cancelled,{once:true});
-    void CapacitorHttp.request({url:url.href,method:init?.method??'GET',headers,data:init?.body as string|undefined,responseType:'arraybuffer',disableRedirects:true,connectTimeout:15000,readTimeout:30000}).then(result=>{
+    void neteaseNativeTransport.request({url:url.href,method:init?.method??'GET',headers,data:init?.body as string|undefined,responseType:'arraybuffer',disableRedirects:true,connectTimeout:15000,readTimeout:30000}).then(result=>{
       if(signal?.aborted)return;
       const responseHeaders=new Headers(result.headers);let body:Uint8Array;
       if(typeof result.data==='object')body=new TextEncoder().encode(JSON.stringify(result.data));
@@ -38,7 +44,7 @@ async function readResponse(response:Response):Promise<NeteaseParsed>{
 }
 const internal=(path:string,signal:AbortSignal,body?:object)=>new Request('https://anisong-device.invalid/api/netease/'+path,{method:body?'POST':'GET',headers:{'X-Anisong-Upload':'1','Content-Type':'application/json'},body:body?JSON.stringify(body):undefined,signal});
 export async function parseNetease(input:string,signal:AbortSignal,fetcher:typeof fetch=nativeNeteaseFetch):Promise<NeteaseParsed>{
-  abort(signal);return readResponse(await neteaseApi(internal('parse',signal,{input}),fetcher));
+  abort(signal);return readResponse(await neteaseApi(internal('parse',signal,{input}),fetcher,{cookie:await getNeteaseSession(),cache:fetcher===nativeNeteaseFetch?deviceResolverCache:undefined}));
 }
 async function duration(blob:Blob,signal:AbortSignal):Promise<number>{
   abort(signal);return new Promise((resolve,reject)=>{
@@ -56,7 +62,7 @@ export async function importNetease(parsed:NeteaseParsed,signal:AbortSignal,prog
   abort(signal);if(parsed.audio.status!=='available')throw new Error(parsed.audio.message);
   const fetcher=options.fetcher??nativeNeteaseFetch;
   progress({phase:'获取网易云音频',received:0,total:parsed.audio.bytes??0});
-  const response=await neteaseApi(internal('audio?id='+parsed.song.id,signal),fetcher);
+  const response=await neteaseApi(internal('audio?id='+parsed.song.id,signal),fetcher,{cookie:await getNeteaseSession(),cache:fetcher===nativeNeteaseFetch?deviceResolverCache:undefined});
   if(!response.ok){const d=await response.json() as {error?:string};throw new Error(d.error??'音频下载失败。');}
   const data=new Uint8Array(await response.arrayBuffer());abort(signal);
   const seconds=await(options.measureDuration??duration)(new Blob([data],{type:'audio/mpeg'}),signal);abort(signal);
