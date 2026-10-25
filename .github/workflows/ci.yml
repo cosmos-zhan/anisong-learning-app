@@ -7,6 +7,7 @@ permissions:
 jobs:
   web:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -17,7 +18,36 @@ jobs:
       - run: npm run typecheck
       - run: npm run lint
       - run: npm test -- --reporter=default --reporter=junit --outputFile.junit=test-results.xml
+      - run: npm run test:release
       - run: npm run build
+      - run: node --experimental-vm-modules scripts/verify-built-app.mjs
+      - run: node scripts/verify-lyrics-build.mjs
+      - name: Bound browser dependency downloads
+        run: |
+          for apt_source_file in /etc/apt/apt-mirrors.txt /etc/apt/sources.list.d/ubuntu.sources /etc/apt/sources.list; do
+            if [ -f "$apt_source_file" ]; then
+              sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g; s|https://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' "$apt_source_file"
+            fi
+          done
+          sudo tee /etc/apt/apt.conf.d/80-anisong-timeouts >/dev/null <<'APT'
+          Acquire::Retries "2";
+          Acquire::http::Timeout "30";
+          Acquire::https::Timeout "30";
+          APT
+      - name: Install browser and system dependencies
+        timeout-minutes: 6
+        run: npx playwright-core install --with-deps chromium
+      - name: Install CJK fonts with bounded network retries
+        timeout-minutes: 4
+        run: sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y fonts-noto-cjk
+      - run: npm run test:browser
+      - name: Public domain mobile scroll diagnostics
+        run: node scripts/verify-mobile-home-scroll.mjs --live --report-only
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: piano-browser-screenshots
+          path: test-results/piano-browser
       - uses: actions/upload-artifact@v4
         if: always()
         with:

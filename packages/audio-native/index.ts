@@ -1,6 +1,7 @@
 import { Capacitor,registerPlugin,type PluginListenerHandle } from '@capacitor/core';
+import type { PianoPlaybackEvent, PianoSequence } from '../piano/types';
 import type { AudioEngine,EngineEvent,Range } from '../core/types';
-interface NativeBridge {load(o:{source:string}):Promise<{duration:number}>;setRange(o:Range&{loop:boolean}):Promise<void>;setSpeed(o:{speed:number}):Promise<void>;play():Promise<void>;pause():Promise<void>;seek(o:{position:number}):Promise<void>;pickAudio():Promise<{source:string;name:string}>;addListener(name:string,fn:(e:EngineEvent)=>void):Promise<PluginListenerHandle>;}
+interface NativeBridge {storeAudio(o:{base64:string;sha256:string}):Promise<{source:string}>;playPiano(sequence:PianoSequence):Promise<void>;stopPiano():Promise<void>;pianoLoop(o:{loop:boolean}):Promise<void>;syncPiano():Promise<void>;load(o:{source:string}):Promise<{duration:number}>;setRange(o:Range&{loop:boolean}):Promise<void>;setSpeed(o:{speed:number}):Promise<void>;play():Promise<void>;pause():Promise<void>;seek(o:{position:number}):Promise<void>;pickAudio():Promise<{source:string;name:string}>;addListener(name:'audioEvent',fn:(e:EngineEvent)=>void):Promise<PluginListenerHandle>;addListener(name:'pianoEvent',fn:(e:PianoPlaybackEvent)=>void):Promise<PluginListenerHandle>;}
 export const bridge=registerPlugin<NativeBridge>('AnisongAudio');
 export const isNative=()=>Capacitor.isNativePlatform()&&Capacitor.getPlatform()==='android';
 export class NativeAudioEngine implements AudioEngine {
@@ -15,4 +16,14 @@ export class NativeAudioEngine implements AudioEngine {
  getPosition(){return this.position;}
  onEvent(fn:(e:EngineEvent)=>void){this.listeners.add(fn);return ()=>this.listeners.delete(fn);}
  dispose(){this.pause();void this.handle.then(h=>h.remove()).catch(()=>undefined);this.listeners.clear();}
+}
+
+/** Copy a persisted browser Blob to private app files for Media3. */
+export async function nativeDownloadedAudio(blob: Blob): Promise<string> {
+ const buffer = await blob.arrayBuffer();
+ const hash = [...new Uint8Array(await crypto.subtle.digest('SHA-256', buffer))].map(b=>b.toString(16).padStart(2,'0')).join('');
+ const data = await new Promise<string>((resolve,reject)=>{
+  const reader=new FileReader(); reader.onload=()=>resolve(String(reader.result).split(',')[1]); reader.onerror=()=>reject(new Error('LOAD')); reader.readAsDataURL(blob);
+ });
+ return (await bridge.storeAudio({base64:data,sha256:hash})).source;
 }

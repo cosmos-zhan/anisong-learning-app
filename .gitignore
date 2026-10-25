@@ -1,6 +1,9 @@
 node_modules/
 dist/
 coverage/
+test-results/
+preview-dist/
+__pycache__/
 .openai/*local*
 .openai/*.env*
 *.log
@@ -14,3 +17,6 @@ apps/android/app/src/main/assets/public/
 apps/web/src/version.json
 public/version.json
 apps/android/.kotlin/
+private-media/
+public/private-media/
+apps/web/src/bundled-audio.json

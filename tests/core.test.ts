@@ -32,3 +32,27 @@ describe('反馈隐私',()=>{
  it('包含准确快照但没有歌词、音频名或源地址',async()=>{const {controller}=await player();await controller.select(1);const report=feedbackReport({kind:'Bug',description:'test',steps:'tap',expected:'loop'},controller.getSnapshot(),{sha:'abcdef',branch:'feature/test',builtAt:'now'},'Android',true);expect(report).toContain('abcdef');expect(report).toContain('16.3');expect(report).not.toContain('いつまでも');expect(issueUrl(report,'Bug')).toContain('issues/new');controller.dispose();});
  it('用户可以完全移除诊断',async()=>{const {controller}=await player();const report=feedbackReport({kind:'Bug',description:'test',steps:'tap',expected:'loop'},controller.getSnapshot(),{sha:'SECRET_SHA',branch:'x',builtAt:'now'},'UA',false);expect(report).not.toContain('SECRET_SHA');controller.dispose();});
 });
+it('a late selection cannot restart playback after a genuine engine error',async()=>{
+ const {controller,engine}=await player();let finish!:()=>void;engine.seek=()=>new Promise<void>(r=>{finish=r;});
+ const pending=controller.select(1);await Promise.resolve();engine.emit({type:'error',code:'DECODE'});finish();await pending;
+ expect(controller.getSnapshot().phase).toBe('error');expect(controller.getSnapshot().error).toContain('解码');expect(engine.playing).toBe(false);controller.dispose();
+});
+
+it('applies both draft boundaries atomically in original seconds and leaves audio paused',async()=>{
+ const {controller,engine}=await player();await controller.select(1);
+ const setRange=vi.spyOn(engine,'setRange');
+ expect(await controller.applyRange({start:16.405,end:21.209})).toBe(true);
+ expect(setRange).toHaveBeenCalledTimes(1);expect(engine.range).toEqual({start:16.405,end:21.209});
+ expect(engine.position).toBe(16.405);expect(engine.playing).toBe(false);expect(controller.getSnapshot().selection).toEqual([1,1]);controller.dispose();
+});
+it('rejects invalid draft bounds before sending them to the audio engine',async()=>{
+ const {controller,engine}=await player();await controller.select(1,1,false);const setRange=vi.spyOn(engine,'setRange');
+ expect(await controller.applyRange({start:21,end:21.1})).toBe(false);expect(setRange).not.toHaveBeenCalled();expect(engine.range).toEqual({start:16.3,end:21.1});controller.dispose();
+});
+it('late draft application cannot seek over a newly selected lyric',async()=>{
+ const {controller,engine}=await player();await controller.select(1,1,false);
+ let finish!:()=>void;const original=engine.setRange.bind(engine);let n=0;
+ engine.setRange=vi.fn((range,loop)=>{original(range,loop);if(n++===0)return new Promise<void>(resolve=>{finish=resolve;});});
+ const pending=controller.applyRange({start:16.4,end:21.2});await controller.select(3);finish();expect(await pending).toBe(false);
+ expect(controller.getSnapshot().selection).toEqual([3,3]);expect(engine.position).toBe(25.9);expect(engine.playing).toBe(true);controller.dispose();
+});

@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
+import {neteasePlayerRequest} from '../packages/core/netease-player.mjs';
+const id='27733896';
+const request=await neteasePlayerRequest(id,AbortSignal.timeout(30000));
+const response=await fetch(request.url,request.init),data=await response.json(),track=data.data?.find(t=>String(t.id)===id);
+console.log(JSON.stringify({probe:'netease-provider',http:response.status,code:data.code,trackCode:track?.code,available:!!track?.url,fee:track?.fee,type:track?.type,trial:!!track?.freeTrialInfo}));
+assert(track?.url&&track?.type==='mp3'&&track?.fee===0&&!track?.freeTrialInfo,'Full anonymous MP3 unavailable from runner');
+const url=new URL(track.url);assert(url.hostname.endsWith('.music.126.net'));url.protocol='https:';
+const audio=await fetch(url,{redirect:'error',signal:AbortSignal.timeout(60000),headers:{Referer:'https://music.163.com/'}});assert(audio.ok);
+const bytes=new Uint8Array(await audio.arrayBuffer());assert.equal(bytes.length,track.size);assert(bytes.length>1000000);
+console.log(JSON.stringify({probe:'netease-provider-audio',bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')}));

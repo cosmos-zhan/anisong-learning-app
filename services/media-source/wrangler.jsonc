@@ -1,0 +1,18 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "anisong-private-media",
+  "main": "worker.ts",
+  "compatibility_date": "2026-10-22",
+  "workers_dev": true,
+  "preview_urls": false,
+  "assets": {
+    "directory": "../../private-media/service-assets",
+    "binding": "ASSETS",
+    "run_worker_first": true,
+    "not_found_handling": "none",
+    "html_handling": "none"
+  },
+  "vars": { "ALLOWED_ORIGINS": "https://localhost" },
+  "secrets": { "required": ["MEDIA_TOKEN"] },
+  "observability": { "enabled": false }
+}

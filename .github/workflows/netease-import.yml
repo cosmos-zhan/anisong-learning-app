@@ -1,0 +1,36 @@
+name: Prepare NetEase materials
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '2-57/5 * * * *'
+  push:
+    branches: ['main', 'fix/mobile-home-scroll']
+    paths: ['.github/workflows/netease-import.yml', 'scripts/run-netease-jobs.mjs']
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: netease-material-preparation
+  cancel-in-progress: false
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Check preparation queue
+        id: queue
+        run: node scripts/run-netease-jobs.mjs --pending
+      - name: Prepare audio tools when needed
+        if: steps.queue.outputs.pending == 'true'
+        run: |
+          if ! command -v ffmpeg || ! command -v ffprobe; then
+            sudo apt-get -o Acquire::Retries=1 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
+            sudo apt-get -o Acquire::Retries=1 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y ffmpeg
+          fi
+      - name: Prepare pending material requests
+        if: steps.queue.outputs.pending == 'true'
+        run: node scripts/run-netease-jobs.mjs

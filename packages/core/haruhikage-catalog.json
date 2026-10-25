@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "title": "私人练习素材",
+  "songs": [
+    {
+      "id": "haruhikage-crychic",
+      "title": "春日影 · CRYCHIC",
+      "revision": "20261022-1",
+      "audio": {
+        "url": "e3d5d476e8216067-haruhikage-crychic.mp3",
+        "name": "haruhikage-crychic.mp3",
+        "bytes": 10332066,
+        "sha256": "e3d5d476e8216067fb67a4384591e90c15354ef4592fb45aa3ad6da53851619d"
+      },
+      "lyrics": {
+        "url": "4b96eb2ed9a6fc7e-haruhikage-crychic.lrc",
+        "name": "haruhikage-crychic.lrc",
+        "bytes": 6424,
+        "sha256": "4b96eb2ed9a6fc7e40e4d07258a85815bdfb3fc33bb620e3bbc1723941971d85"
+      },
+      "score": {
+        "url": "6af6450201e6a5ea-haruhikage-crychic.mxl",
+        "name": "haruhikage-crychic.mxl",
+        "bytes": 119251,
+        "sha256": "6af6450201e6a5eaf87822f8ed0cd110cc8eef77ffa1049615985ad0dcbe286b"
+      }
+    }
+  ]
+}

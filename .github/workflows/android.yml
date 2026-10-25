@@ -2,24 +2,27 @@ name: Android debug APK
 on:
   workflow_dispatch:
   pull_request:
-    paths:
-      - 'apps/android/**'
-      - 'packages/audio-native/**'
-      - 'capacitor.config.ts'
-      - '.github/workflows/android.yml'
   push:
+    branches: ['main', 'feature/**', 'fix/**']
     tags: ['android-test-*']
+concurrency:
+  group: android-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref_name }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
   apk:
     runs-on: ubuntu-latest
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
           cache: npm
+      - name: Preview version metadata
+        id: version
+        run: node scripts/prepare-android-preview.mjs
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -31,13 +34,50 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
       - run: npm ci
-      - run: npm run check
-      - run: npx cap sync android
-      - run: chmod +x apps/android/gradlew
-      - name: Build debug APK and native unit tests
+      - name: Verify and restore fixed debug signer
+        if: github.event_name != 'pull_request'
         env:
-          VERSION_CODE: ${{ github.run_number }}
-        run: apps/android/gradlew -p apps/android :app:testDebugUnitTest :app:assembleDebug --stacktrace
+          DEBUG_KEYSTORE: ${{ secrets.ANDROID_DEBUG_KEYSTORE_BASE64 }}
+          REQUIRE_FIXED_SIGNING: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature/piano-p0') }}
+        run: node scripts/android-signing.mjs
+      - name: Complete App check and debug APK
+        run: npm run android:check
+      - name: Bound browser dependency downloads
+        run: |
+          for apt_source_file in /etc/apt/apt-mirrors.txt /etc/apt/sources.list.d/ubuntu.sources /etc/apt/sources.list; do
+            if [ -f "$apt_source_file" ]; then
+              sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g; s|https://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' "$apt_source_file"
+            fi
+          done
+          sudo tee /etc/apt/apt.conf.d/80-anisong-timeouts >/dev/null <<'APT'
+          Acquire::Retries "2";
+          Acquire::http::Timeout "30";
+          Acquire::https::Timeout "30";
+          APT
+      - name: Install browser and system dependencies
+        timeout-minutes: 6
+        run: npx playwright-core install --with-deps chromium
+      - name: Install CJK fonts with bounded network retries
+        timeout-minutes: 4
+        run: sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y fonts-noto-cjk
+      - name: Browser navigation, responsive piano and real PCM gate
+        run: npm run test:browser
+      - name: Live default song one-click download and offline playback
+        if: github.event_name == 'push'
+        timeout-minutes: 5
+        run: node scripts/verify-live-download-browser.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-browser-screenshots
+          path: test-results/piano-browser
+      - name: Validate public APK and prepare downloads
+        run: python3 scripts/verify-public-apk.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-preview-${{ github.sha }}
+          path: preview-dist
+          retention-days: 30
       - uses: actions/upload-artifact@v4
         with:
           name: anisong-debug-${{ github.sha }}
@@ -48,3 +88,24 @@ jobs:
         with:
           name: android-build-reports
           path: apps/android/app/build/reports
+  publish:
+    needs: apk
+    if: >-
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/feature/piano-p0'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/download-artifact@v4
+        with:
+          name: android-preview-${{ github.sha }}
+          path: preview-dist
+      - name: Publish Alpha APK to GitHub Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/publish-android-preview.mjs
