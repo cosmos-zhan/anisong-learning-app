@@ -1,6 +1,8 @@
 # Android 预发布测试包
 
-当前开发与预发行分支为 `feature/piano-p0`，`main` 保留原有构建基线。本次目标版本为 **0.6.1-alpha.1**，安装版本码 **2026102302**；具体功能见 [版本说明](app-updates.md)。首个已发布测试版：[v0.3.6-alpha.1](https://github.com/cosmos-zhan/anisong-learning-app/releases/tag/v0.3.6-alpha.1)。
+本次目标版本为 **0.6.4-alpha.1**，安装版本码 **2026102601**。包含 Via 首屏滚动兼容、网易云本机导入和上传端后台素材准备；步骤见 [网易云导入](netease-import.md)。最终 APK、签名与源 SHA 以实际 GitHub Release 的附件为准。
+
+代码同步至 `main`；当前 APK 发行分支仍为 `feature/piano-p0`。`main` 运行构建与后台素材准备，不触发重复发行；功能分支和 PR 只验证。所有者已在 2026-10-26 明确要求完成后合并并发布最新版。
 
 ## 手机下载
 
@@ -11,7 +13,7 @@
 ## 自动发布规则
 
 1. 修改 `package.json` 的版本，并同步 lockfile 的根版本；提高 `.github/android-preview.json` 的 `versionCode`。
-2. 推送至 `feature/piano-p0`（当前开发试用）或 `main`（合并后的主线）。其他分支和 PR 只构建，不发布。
+2. 推送至 `feature/piano-p0`（当前发行分支）。`main`、其他分支和 PR 只构建，不发布。
 3. Android 工作流执行完整 `npm run android:check`，包括前端检查、11项发布/签名/服务测试、production交互检查、Capacitor sync、clean、原生单测和 debug APK。
 4. 校验 APK 的签名、包名、安装版本、内嵌前端 SHA、dist 字节、原创示例和原生测试结果。任何私人素材或签名密钥出现在公开产物中都使检查失败。
 5. 独立发布作业用 `contents: write` 权限创建草稿，上传并验证三个附件，然后将其设为公开 Pre-release。附件失败保留草稿；已经公开的同版本包不覆盖。

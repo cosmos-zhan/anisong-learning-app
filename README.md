@@ -4,9 +4,9 @@
 
 一款面向手机的音乐练习工具：导入本地音频和歌词，反复练习选中的片段；或导入 MusicXML 乐谱，边看五线谱边用虚拟钢琴练习。
 
-[下载 Android 测试版](https://github.com/cosmos-zhan/anisong-learning-app/releases) · [网页试用](https://anisong-learning-lab.woolly-mochi-2205.chatgpt.site) · [报告问题](https://github.com/cosmos-zhan/anisong-learning-app/issues/new/choose)
+[下载 Android 测试版](https://github.com/cosmos-zhan/anisong-learning-app/releases) · [网页试用](https://anisong.sekifufu.xyz/) · [报告问题](https://github.com/cosmos-zhan/anisong-learning-app/issues/new/choose)
 
-> 项目处于 **Alpha 开发阶段**。Releases 中标注 **Pre-release** 的 APK 用于体验和反馈，不代表正式版。网页试用目前需要项目所有者的 ChatGPT 账号；公开 APK 可独立使用。
+> 项目处于 **Alpha 开发阶段**。Releases 中标注 **Pre-release** 的 APK 用于体验和反馈，不代表正式版。上方网页试用为公开站点，无需项目所有者的 ChatGPT 账号。
 
 ## 功能
 
@@ -30,7 +30,7 @@
 
 安装后的 App 可在“设置 → 应用更新”检查包含 Alpha 在内的新版本，并在应用内下载安装包、校验后打开 Android 安装窗口。网页也提供检查和 APK 下载入口。详见 [应用更新与默认素材源](docs/app-updates.md)。
 
-当前版本为 **0.6.1-alpha.1**：默认春日影一键下载、修复手机首页首次打开时无法滑动，并支持在应用内检查和下载安装更新。详细行为与验证范围见 [版本说明](docs/app-updates.md)。
+当前版本目标为 **0.6.4-alpha.1**：Android 新增网易云分享链接的 MP3、原词、罗马音和译文本机导入；专用上传台增加后台素材准备。包含 Via 手机浏览器首页原生滚动兼容修复、在线歌曲下载和应用内更新。详细行为与验证范围见 [版本说明](docs/app-updates.md)。
 
 公开测试包只内置 CC0 原创示例。春日影的音频、歌词正文和曲谱文件由独立素材服务提供，按所有者授权公开读取，不进入 GitHub 源码或 APK；默认目录无需访问码。
 
@@ -40,7 +40,9 @@ Alpha 包使用调试签名，当前已配置固定 CI 签名。同签名且版�
 
 首页或曲库 → 下载管理，默认显示春日影，点击“下载到本地”即可下载音频、歌词和乐谱。“下载任务”显示真实进度、排队、取消和失败重试；切换 App 内页面继续下载。“已下载”可离线进入学唱/学谱，或移除下载副本。CC0 原创示例源仍可切换使用。服务需求及验收见 [下载模块](docs/download-manager.md)。
 
-**新增可下载歌曲无需重发 APK**：将音频、可选 LRC / MXL 上传至素材服务，再更新在线目录；用户刷新下载列表即可看到。手机提供文件和歌曲标题后，可由维护者完成上传与验证。目前 App 没有管理员上传界面。完整步骤见 [新增歌曲](docs/adding-songs.md)。
+**新增可下载歌曲无需重发 APK**：将音频、可选 LRC / MXL 上传至素材服务，再更新在线目录；用户刷新下载列表即可看到。手机提供文件和歌曲标题后，可由维护者完成上传与验证。专用上传台支持网易云分享链接解析并发布；Android App 的同名入口仅下载并导入本机，不具备管理员上传权限。完整步骤见 [新增歌曲](docs/adding-songs.md)。
+
+Android App 还可在下载管理展开“从网易云分享链接导入”，解析歌曲后点击“下载并导入本机”。音频与可用的原词、罗马音、翻译将保存到“已下载”，可离线学唱；同一歌曲重复导入会更新已有条目并保留本机乐谱。步骤与可获取范围见 [网易云导入](docs/netease-import.md)。
 
 默认源无需配置；自定义源只需配置一次。现有 `.anisong.zip` 可在“本地导入与存储”补充导入。见 [目录格式](docs/media-downloads.md)、[素材服务与可选私人部署](docs/private-media-service.md)和 [素材包](docs/media-packages.md)。
 
@@ -104,7 +106,7 @@ npm run dev
 - 等待弹对暂不支持双手和弦；简谱、MIDI 导入、外接 MIDI 键盘和 AI 识谱尚未实现。
 - 歌词与乐谱共用歌曲管理，暂不自动同步。
 - 网页循环可能存在解码或调度间隙；当前不提供锁屏后台练习。
-- Cloudflare Workers 分支预览已通过构建检查；上方网页试用链接仍为所有者私有测试站。
+- 网页试用主入口为公开站点 `anisong.sekifufu.xyz`；原所有者私有测试站保留作内部测试，不要求公众登录所有者账号。
 
 完整限制见 [已知问题](docs/known-issues.md)。
 

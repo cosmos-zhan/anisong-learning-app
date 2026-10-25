@@ -6,7 +6,7 @@ on:
     branches: ['main', 'feature/**', 'fix/**']
     tags: ['android-test-*']
 concurrency:
-  group: android-${{ github.event_name }}-${{ github.event.pull_request.head.ref || github.ref_name }}
+  group: android-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref_name }}
   cancel-in-progress: true
 permissions:
   contents: read
@@ -92,7 +92,7 @@ jobs:
     needs: apk
     if: >-
       github.event_name == 'push' &&
-      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature/piano-p0')
+      github.ref == 'refs/heads/feature/piano-p0'
     runs-on: ubuntu-latest
     permissions:
       contents: write
