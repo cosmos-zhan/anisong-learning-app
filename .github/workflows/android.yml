@@ -92,7 +92,7 @@ jobs:
     needs: apk
     if: >-
       github.event_name == 'push' &&
-      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature/piano-p0')
+      github.ref == 'refs/heads/feature/piano-p0'
     runs-on: ubuntu-latest
     permissions:
       contents: write
