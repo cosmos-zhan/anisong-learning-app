@@ -82,7 +82,7 @@ npm run dev
 
 版本号位于 `package.json`，Android 安装版本码位于 `.github/android-preview.json`。更新两者并推送到发布分支后，Actions 会在完整 App 构建通过后，将新版本的 APK、SHA-256 校验文件和构建信息发布为 **Pre-release**。已发布版本不覆盖；普通 PR 只检查与构建。
 
-当前开发发布分支为 `feature/piano-p0`；合并后 `main` 同样自动发布。规则、权限与签名恢复见 [发布指南](docs/android-previews.md)。
+当前 APK 发布分支为 `feature/piano-p0`；`main` 同步源码并运行完整检查与后台素材准备，不自动发布 APK。规则、权限与签名恢复见 [发布指南](docs/android-previews.md)。
 
 ## 项目结构
 
