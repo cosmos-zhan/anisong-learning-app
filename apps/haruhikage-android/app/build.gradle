@@ -1,0 +1,16 @@
+plugins { id 'com.android.application' }
+android {
+    namespace 'io.github.cosmoszhan.haruhikage'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'io.github.cosmoszhan.haruhikage'
+        minSdk 26
+        targetSdk 34
+        versionCode 1
+        versionName '1.0.0'
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}

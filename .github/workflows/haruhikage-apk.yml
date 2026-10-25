@@ -1,0 +1,44 @@
+name: Haruhikage standalone Android APK
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/haruhikage-standalone-app]
+    paths: ['apps/haruhikage-android/**', '.github/workflows/haruhikage-apk.yml']
+  pull_request:
+    paths: ['apps/haruhikage-android/**', '.github/workflows/haruhikage-apk.yml']
+permissions:
+  contents: read
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Locate preinstalled Android SDK manager
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | head -n 1)"
+          test -n "$SDKMANAGER" && test -x "$SDKMANAGER"
+          echo "SDKMANAGER=$SDKMANAGER" >> "$GITHUB_ENV"
+          "$SDKMANAGER" --version
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - name: Install Android SDK 35 packages
+        run: |
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" --install 'platforms;android-35' 'build-tools;35.0.0' 'platform-tools'
+      - name: Use 春日影 single artwork for launcher icon
+        run: |
+          python3 -m pip install --user pillow
+          python3 apps/haruhikage-android/tools/make_icon.py --download
+      - name: Build Android debug APK
+        run: gradle -p apps/haruhikage-android :app:assembleDebug --stacktrace
+      - uses: actions/upload-artifact@v4
+        with:
+          name: haruhikage-android-debug
+          path: apps/haruhikage-android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
