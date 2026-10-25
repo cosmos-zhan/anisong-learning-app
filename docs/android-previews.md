@@ -1,5 +1,7 @@
 # Android 预发布测试包
 
+新增网易云本机导入目标版本为 **0.6.3-alpha.1**，安装版本码 **2026102501**，见 [网易云导入](netease-import.md)。在功能分支验证并提供测试 APK，验收前不合并、不替换公开发行。
+
 当前开发与预发行分支为 `feature/piano-p0`，`main` 保留原有构建基线。已发布 **0.6.1-alpha.1**；手机首屏兼容修复目标版本为 **0.6.2-alpha.1**，安装版本码 **2026102401**，尚未发布；具体功能与验证边界见 [版本说明](app-updates.md)。首个已发布测试版：[v0.3.6-alpha.1](https://github.com/cosmos-zhan/anisong-learning-app/releases/tag/v0.3.6-alpha.1)。
 
 ## 手机下载
