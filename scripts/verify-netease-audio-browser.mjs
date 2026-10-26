@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {readFileSync,mkdirSync,writeFileSync} from 'node:fs';
+import {readFileSync,mkdirSync,writeFileSync,rmSync} from 'node:fs';
 import {resolve} from 'node:path';
 import {build} from 'vite';
 import {chromium} from 'playwright-core';
@@ -8,6 +8,9 @@ import {chromium} from 'playwright-core';
 // Exercise actual browser decoding, native Fetch adaptation and IndexedDB import.
 const fixtures=JSON.parse(readFileSync('tests/fixtures/netease-generated-audio.json','utf8')).fixtures;
 let browser;
+const entry=resolve('test-results/netease-audio-browser-entry.ts');
+mkdirSync(resolve('test-results'),{recursive:true});
+writeFileSync(entry,`export * from ${JSON.stringify(resolve('packages/core/netease.ts'))};export {materialStore} from ${JSON.stringify(resolve('packages/core/app-state.ts'))};`);
 try{
  const nativeMock=`
  export const Capacitor={isNativePlatform:()=>true};
@@ -20,18 +23,16 @@ try{
    else if(u.pathname.includes('/api/song/lyric'))data={lrc:{lyric:'[00:00]Generated tone'},romalrc:{lyric:'[00:00]tone'},tlyric:{lyric:'[00:00]测试音'}};
    else {const denied=f.mode==='denied'||f.mode==='fallback'&&u.pathname.includes('/download/');
     data={code:200,data:{id:f.id,url:'https://m801.music.126.net/'+(denied?'denied':f.format),type:f.format,size:f.audio.bytes,code:200,fee:1,freeTrialInfo:null}};}
-   return {status,url:options.url,headers:{'Content-Type':'application/json'},data:btoa(JSON.stringify(data))};
+   return {status,url:options.url,headers:{'Content-Type':'application/json'},data:btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(data))))};
   }
   f.cdnNoCookie&&=!options.headers.cookie;
   if(u.pathname==='/denied')return {status:403,url:options.url,headers:{'Content-Type':'text/html'},data:btoa('denied')};
   return {status:200,url:options.url,headers:{'Content-Type':f.audio.mime,'Content-Length':String(f.audio.bytes)},data:f.audio.data};
  }});`;
- const entry='netease-audio-browser-entry';
  const output=await build({configFile:false,logLevel:'error',plugins:[{
   name:'netease-audio-native-fixture',enforce:'pre',
-  resolveId(id){if(id==='@capacitor/core')return '\0native-audio-fixture';if(id===entry)return '\0'+entry;},
-  load(id){if(id==='\0native-audio-fixture')return nativeMock;
-   if(id==='\0'+entry)return `export * from ${JSON.stringify(resolve('packages/core/netease.ts'))};export {materialStore} from ${JSON.stringify(resolve('packages/core/app-state.ts'))};`;},
+  resolveId(id){if(id==='@capacitor/core')return '\0native-audio-fixture';},
+  load(id){if(id==='\0native-audio-fixture')return nativeMock;},
  }],build:{write:false,target:'es2022',lib:{entry,name:'NeteaseAudioCheck',formats:['iife']}}});
  const code=(Array.isArray(output)?output[0]:output).output.find(row=>row.type==='chunk').code;
  assert(code.includes('__neteaseAudioFixture'));
@@ -75,4 +76,4 @@ try{
  const out=resolve(process.env.BROWSER_RESULTS_DIR||'test-results/piano-browser');mkdirSync(out,{recursive:true});
  writeFileSync(resolve(out,'netease-audio-import.json'),JSON.stringify({results,...fallback},null,2)+'\n');
  console.log(JSON.stringify({check:'netease-native-audio-browser',results,...fallback}));await context.close();
-}finally{await browser?.close();}
+}finally{await browser?.close();rmSync(entry,{force:true});}

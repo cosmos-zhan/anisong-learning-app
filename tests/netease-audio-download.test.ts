@@ -114,7 +114,8 @@ test('trials, encrypted caches, HTML and mislabeled files cannot be imported',as
   }
   for(const bytes of [new TextEncoder().encode('<html>denied</html>'),payload('flac')]){
     const fetcher=fixture(async url=>url.includes('/weapi/')?json({data:[track()]}):new Response(bytes));
-    expect((await(await neteaseApi(request(),fetcher,options)).json()).audio.status).toBe('unavailable');
+    const result=await(await neteaseApi(request(),fetcher,options)).json();
+    expect(result.audio.status).toBe('unavailable');expect(result.audio.message).toContain('不是可识别');
   }
   expect(detectAudioFormat(payload('aac'))).toBe('aac');
 });

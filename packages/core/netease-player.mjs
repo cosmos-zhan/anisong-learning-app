@@ -31,7 +31,7 @@ export async function neteasePlayerRequest(id,signal,cookie=''){
 // array. Use the existing web protocol with the user's own filtered session.
 // No third-party resolver, alternate IP, or provider cache decryption is used.
 export async function neteaseAudioRequest(id,kind,level,signal,cookie=''){
-  if(!/^[1-9]\d{0,15}$/.test(id)||!['download','player'].includes(kind)||!['standard','exhigh','lossless'].includes(level))throw new Error('网易云音频请求无效。');
+  if(!/^[1-9]\d{0,15}$/.test(id)||!Number.isSafeInteger(Number(id))||!['download','player'].includes(kind)||!['standard','exhigh','lossless'].includes(level))throw new Error('网易云音频请求无效。');
   cookie=neteaseCookie(cookie);
   const csrf=cookie.split('; ').find(part=>part.startsWith('__csrf='))?.slice(7)??'';
   const data=kind==='download'?{id,level,immerseType:'c51'}:{ids:JSON.stringify([Number(id)]),level,encodeType:'flac'};

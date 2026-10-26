@@ -88,6 +88,8 @@ function unavailable(diagnostics,loggedIn){
   let message=file?audioFailure(file.http):trial?'网易云接口只返回了试听，尚未取得完整版；请在官方 APP 确认此曲的账号权限。':
     format?`网易云返回了暂不支持的音频格式（${format.format??'未知'}），未导入。`:
     size?'可获取的音频超过 25 MiB，请选择符合限制的本地音频。':
+    diagnostics.some(row=>row.reason==='invalid-audio')?'网易云返回的文件不是可识别的 MP3 / FLAC / M4A / AAC，未导入。':
+    diagnostics.some(row=>row.reason==='invalid-response')?'网易云音频地址接口返回了无法读取的响应，请稍后重试。':
     address?`网易云音频地址接口失败（${address.http?'HTTP '+address.http:'返回码 '+address.code}），请稍后重试。`:
     diagnostics.some(row=>row.reason==='timeout')?'获取音频地址或检查文件超时，请重试。':
     diagnostics.some(row=>row.reason==='network')?'连接网易云音频服务失败，请检查网络后重试。':
