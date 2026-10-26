@@ -3,6 +3,7 @@ import {neteaseApi} from './netease-api.mjs';
 import {saveSongMaterials,type DownloadProgress,type RemoteAsset,type RemoteSong} from './downloads';
 import {materialStore,type LocalMaterial} from './app-state';
 import {getNeteaseSession,neteaseNativeTransport} from './netease-session';
+import {withNativeNeteaseCookies} from './netease-cookie.mjs';
 export interface NeteaseParsed {
   song:{id:string;title:string;artists:string;duration:number;url:string};
   audio:{status:'available'|'unavailable';message:string;bytes?:number};
@@ -28,13 +29,19 @@ export const nativeNeteaseFetch:typeof fetch=async(input,init)=>{
     signal?.addEventListener('abort',cancelled,{once:true});
     void neteaseNativeTransport.request({url:url.href,method:init?.method??'GET',headers,data:init?.body as string|undefined,responseType:'arraybuffer',disableRedirects:true,connectTimeout:15000,readTimeout:30000}).then(result=>{
       if(signal?.aborted)return;
-      const responseHeaders=new Headers(result.headers);let body:Uint8Array;
+      const responseHeaders=new Headers(),cookies:string[]=[];let body:Uint8Array;
+      for(const [name,value] of Object.entries(result.headers??{})){
+        if(name.toLowerCase()==='set-cookie'){
+          if(url.hostname==='music.163.com')cookies.push(value);
+        }else responseHeaders.set(name,value);
+      }
       if(typeof result.data==='object')body=new TextEncoder().encode(JSON.stringify(result.data));
       else{
         const value=String(result.data??'');if(value.length>40*1024*1024)throw new Error('返回的文件超过大小限制。');
         const binary=atob(value);body=Uint8Array.from(binary,char=>char.charCodeAt(0));
       }
-      resolve(new Response(body.buffer as ArrayBuffer,{status:result.status,headers:responseHeaders}));
+      const response=new Response(body.buffer as ArrayBuffer,{status:result.status,headers:responseHeaders});
+      resolve(withNativeNeteaseCookies(response,cookies));
     }).catch(reject).finally(()=>signal?.removeEventListener('abort',cancelled));
   });
 };
