@@ -27,6 +27,18 @@ export async function neteasePlayerRequest(id,signal,cookie=''){
     headers:{'Content-Type':'application/x-www-form-urlencoded',Referer:'http://music.163.com/','User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',...(!cookie?{'X-Forwarded-For':compatibleIp,'X-Real-IP':compatibleIp}:{}),...(cookie?{Cookie:cookie}:{})},
     body:await encodeWeapi({br:320000,ids:[id],...(cookie?{csrf_token:cookie.split('; ').find(part=>part.startsWith('__csrf='))?.slice(7)??''}:{})})}};
 }
+// The download endpoint takes a scalar id; player v1 takes a serialized ids
+// array. Use the existing web protocol with the user's own filtered session.
+// No third-party resolver, alternate IP, or provider cache decryption is used.
+export async function neteaseAudioRequest(id,kind,level,signal,cookie=''){
+  if(!/^[1-9]\d{0,15}$/.test(id)||!['download','player'].includes(kind)||!['standard','exhigh','lossless'].includes(level))throw new Error('网易云音频请求无效。');
+  cookie=neteaseCookie(cookie);
+  const csrf=cookie.split('; ').find(part=>part.startsWith('__csrf='))?.slice(7)??'';
+  const data=kind==='download'?{id,level,immerseType:'c51'}:{ids:JSON.stringify([Number(id)]),level,encodeType:'flac'};
+  return {url:`https://music.163.com/weapi/song/enhance/${kind}/url/v1`,init:{method:'POST',redirect:'manual',signal,
+    headers:{'Content-Type':'application/x-www-form-urlencoded',Referer:'https://music.163.com/',...(cookie?{Cookie:cookie}:{})},
+    body:await encodeWeapi({...data,csrf_token:csrf})}};
+}
 // NetEase's Linux client protocol, also described in Enhanced's linuxapi
 // implementation. Independent CBC blocks provide ECB with WebCrypto only.
 export async function neteaseLinuxPlayerRequest(id,signal,arrayIds=false,cookie=''){

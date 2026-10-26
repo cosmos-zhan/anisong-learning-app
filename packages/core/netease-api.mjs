@@ -1,5 +1,6 @@
 import {mergeNeteaseLyrics} from './netease-lyrics.mjs';
-import {neteasePlayerRequest,neteaseLinuxPlayerRequest} from './netease-player.mjs';
+import {neteasePlayerRequest,neteaseLinuxPlayerRequest,neteaseAudioRequest} from './netease-player.mjs';
+import {audioFormats,detectAudioFormat} from './netease-audio.mjs';
 import {neteaseCookie} from './netease-account.mjs';
 const ROOT='https://music.163.com',LIMIT=25*1024*1024;
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'}});
@@ -61,52 +62,90 @@ async function detail(id,fetcher,signal,cookie=''){
   if(!song||typeof song.name!=='string')throw new ImportError('未找到这首歌曲，请检查链接。',404);
   return {id,title:song.name.slice(0,120),artists:(song.artists??song.ar??[]).map(row=>String(row.name??'')).filter(Boolean).join(' / ').slice(0,120),duration:(song.duration??song.dt??0)/1000,fee:song.fee};
 }
-const isMp3=bytes=>{
-  if(bytes.length<3)return false;
-  if(bytes[0]===73&&bytes[1]===68&&bytes[2]===51)return true;
-  // A real MPEG audio frame header (not HTML/JSON or a renamed AAC/FLAC).
-  for(let i=0;i<Math.min(bytes.length-3,1024);i++)if(bytes[i]===255&&(bytes[i+1]&224)===224&&(bytes[i+1]&6)!==0&&(bytes[i+2]&240)!==0&&(bytes[i+2]&240)!==240&&(bytes[i+2]&12)!==12)return true;
-  return false;
-};
+function audioFailure(status){
+  return status===403?'音频文件访问被拒绝（HTTP 403）。文件服务器未允许本次请求，不能据此判断会员权限。':`音频文件请求失败（HTTP ${status}），请稍后重试。`;
+}
 async function audioResponse(url,fetcher,signal,probe=false){
   for(let hop=0;hop<5;hop++){
     const response=await fetcher(url.href,{redirect:'manual',signal,headers:{Referer:ROOT+'/',...(probe?{Range:'bytes=0-4095'}:{})}});
-    if(response.status>=300&&response.status<400){await response.body?.cancel();const target=cdnUrl(new URL(response.headers.get('Location')??'',url).href);if(!target)throw new ImportError('网易云未提供可获取的完整 MP3，请补选本地音频。',502);url=target;continue;}
-    if(!response.ok){await response.body?.cancel();throw new ImportError('网易云当前没有提供可获取的完整 MP3，请选择本地音频。',422);}
+    if(response.status>=300&&response.status<400){
+      await response.body?.cancel();let target;
+      try{target=cdnUrl(new URL(response.headers.get('Location')??'',url).href);}catch{}
+      if(!target)throw Object.assign(new ImportError('音频地址跳转到非音频来源，未下载。',502),{diagnostic:{stage:'audio',reason:'redirect',http:response.status}});
+      url=target;continue;
+    }
+    if(!response.ok){await response.body?.cancel();throw Object.assign(new ImportError(audioFailure(response.status),422),{diagnostic:{stage:'audio',reason:'http',http:response.status}});}
     return response;
   }
-  throw new ImportError('音频地址跳转次数过多。',502);
+  throw Object.assign(new ImportError('音频地址跳转次数过多。',502),{diagnostic:{stage:'audio',reason:'redirect'}});
+}
+function unavailable(diagnostics,loggedIn){
+  const file=diagnostics.find(row=>row.stage==='audio'&&row.reason==='http');
+  const trial=diagnostics.some(row=>row.reason==='trial');
+  const format=diagnostics.find(row=>row.reason==='format');
+  const size=diagnostics.some(row=>row.reason==='size');
+  const address=diagnostics.find(row=>row.stage==='address'&&(row.http||row.code)&&row.reason!=='empty');
+  let message=file?audioFailure(file.http):trial?'网易云接口只返回了试听，尚未取得完整版；请在官方 APP 确认此曲的账号权限。':
+    format?`网易云返回了暂不支持的音频格式（${format.format??'未知'}），未导入。`:
+    size?'可获取的音频超过 25 MiB，请选择符合限制的本地音频。':
+    address?`网易云音频地址接口失败（${address.http?'HTTP '+address.http:'返回码 '+address.code}），请稍后重试。`:
+    diagnostics.some(row=>row.reason==='timeout')?'获取音频地址或检查文件超时，请重试。':
+    diagnostics.some(row=>row.reason==='network')?'连接网易云音频服务失败，请检查网络后重试。':
+    '网易云接口未返回可导入的完整音频地址，请稍后重试或选择本地音频。';
+  return {status:'unavailable',message,diagnostics,...trial&&!loggedIn?{needsLogin:true}:{}};
 }
 async function audioLocation(song,fetcher,signal,options={}){
   const cookie=neteaseCookie(options.cookie),loggedIn=cookie.includes('MUSIC_U=');
-  if(song.fee!==0&&!loggedIn)return {status:'unavailable',needsLogin:true,message:'这首歌需要账号权限，请先登录网易云；账号需具有这首歌的完整版权限。'};
-  const group=new AbortController(),deadline=AbortSignal.any([signal,group.signal,AbortSignal.timeout(options.edge?4000:15000)]);
-  const requests=[await neteasePlayerRequest(song.id,deadline,cookie)];
-  if(options.edge)requests.push(await neteaseLinuxPlayerRequest(song.id,deadline,false,cookie));
-  let track;
-  try{
-    track=await Promise.any(requests.map(async request=>{
-      const response=await fetcher(request.url,request.init);
-      if(!response.ok){await response.body?.cancel();throw new Error('upstream');}
-      const data=JSON.parse(new TextDecoder().decode(await limited(response,1024*1024)));
-      const value=data?.data?.find(row=>String(row.id)===song.id);
-      if(!value?.url||value.freeTrialInfo||value.freeTimeTrialPrivilege?.resConsumable||(!loggedIn&&value.fee>0))throw Object.assign(new Error('unavailable'),{track:value});
-      return value;
-    }));
-  }catch(error){track=error.errors?.map(value=>value.track).find(Boolean);}
-  finally{group.abort();}
-  signal.throwIfAborted();
-  if(track?.freeTrialInfo||track?.freeTimeTrialPrivilege?.resConsumable||(!loggedIn&&track?.fee>0))return {status:'unavailable',message:loggedIn?'网易云当前仅提供试听，当前账号没有取得此曲完整版权限。':'网易云当前仅提供试听，请登录具有此曲完整版权限的账号。',needsLogin:!loggedIn};
-  let url=track?.url?cdnUrl(track.url):null;
-  if(track?.url&&(!url||String(track.type??track.encodeType).toLowerCase()!=='mp3'))return {status:'unavailable',message:'网易云没有返回可导入的 MP3 文件，请选择本地音频。'};
-  if(track?.size>LIMIT)return {status:'unavailable',message:'网易云 MP3 超过 25 MiB，请选择符合大小限制的本地音频。'};
-  if(!url&&options.edge)return {status:'unavailable',message:'直连未取得完整 MP3，将检查私人素材准备结果。'};
-  if(!url)url=new URL(`${ROOT}/song/media/outer/url?id=${song.id}.mp3`);
-  const response=await audioResponse(url,fetcher,signal,true),bytes=await limited(response,4096,{prefix:true});
-  if(!isMp3(bytes))return {status:'unavailable',message:'网易云当前未返回完整 MP3，请补选本地完整音频。'};
-  const length=Number(response.headers.get('Content-Range')?.split('/')[1]??response.headers.get('Content-Length')??0);
-  if(length>LIMIT)return {status:'unavailable',message:'网易云 MP3 超过 25 MiB，请选择符合大小限制的本地音频。'};
-  return {status:'available',message:'MP3 地址与文件头检查通过，导入时将检查完整时长。',url:url.href,bytes:length||track?.size||null};
+  if(song.fee!==0&&!loggedIn)return {status:'unavailable',needsLogin:true,message:'这首歌需要账号权限，请先登录网易云；账号需具有这首歌的完整版权限。',diagnostics:[]};
+  const diagnostics=[];
+  const modern=(kind,level)=>({source:kind+'-v1',quality:level,request:signal=>neteaseAudioRequest(song.id,kind,level,signal,cookie)});
+  const legacy={source:'player-legacy',quality:'exhigh',request:signal=>neteasePlayerRequest(song.id,signal,cookie)};
+  // Do not select an address until its actual file response has been checked.
+  // Failed or overlarge high-quality candidates can fall back to standard audio.
+  const groups=loggedIn?[[modern('download','exhigh')],[modern('player','exhigh'),legacy],
+    [modern('download','lossless'),modern('player','lossless'),modern('download','standard')]]:
+    [[legacy],[modern('player','exhigh'),modern('download','standard')]];
+  if(options.edge&&!loggedIn)groups[0].push({source:'player-linux',quality:'exhigh',request:signal=>neteaseLinuxPlayerRequest(song.id,signal,false,cookie)});
+  for(const candidates of groups){
+    signal.throwIfAborted();
+    const group=new AbortController();
+    const deadline=AbortSignal.any([signal,group.signal,AbortSignal.timeout(options.edge?1200:6000)]);
+    try{
+      const result=await Promise.any(candidates.map(async candidate=>{
+        let stage='address';const base={source:candidate.source,quality:candidate.quality};
+        const fail=(reason,extra={})=>{throw Object.assign(new Error('Audio candidate unavailable'),{diagnostic:{...base,stage,reason,...extra}});};
+        try{
+          const request=await candidate.request(deadline),response=await fetcher(request.url,request.init);
+          if(!response.ok){await response.body?.cancel();fail('http',{http:response.status});}
+          let data;try{data=JSON.parse(new TextDecoder().decode(await limited(response,1024*1024)));}catch{fail('invalid-response');}
+          const rows=Array.isArray(data?.data)?data.data:[data?.data];
+          const track=rows.find(row=>row&&String(row.id)===song.id);
+          if(data?.code&&Number(data.code)!==200)fail('provider',{code:Number(data.code)||0});
+          if(track?.freeTrialInfo||track?.freeTimeTrialPrivilege?.resConsumable||(!loggedIn&&track?.fee>0))fail('trial');
+          if(!track?.url)fail('empty',{...(Number.isFinite(track?.code)?{code:track.code}:{})});
+          if(track.code&&Number(track.code)!==200)fail('provider',{code:Number(track.code)||0});
+          const url=cdnUrl(track.url);if(!url)fail('source');
+          const declared=String(track.type??track.encodeType??'').toLowerCase();
+          if(declared&&!['mp3','flac','m4a','mp4','aac'].includes(declared))fail('format',{format:['ncm','ncmx','ogg','wav'].includes(declared)?declared:'未知'});
+          if(track.size>LIMIT)fail('size');
+          stage='audio';
+          const audio=await audioResponse(url,fetcher,deadline,true),bytes=await limited(audio,4096,{prefix:true});
+          const format=detectAudioFormat(bytes);if(!format)fail('invalid-audio');
+          if(declared&&format!==(declared==='mp4'?'m4a':declared))fail('invalid-audio');
+          const length=Number(audio.headers.get('Content-Range')?.split('/')[1]??audio.headers.get('Content-Length')??0);
+          if(length>LIMIT)fail('size');
+          const success={...base,stage,reason:'available',http:audio.status,format};
+          return {status:'available',message:`${audioFormats[format].label} 文件响应检查通过，导入时将检查完整时长。`,url:url.href,bytes:length||track.size||null,format,source:candidate.source,quality:candidate.quality,diagnostics:[...diagnostics,success]};
+        }catch(error){
+          if(signal.aborted||group.signal.aborted)throw error;
+          const diagnostic=error.diagnostic?{...base,...error.diagnostic}:{...base,stage,reason:deadline.aborted?'timeout':'network'};
+          diagnostics.push(diagnostic);throw error;
+        }
+      }));
+      return result;
+    }catch{signal.throwIfAborted();}finally{group.abort();}
+  }
+  return unavailable(diagnostics,loggedIn);
 }
 async function memo(cache,key,operation,ttl=120000){
   const now=Date.now(),old=cache?.get(key);
@@ -121,7 +160,7 @@ export async function neteaseApi(request,fetcher=fetch,options={}){
   const url=new URL(request.url),origin=request.headers.get('Origin');
   if(origin&&origin!==url.origin||request.headers.get('X-Anisong-Upload')!=='1')return json({error:'请在私人上传台中解析歌曲。'},403);
   const cookie=neteaseCookie(options.cookie),scope=cookie?Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(cookie))),v=>v.toString(16).padStart(2,'0')).join(''):'anonymous';
-  const cached=(id,kind,operation,ttl)=>memo(options.cache,scope+':'+id+':'+kind,operation,ttl);
+  const cached=(id,kind,operation,ttl)=>memo(options.cache,scope+':v2:'+id+':'+kind,operation,ttl);
   const location=(song)=>cached(song.id,'audio',()=>audioLocation(song,fetcher,signal,{...options,cookie}));
   const signal=AbortSignal.any([request.signal,AbortSignal.timeout(url.pathname==='/api/netease/audio'?90000:25000)]);
   let phase='input';
@@ -140,10 +179,13 @@ export async function neteaseApi(request,fetcher=fetch,options={}){
     if(url.pathname==='/api/netease/audio'&&request.method==='GET'&&[...url.searchParams.keys()].join(',')==='id'&&validId(url.searchParams.get('id')??'')){
       const id=url.searchParams.get('id'),song=await cached(id,'detail',()=>detail(id,fetcher,signal,cookie)),audio=await location(song);
       if(audio.status!=='available')throw new ImportError(audio.message,422);
-      const response=await audioResponse(new URL(audio.url),fetcher,signal),bytes=await limited(response,LIMIT);
-      if(!isMp3(bytes))throw new ImportError('返回的文件不是 MP3，请补选本地音频。',422);
-      if(audio.bytes&&bytes.length!==audio.bytes)throw new ImportError('MP3 下载不完整，请重新导入。',502);
-      return new Response(bytes,{headers:{'Content-Type':'audio/mpeg','Content-Length':String(bytes.length),'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'}});
+      try{
+        const response=await audioResponse(new URL(audio.url),fetcher,signal),bytes=await limited(response,LIMIT);
+        const format=detectAudioFormat(bytes);
+        if(!format||format!==audio.format)throw new ImportError('下载的文件与已检查的音频格式不符，未导入。',422);
+        if(audio.bytes&&bytes.length!==audio.bytes)throw new ImportError('音频下载不完整，请重新导入。',502);
+        return new Response(bytes,{headers:{'Content-Type':audioFormats[format].mime,'X-Anisong-Audio-Format':format,'Content-Length':String(bytes.length),'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'}});
+      }catch(error){options.cache?.delete(scope+':v2:'+id+':audio');throw error;}
     }
     return json({error:'不支持此解析操作。'},405);
   }catch(error){
