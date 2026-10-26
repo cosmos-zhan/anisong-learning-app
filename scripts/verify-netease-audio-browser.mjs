@@ -1,22 +1,14 @@
 import assert from 'node:assert/strict';
-import {mkdtempSync,readFileSync,mkdirSync,writeFileSync,rmSync} from 'node:fs';
-import {tmpdir} from 'node:os';
-import {resolve,join} from 'node:path';
-import {execFileSync} from 'node:child_process';
+import {readFileSync,mkdirSync,writeFileSync} from 'node:fs';
+import {resolve} from 'node:path';
 import {build} from 'vite';
 import {chromium} from 'playwright-core';
 
-// Generate our own two-second tones. No provider/account/media network requests.
+// Self-generated CC0 two-second tones, fixed so CI needs no system encoder.
 // Exercise actual browser decoding, native Fetch adaptation and IndexedDB import.
-const directory=mkdtempSync(join(tmpdir(),'anisong-audio-check-'));
+const fixtures=JSON.parse(readFileSync('tests/fixtures/netease-generated-audio.json','utf8')).fixtures;
 let browser;
 try{
- const fixtures={};
- for(const [format,codec,mime]of [['mp3','libmp3lame','audio/mpeg'],['flac','flac','audio/flac'],['m4a','aac','audio/mp4'],['aac','aac','audio/aac']]){
-  const file=join(directory,'tone.'+format);
-  execFileSync('ffmpeg',['-v','error','-f','lavfi','-i','sine=frequency=440:duration=2','-c:a',codec,file],{timeout:15000});
-  fixtures[format]={data:readFileSync(file).toString('base64'),mime,bytes:readFileSync(file).length};
- }
  const nativeMock=`
  export const Capacitor={isNativePlatform:()=>true};
  export const registerPlugin=()=>({read:async()=>({cookie:'MUSIC_U=audio-fixture-session'}),request:async(options)=>{
@@ -83,4 +75,4 @@ try{
  const out=resolve(process.env.BROWSER_RESULTS_DIR||'test-results/piano-browser');mkdirSync(out,{recursive:true});
  writeFileSync(resolve(out,'netease-audio-import.json'),JSON.stringify({results,...fallback},null,2)+'\n');
  console.log(JSON.stringify({check:'netease-native-audio-browser',results,...fallback}));await context.close();
-}finally{await browser?.close();rmSync(directory,{recursive:true,force:true});}
+}finally{await browser?.close();}
