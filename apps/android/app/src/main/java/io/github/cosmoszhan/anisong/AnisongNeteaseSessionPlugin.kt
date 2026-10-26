@@ -37,8 +37,8 @@ class AnisongNeteaseSessionPlugin : Plugin() {
                 .setBlockModes(KeyProperties.BLOCK_MODE_GCM).setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE).build())
         }.generateKey()
     }
-    private fun background(call: PluginCall, action: () -> Unit) {
-        worker.execute { try { action() } catch (_: Exception) { call.reject("无法保存网易云登录状态，请重新登录。") } }
+    private fun background(call: PluginCall, failureMessage: String = "无法保存网易云登录状态，请重新登录。", action: () -> Unit) {
+        worker.execute { try { action() } catch (_: Exception) { call.reject(failureMessage) } }
     }
     private fun readCookie(): String {
         val value = preferences.getString("encrypted", null)
@@ -55,7 +55,7 @@ class AnisongNeteaseSessionPlugin : Plugin() {
         }
     }
     @PluginMethod fun read(call: PluginCall) = background(call) { call.resolve(JSObject().put("cookie", readCookie())) }
-    @PluginMethod fun request(call: PluginCall) = background(call) {
+    @PluginMethod fun request(call: PluginCall) = background(call, "网易云网络请求失败，请检查网络后重试。") {
         val url = call.getString("url") ?: ""
         val uri = java.net.URI(url)
         require(NeteaseNetworkPolicy.allowed(uri)) { "网易云请求来源不受支持。" }

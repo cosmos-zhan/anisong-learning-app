@@ -4,9 +4,13 @@ import {saveSongMaterials,type DownloadProgress,type RemoteAsset,type RemoteSong
 import {materialStore,type LocalMaterial} from './app-state';
 import {getNeteaseSession,neteaseNativeTransport} from './netease-session';
 import {withNativeNeteaseCookies} from './netease-cookie.mjs';
+import {audioFormats,type NeteaseAudioFormat} from './netease-audio.mjs';
+export interface NeteaseAudioDiagnostic {
+  source:string;quality:string;stage:'address'|'audio';reason:string;http?:number;code?:number;format?:string;
+}
 export interface NeteaseParsed {
   song:{id:string;title:string;artists:string;duration:number;url:string};
-  audio:{status:'available'|'unavailable';message:string;bytes?:number};
+  audio:{status:'available'|'unavailable';message:string;bytes?:number;format?:NeteaseAudioFormat;diagnostics?:NeteaseAudioDiagnostic[]};
   lyrics:{lrc:string;lines:{start:number;text:string;romaji?:string;translation?:string}[];counts:{original:number;romaji:number;translation:number};warnings:string[]};
 }
 export const deviceResolverCache=new Map();
@@ -71,8 +75,10 @@ export async function importNetease(parsed:NeteaseParsed,signal:AbortSignal,prog
   progress({phase:'获取网易云音频',received:0,total:parsed.audio.bytes??0});
   const response=await neteaseApi(internal('audio?id='+parsed.song.id,signal),fetcher,{cookie:await getNeteaseSession(),cache:fetcher===nativeNeteaseFetch?deviceResolverCache:undefined});
   if(!response.ok){const d=await response.json() as {error?:string};throw new Error(d.error??'音频下载失败。');}
+  const format=response.headers.get('X-Anisong-Audio-Format') as NeteaseAudioFormat;
+  if(!Object.hasOwn(audioFormats,format))throw new Error('下载的音频格式未能确认，未导入。');
   const data=new Uint8Array(await response.arrayBuffer());abort(signal);
-  const seconds=await(options.measureDuration??duration)(new Blob([data],{type:'audio/mpeg'}),signal);abort(signal);
+  const seconds=await(options.measureDuration??duration)(new Blob([data],{type:audioFormats[format].mime}),signal);abort(signal);
   if(parsed.song.duration>0&&Math.abs(seconds-parsed.song.duration)>Math.max(3,parsed.song.duration*.02))throw new Error('音频时长与原曲不符，未导入可能不完整的文件。');
   const id='netease-'+parsed.song.id,previous=await materialStore.all();abort(signal);
   const assets=new Map<string,Uint8Array>();
@@ -81,7 +87,7 @@ export async function importNetease(parsed:NeteaseParsed,signal:AbortSignal,prog
     const hash=[...new Uint8Array(await crypto.subtle.digest('SHA-256',bytes.buffer as ArrayBuffer))].map(v=>v.toString(16).padStart(2,'0')).join('');
     const url='https://music.163.com/song?id='+parsed.song.id+'&asset='+hash;assets.set(url,bytes);return{url,name:filename,bytes:bytes.length,sha256:hash};
   }
-  const audio=await asset(data,name+'.mp3');
+  const audio=await asset(data,name+'.'+audioFormats[format].extension);
   const song:RemoteSong={id,title:[parsed.song.title,parsed.song.artists].filter(Boolean).join(' · ').slice(0,120),revision:audio.sha256.slice(0,16),audio};
   const oldLyrics=previous.find(row=>row.id===id+':lyrics')?.text;
   const lyrics=parsed.lyrics.lrc||oldLyrics;if(lyrics)song.lyrics=await asset(new TextEncoder().encode(lyrics),name+'.lrc');
