@@ -53,13 +53,15 @@ try{
    const seconds=await new Promise((resolve,reject)=>{const timeout=setTimeout(()=>reject(new Error('Persisted audio metadata timed out')),10000);
     audio.onloadedmetadata=()=>{clearTimeout(timeout);resolve(audio.duration);};audio.onerror=()=>{clearTimeout(timeout);reject(new Error('Persisted audio did not decode'));};audio.src=url;audio.load();});
    audio.removeAttribute('src');audio.load();URL.revokeObjectURL(url);
-   return {format:parsed.audio.format,name:reopened.name,bytes:reopened.blob.size,seconds,
+   const decoder=new AudioContext();let decodedSeconds=0,pcmRms=0;
+   try{const pcm=await decoder.decodeAudioData(await reopened.blob.arrayBuffer());decodedSeconds=pcm.duration;const samples=pcm.getChannelData(0);for(const value of samples)pcmRms+=value*value;pcmRms=Math.sqrt(pcmRms/samples.length);}finally{await decoder.close();}
+   return {decodedSeconds,pcmRms,format:parsed.audio.format,name:reopened.name,bytes:reopened.blob.size,seconds,
     localSaved:!!saved.download,lyricsSaved:!!(await api.materialStore.get('netease-'+f.id+':lyrics'))?.text,
     hostsOnly:f.hostsOnly,accountAttached:f.accountAttached,cdnNoCookie:f.cdnNoCookie,
     noCredentialsInResult:!JSON.stringify(parsed).includes('audio-fixture-session')};
   });
   assert.equal(result.format,format);assert(result.name.endsWith('.'+format));assert.equal(result.bytes,fixtures[format].bytes);
-  assert(Math.abs(result.seconds-2)<.3,JSON.stringify(result));
+  assert(Math.abs(result.seconds-2)<.3&&Math.abs(result.decodedSeconds-2)<.3&&result.pcmRms>.01,JSON.stringify(result));
   for(const key of ['localSaved','lyricsSaved','hostsOnly','accountAttached','cdnNoCookie','noCredentialsInResult'])assert.equal(result[key],true,key);
   results.push(result);
  }
