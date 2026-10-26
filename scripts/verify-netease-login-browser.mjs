@@ -23,15 +23,17 @@ export const registerPlugin=()=>({
  }
 });`;
 const output=await build({configFile:false,logLevel:'error',plugins:[{
- name:'netease-native-login-fixture',
+ name:'netease-native-login-fixture',enforce:'pre',
  resolveId(id){if(id==='@capacitor/core')return '\0netease-native-login-fixture';},
  load(id){if(id==='\0netease-native-login-fixture')return nativeMock;},
 }],build:{write:false,target:'es2022',lib:{entry:resolve('packages/core/netease-account-client.ts'),name:'NeteaseLoginCheck',formats:['iife']}}});
 const code=(Array.isArray(output)?output[0]:output).output.find(row=>row.type==='chunk').code;
+assert(code.includes('__neteaseLoginFixture'),'The native fixture must replace the browser Capacitor implementation');
 const browser=await chromium.launch({executablePath:process.env.BROWSER_EXECUTABLE_PATH||undefined,args:['--no-sandbox','--disable-dev-shm-usage']});
 try{
  const context=await browser.newContext();
- await context.route('**/*',route=>route.fulfill({contentType:'text/html',body:'<!doctype html><title>Native NetEase login regression</title>'}));
+ await context.route('**/*',route=>new URL(route.request().url()).origin==='https://netease-login.test'
+  ?route.fulfill({contentType:'text/html',body:'<!doctype html><title>Native NetEase login regression</title>'}):route.abort());
  const page=await context.newPage();await page.goto('https://netease-login.test/');
  await page.evaluate(()=>{globalThis.__neteaseLoginFixture={cookie:'',writes:0,providerOnly:true,statusCookie:false,missing:false};});
  await page.addScriptTag({content:code});
