@@ -8,7 +8,7 @@ const profiles={
  'haruhikage-crychic':{title:'春日影 · CRYCHIC',lyrics:42,bars:140},
  'netease-27733896':{title:'私たちはずっと…でしょう？ · 765PRO ALLSTARS',lyrics:43,bars:0,romaji:39,translation:39,firstLine:4},
 };
-profiles['netease-2097485072']={title:'影色舞 · MyGO!!!!!',lyrics:57,bars:0,romaji:51,translation:54};
+profiles['netease-2097485072']={title:'影色舞 · MyGO!!!!!',lyrics:57,bars:0,romaji:51,translation:54,firstLine:4};
 const selected=requested==='all'?Object.keys(profiles):[requested];
 for(const id of selected)assert(profiles[id],'Unknown live song verification profile');
 const browser=await chromium.launch({args:['--no-sandbox','--disable-dev-shm-usage']});
