@@ -1,8 +1,9 @@
 import {Capacitor,registerPlugin} from '@capacitor/core';
 import {neteaseCookie} from './netease-account.mjs';
 import type {HttpOptions,HttpResponse} from '@capacitor/core';
-const plugin=registerPlugin<{read:()=>Promise<{cookie:string}>;write:(options:{cookie:string})=>Promise<void>;clear:()=>Promise<void>;request:(options:HttpOptions)=>Promise<HttpResponse>}>('AnisongNeteaseSession');
-export const neteaseNativeTransport={request:(options:HttpOptions)=>plugin.request(options)};
+export type NeteaseHttpOptions=HttpOptions&{maxResponseBytes?:4096};
+const plugin=registerPlugin<{read:()=>Promise<{cookie:string}>;write:(options:{cookie:string})=>Promise<void>;clear:()=>Promise<void>;request:(options:NeteaseHttpOptions)=>Promise<HttpResponse>}>('AnisongNeteaseSession');
+export const neteaseNativeTransport={request:(options:NeteaseHttpOptions)=>plugin.request(options)};
 let current:string|undefined;
 let generation=0;
 export async function getNeteaseSession():Promise<string>{

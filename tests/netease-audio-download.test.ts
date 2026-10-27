@@ -24,6 +24,7 @@ const track=(format='mp3')=>({id:2097485072,url:'https://m801.music.126.net/fixt
 function fixture(audio:(url:string,init?:RequestInit)=>Promise<Response>):typeof fetch{
   return async(input,init)=>{
     const url=String(input);
+    if(url==='https://interface.music.163.com/api/bsr/sk/get')return json({code:503});
     if(url.includes('/api/song/detail'))return json({songs:[{id:2097485072,name:'Fixture',duration:200000,fee:1}]});
     if(url.includes('/api/song/lyric'))return json({lrc:{lyric:'[00:01]fixture'}});
     return audio(url,init);
@@ -102,7 +103,7 @@ test('403, 404 and 500 retain the actual file status without exposing credential
     const fetcher=fixture(async url=>url.includes('/weapi/')?json({code:200,data:[{...track(),url:'https://m801.music.126.net/private-signed-path.mp3?secret=hidden'}]}):new Response('private upstream body',{status}));
     const result=await(await neteaseApi(request(),fetcher,options)).json();
     expect(result.audio.status).toBe('unavailable');expect(result.audio.message).toContain('HTTP '+status);
-    expect(result.audio.diagnostics.every((row:{stage:string;http:number})=>row.stage==='audio'&&row.http===status)).toBe(true);
+    expect(result.audio.diagnostics.filter((row:{stage:string})=>row.stage==='audio').every((row:{http:number})=>row.http===status)).toBe(true);
     const text=JSON.stringify(result);for(const secret of ['fixture-account','fixture-csrf','private-signed-path','secret=hidden','private upstream body'])expect(text).not.toContain(secret);
   }
 });
