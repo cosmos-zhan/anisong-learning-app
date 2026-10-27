@@ -20,18 +20,28 @@ const abort=(signal:AbortSignal)=>{if(signal.aborted)throw new DOMException('已
 export const nativeNeteaseFetch:typeof fetch=async(input,init)=>{
   if(!Capacitor.isNativePlatform())return fetch(input,init);
   const url=new URL(typeof input==='string'?input:input instanceof URL?input.href:input.url);
-  if(url.protocol!=='https:'||!( ['music.163.com','y.music.163.com','163cn.tv'].includes(url.hostname)||/^(?:[a-z0-9-]+\.)*music\.126\.net$/.test(url.hostname)))throw new Error('网易云返回了不支持的下载来源。');
+  const keyEndpoint=url.hostname==='interface.music.163.com'&&url.pathname==='/api/bsr/sk/get'&&!url.search;
+  const playerEndpoint=url.hostname==='interface3.music.163.com'&&url.pathname==='/xeapi/song/enhance/player/url/v1'&&!url.search;
+  if(url.protocol!=='https:'||url.username||url.password||url.port||!(keyEndpoint||playerEndpoint||['music.163.com','y.music.163.com','163cn.tv'].includes(url.hostname)||/^(?:[a-z0-9-]+\.)*music\.126\.net$/.test(url.hostname)))throw new Error('网易云返回了不支持的下载来源。');
   const signal=init?.signal;if(signal?.aborted)throw new DOMException('已取消','AbortError');
   const headers:Record<string,string>={};new Headers(init?.headers).forEach((value,key)=>{headers[key]=value;});
   if(headers.authorization||headers['oai-sites-authorization'])throw new Error('网易云导入不接受管理凭据。');
   const session=await getNeteaseSession();
   if(signal?.aborted)throw new DOMException('已取消','AbortError');
-  if(headers.cookie&&(url.hostname!=='music.163.com'||headers.cookie!==session))throw new Error('网易云导入不接受外部凭据。');
+  if((keyEndpoint||playerEndpoint)&&(init?.method??'GET')!=='POST')throw new Error('客户端接口仅支持 POST。');
+  const deviceId=headers['x-deviceid']??'';
+  const clientCookie=session+'; os=android; appver=9.5.61; deviceId='+deviceId;
+  if(playerEndpoint&&(!session||!/^[a-f0-9]{32}$/.test(deviceId)||headers['x-music-u']!==session.split('; ').find(x=>x.startsWith('MUSIC_U='))?.slice(8)||headers.cookie!==clientCookie))throw new Error('客户端请求未使用本机网易云登录状态。');
+  if(keyEndpoint&&!/^deviceId=[a-f0-9]{32}$/.test(headers.cookie??''))throw new Error('客户端密钥请求不接受账号凭据。');
+  if(headers.cookie&&!keyEndpoint&&!playerEndpoint&&(url.hostname!=='music.163.com'||headers.cookie!==session))throw new Error('网易云导入不接受外部凭据。');
+  if(!playerEndpoint&&Object.keys(headers).some(name=>name.startsWith('x-')&&!['x-forwarded-for','x-real-ip'].includes(name)))throw new Error('客户端凭据仅可发送到网易云播放接口。');
   if(url.hostname==='music.163.com'&&session)headers.cookie=session;
+  const prefix=(init as RequestInit&{anisongPrefixBytes?:number}|undefined)?.anisongPrefixBytes;
+  if(prefix!==undefined&&(prefix!==4096||init?.method&&init.method!=='GET'||!/^([a-z0-9-]+\.)*music\.126\.net$/.test(url.hostname)))throw new Error('音频预检大小无效。');
   return new Promise<Response>((resolve,reject)=>{
     const cancelled=()=>reject(new DOMException('已取消','AbortError'));
     signal?.addEventListener('abort',cancelled,{once:true});
-    void neteaseNativeTransport.request({url:url.href,method:init?.method??'GET',headers,data:init?.body as string|undefined,responseType:'arraybuffer',disableRedirects:true,connectTimeout:15000,readTimeout:30000}).then(result=>{
+    void neteaseNativeTransport.request({url:url.href,method:init?.method??'GET',headers,data:init?.body as string|undefined,...prefix?{maxResponseBytes:4096 as const}:{},responseType:'arraybuffer',disableRedirects:true,connectTimeout:15000,readTimeout:30000}).then(result=>{
       if(signal?.aborted)return;
       const responseHeaders=new Headers(),cookies:string[]=[];let body:Uint8Array;
       for(const [name,value] of Object.entries(result.headers??{})){

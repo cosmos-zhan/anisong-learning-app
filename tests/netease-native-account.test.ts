@@ -22,6 +22,22 @@ beforeEach(()=>{
   native.clear.mockReset().mockImplementation(async()=>{native.cookie='';});
 });
 afterEach(()=>vi.unstubAllGlobals());
+test('current client endpoints keep account credentials out of key registration and every CDN request',async()=>{
+  native.cookie=cookie;const id='a'.repeat(32);
+  await nativeNeteaseFetch('https://interface.music.163.com/api/bsr/sk/get',{method:'POST',headers:{Cookie:'deviceId='+id}});
+  expect(native.request.mock.lastCall?.[0].headers.cookie).toBe('deviceId='+id);
+  await nativeNeteaseFetch('https://interface3.music.163.com/xeapi/song/enhance/player/url/v1',{method:'POST',headers:{Cookie:cookie+'; os=android; appver=9.5.61; deviceId='+id,'x-deviceid':id,'x-music-u':'fixture-session'}});
+  expect(native.request.mock.lastCall?.[0].headers['x-music-u']).toBe('fixture-session');
+  await nativeNeteaseFetch('https://m801.music.126.net/file.mp3',{anisongPrefixBytes:4096} as RequestInit);
+  expect(native.request.mock.lastCall?.[0].maxResponseBytes).toBe(4096);
+  expect(native.request.mock.lastCall?.[0].headers).not.toHaveProperty('cookie');
+  expect(native.request.mock.lastCall?.[0].headers).not.toHaveProperty('range');
+  for(const [url,headers] of [
+    ['https://interface.music.163.com/api/bsr/sk/get',{Cookie:cookie}],
+    ['https://interface3.music.163.com/xeapi/other',{Cookie:cookie}],
+    ['https://m801.music.126.net/file.mp3',{'x-music-u':'fixture-session'}],
+  ] as const)await expect(nativeNeteaseFetch(url,{method:'POST',headers})).rejects.toThrow();
+});
 test('native login cookies survive a Response without Set-Cookie and are scoped to that exact response',async()=>{
   const response=await nativeNeteaseFetch('https://music.163.com/weapi/w/login/cellphone',{method:'POST'});
   expect(response.headers.has('Set-Cookie')).toBe(false);

@@ -6,7 +6,7 @@ import {deviceNeteaseAccount} from '../../../../packages/core/netease-account-cl
 import {audioFormats} from '../../../../packages/core/netease-audio.mjs';
 import type {NeteaseAudioDiagnostic} from '../../../../packages/core/netease';
 export function describeAudioDiagnostic(row:NeteaseAudioDiagnostic):string{
-  const source:Record<string,string>={'download-v1':'下载接口','player-v1':'播放接口','player-legacy':'兼容播放接口','player-linux':'Linux 播放接口'};
+  const source:Record<string,string>={'player-xeapi':'客户端播放接口','download-v1':'下载接口','player-v1':'播放接口','player-legacy':'兼容播放接口','player-linux':'Linux 播放接口'};
   const quality:Record<string,string>={standard:'标准音质',exhigh:'极高音质',lossless:'无损音质'};
   const reason:Record<string,string>={available:'检查通过',http:'请求失败',provider:'接口拒绝',empty:'未返回音频地址',trial:'只返回试听',source:'返回了不支持的来源',format:'格式暂不支持',size:'超过 25 MiB',timeout:'请求超时',network:'网络连接失败','invalid-response':'接口响应无法读取','invalid-audio':'返回内容不是预期的音频',redirect:'未跳转到可用音频'};
   return `${source[row.source]??'音频接口'} / ${quality[row.quality]??'音质'}：${row.stage==='address'?'获取地址':'检查文件'}，${reason[row.reason]??'未完成'}${row.http?`（HTTP ${row.http}）`:row.code?`（返回码 ${row.code}）`:''}${row.format?` · ${row.format.toUpperCase()}`:''}`;
