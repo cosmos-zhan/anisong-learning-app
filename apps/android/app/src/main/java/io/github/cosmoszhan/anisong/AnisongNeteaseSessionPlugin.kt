@@ -61,9 +61,11 @@ class AnisongNeteaseSessionPlugin : Plugin() {
         require(NeteaseNetworkPolicy.allowed(uri)) { "网易云请求来源不受支持。" }
         val method = call.getString("method", "GET")!!.uppercase()
         require(method == "GET" || method == "POST")
+        require(!(NeteaseNetworkPolicy.clientKey(uri) || NeteaseNetworkPolicy.clientPlayer(uri)) || method == "POST")
         val headers = call.getObject("headers", JSObject())!!
         val builder = Request.Builder().url(url)
-        val allowedHeaders = setOf("content-type", "accept", "referer", "range", "user-agent", "x-forwarded-for", "x-real-ip")
+        val allowedHeaders = setOf("content-type", "accept", "referer", "range", "user-agent", "x-forwarded-for", "x-real-ip") +
+            if (NeteaseNetworkPolicy.clientPlayer(uri)) setOf("x-client-enc-state", "x-aeapi", "x-deviceid", "x-sdeviceid", "x-os", "x-osver", "x-appver", "x-buildver", "x-music-u") else emptySet()
         val iterator = headers.keys()
         while (iterator.hasNext()) {
             val name = iterator.next()
@@ -73,15 +75,17 @@ class AnisongNeteaseSessionPlugin : Plugin() {
         }
         val stored = readCookie()
         val supplied = headers.optString("cookie", headers.optString("Cookie", ""))
-        require(supplied.isEmpty() || uri.host == "music.163.com" && supplied == stored)
-        if (uri.host == "music.163.com" && stored.isNotEmpty()) builder.header("Cookie", stored)
+        val cookie = NeteaseNetworkPolicy.cookie(uri, stored, supplied, headers.optString("x-deviceid", ""), headers.optString("x-music-u", ""))
+        if (cookie.isNotEmpty()) builder.header("Cookie", cookie)
         val data = call.getString("data", "")!!
         require(data.length <= 65536)
+        val prefix = call.getInt("maxResponseBytes", 0)!!
+        require(prefix == 0 || prefix == 4096 && method == "GET" && uri.host.matches(Regex("(?:[a-z0-9-]+\\.)*music\\.126\\.net")))
         if (method == "POST") builder.post(data.toRequestBody("application/x-www-form-urlencoded".toMediaTypeOrNull()))
         http.newCall(builder.build()).execute().use { response ->
             require((response.body?.contentLength() ?: 0) <= 25L * 1024 * 1024) { "返回的文件超过大小限制。" }
             val bytes = ByteArrayOutputStream()
-            val probe = headers.optString("range", headers.optString("Range", "")) == "bytes=0-4095"
+            val probe = prefix == 4096 || headers.optString("range", headers.optString("Range", "")) == "bytes=0-4095"
             response.body?.byteStream()?.use { stream ->
                 val buffer = ByteArray(16384)
                 while (true) {

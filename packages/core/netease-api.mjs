@@ -2,6 +2,7 @@ import {mergeNeteaseLyrics} from './netease-lyrics.mjs';
 import {neteasePlayerRequest,neteaseLinuxPlayerRequest,neteaseAudioRequest} from './netease-player.mjs';
 import {audioFormats,detectAudioFormat} from './netease-audio.mjs';
 import {neteaseCookie} from './netease-account.mjs';
+import {neteaseXeapiPlayer} from './netease-xeapi.mjs';
 const ROOT='https://music.163.com',LIMIT=25*1024*1024;
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'}});
 class ImportError extends Error{constructor(message,status=400){super(message);this.status=status;}}
@@ -65,9 +66,9 @@ async function detail(id,fetcher,signal,cookie=''){
 function audioFailure(status){
   return status===403?'音频文件访问被拒绝（HTTP 403）。文件服务器未允许本次请求，不能据此判断会员权限。':`音频文件请求失败（HTTP ${status}），请稍后重试。`;
 }
-async function audioResponse(url,fetcher,signal,probe=false){
+async function audioResponse(url,fetcher,signal,probe=false,ordinaryGet=false){
   for(let hop=0;hop<5;hop++){
-    const response=await fetcher(url.href,{redirect:'manual',signal,headers:{Referer:ROOT+'/',...(probe?{Range:'bytes=0-4095'}:{})}});
+    const response=await fetcher(url.href,{redirect:'manual',signal,headers:ordinaryGet?{}:{Referer:ROOT+'/',...(probe?{Range:'bytes=0-4095'}:{})},...(probe&&ordinaryGet?{anisongPrefixBytes:4096}:{})});
     if(response.status>=300&&response.status<400){
       await response.body?.cancel();let target;
       try{target=cdnUrl(new URL(response.headers.get('Location')??'',url).href);}catch{}
@@ -104,20 +105,21 @@ async function audioLocation(song,fetcher,signal,options={}){
   const legacy={source:'player-legacy',quality:'exhigh',request:signal=>neteasePlayerRequest(song.id,signal,cookie)};
   // Do not select an address until its actual file response has been checked.
   // Failed or overlarge high-quality candidates can fall back to standard audio.
-  const groups=loggedIn?[[modern('download','exhigh')],[modern('player','exhigh'),legacy],
+  const current={source:'player-xeapi',quality:'exhigh',ordinaryGet:true,resolve:signal=>neteaseXeapiPlayer(song.id,'exhigh',signal,cookie,fetcher)};
+  const groups=loggedIn?[[current],[modern('download','exhigh')],[modern('player','exhigh'),legacy],
     [modern('download','lossless'),modern('player','lossless'),modern('download','standard')]]:
     [[legacy],[modern('player','exhigh'),modern('download','standard')]];
   if(options.edge&&!loggedIn)groups[0].push({source:'player-linux',quality:'exhigh',request:signal=>neteaseLinuxPlayerRequest(song.id,signal,false,cookie)});
   for(const candidates of groups){
     signal.throwIfAborted();
     const group=new AbortController();
-    const deadline=AbortSignal.any([signal,group.signal,AbortSignal.timeout(options.edge?1200:6000)]);
+    const deadline=AbortSignal.any([signal,group.signal,AbortSignal.timeout(candidates[0].source==='player-xeapi'?8000:options.edge?1200:6000)]);
     try{
       const result=await Promise.any(candidates.map(async candidate=>{
         let stage='address';const base={source:candidate.source,quality:candidate.quality};
         const fail=(reason,extra={})=>{throw Object.assign(new Error('Audio candidate unavailable'),{diagnostic:{...base,stage,reason,...extra}});};
         try{
-          const request=await candidate.request(deadline),response=await fetcher(request.url,request.init);
+          let response;if(candidate.resolve)response=await candidate.resolve(deadline);else{const request=await candidate.request(deadline);response=await fetcher(request.url,request.init);}
           if(!response.ok){await response.body?.cancel();fail('http',{http:response.status});}
           let data;try{data=JSON.parse(new TextDecoder().decode(await limited(response,1024*1024)));}catch{fail('invalid-response');}
           const rows=Array.isArray(data?.data)?data.data:[data?.data];
@@ -131,13 +133,13 @@ async function audioLocation(song,fetcher,signal,options={}){
           if(declared&&!['mp3','flac','m4a','mp4','aac'].includes(declared))fail('format',{format:['ncm','ncmx','ogg','wav'].includes(declared)?declared:'未知'});
           if(track.size>LIMIT)fail('size');
           stage='audio';
-          const audio=await audioResponse(url,fetcher,deadline,true),bytes=await limited(audio,4096,{prefix:true});
+          const audio=await audioResponse(url,fetcher,deadline,true,candidate.ordinaryGet===true),bytes=await limited(audio,4096,{prefix:true});
           const format=detectAudioFormat(bytes);if(!format)fail('invalid-audio');
           if(declared&&format!==(declared==='mp4'?'m4a':declared))fail('invalid-audio');
           const length=Number(audio.headers.get('Content-Range')?.split('/')[1]??audio.headers.get('Content-Length')??0);
           if(length>LIMIT)fail('size');
           const success={...base,stage,reason:'available',http:audio.status,format};
-          return {status:'available',message:`${audioFormats[format].label} 文件响应检查通过，导入时将检查完整时长。`,url:url.href,bytes:length||track.size||null,format,source:candidate.source,quality:candidate.quality,diagnostics:[...diagnostics,success]};
+          return {status:'available',message:`${audioFormats[format].label} 文件响应检查通过，导入时将检查完整时长。`,url:url.href,ordinaryGet:candidate.ordinaryGet===true,bytes:length||track.size||null,format,source:candidate.source,quality:candidate.quality,diagnostics:[...diagnostics,success]};
         }catch(error){
           if(signal.aborted||group.signal.aborted)throw error;
           const diagnostic=error.diagnostic?{...base,...error.diagnostic}:{...base,stage,reason:deadline.aborted?'timeout':'network'};
@@ -162,7 +164,7 @@ export async function neteaseApi(request,fetcher=fetch,options={}){
   const url=new URL(request.url),origin=request.headers.get('Origin');
   if(origin&&origin!==url.origin||request.headers.get('X-Anisong-Upload')!=='1')return json({error:'请在私人上传台中解析歌曲。'},403);
   const cookie=neteaseCookie(options.cookie),scope=cookie?Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(cookie))),v=>v.toString(16).padStart(2,'0')).join(''):'anonymous';
-  const cached=(id,kind,operation,ttl)=>memo(options.cache,scope+':v2:'+id+':'+kind,operation,ttl);
+  const cached=(id,kind,operation,ttl)=>memo(options.cache,scope+':v3:'+id+':'+kind,operation,ttl);
   const location=(song)=>cached(song.id,'audio',()=>audioLocation(song,fetcher,signal,{...options,cookie}));
   const signal=AbortSignal.any([request.signal,AbortSignal.timeout(url.pathname==='/api/netease/audio'?90000:25000)]);
   let phase='input';
@@ -175,19 +177,19 @@ export async function neteaseApi(request,fetcher=fetch,options={}){
       if(!lyricResult.data)lyrics.warnings.unshift('歌词接口暂时不可用，可稍后重新解析。');
       phase='audio';const prepared=options.prepared?await options.prepared(song):null;
       const audio=prepared??await location(song).catch(error=>{if(request.signal.aborted)throw error;return {status:'unavailable',message:error instanceof ImportError?error.message:'音频接口暂时不可用，请稍后重试或选择本地音频。'};});
-      const {url:internal,...audioInfo}=audio;void internal;
+      const {url:internal,ordinaryGet,...audioInfo}=audio;void internal;void ordinaryGet;
       return json({song:{id:song.id,title:song.title,artists:song.artists,duration:song.duration,url:`${ROOT}/song?id=${id}`},lyrics,audio:{...audioInfo,eligible:(song.fee===0||cookie.includes('MUSIC_U='))&&song.duration>0}});
     }
     if(url.pathname==='/api/netease/audio'&&request.method==='GET'&&[...url.searchParams.keys()].join(',')==='id'&&validId(url.searchParams.get('id')??'')){
       const id=url.searchParams.get('id'),song=await cached(id,'detail',()=>detail(id,fetcher,signal,cookie)),audio=await location(song);
       if(audio.status!=='available')throw new ImportError(audio.message,422);
       try{
-        const response=await audioResponse(new URL(audio.url),fetcher,signal),bytes=await limited(response,LIMIT);
+        const response=await audioResponse(new URL(audio.url),fetcher,signal,false,audio.ordinaryGet===true),bytes=await limited(response,LIMIT);
         const format=detectAudioFormat(bytes);
         if(!format||format!==audio.format)throw new ImportError('下载的文件与已检查的音频格式不符，未导入。',422);
         if(audio.bytes&&bytes.length!==audio.bytes)throw new ImportError('音频下载不完整，请重新导入。',502);
         return new Response(bytes,{headers:{'Content-Type':audioFormats[format].mime,'X-Anisong-Audio-Format':format,'Content-Length':String(bytes.length),'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'}});
-      }catch(error){options.cache?.delete(scope+':v2:'+id+':audio');throw error;}
+      }catch(error){options.cache?.delete(scope+':v3:'+id+':audio');throw error;}
     }
     return json({error:'不支持此解析操作。'},405);
   }catch(error){

@@ -5,7 +5,7 @@ export default defineConfig({
   base: "./",
   server: { allowedHosts: ["terminal.local"] },
   test: {
-    include: ["tests/**/*.test.{ts,tsx}"],
+    include: ["tests/**/*.test.{ts,tsx,mjs}"],
     environment: "jsdom",
     maxWorkers: 2,
     setupFiles: ["tests/setup.ts"],

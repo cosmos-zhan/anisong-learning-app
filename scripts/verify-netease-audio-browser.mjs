@@ -16,7 +16,9 @@ try{
  export const Capacitor={isNativePlatform:()=>true};
  export const registerPlugin=()=>({read:async()=>({cookie:'MUSIC_U=audio-fixture-session'}),request:async(options)=>{
   const f=globalThis.__neteaseAudioFixture,u=new URL(options.url);let data,status=200;
-  f.hostsOnly&&=u.hostname==='music.163.com'||u.hostname==='m801.music.126.net';
+  const key=u.hostname==='interface.music.163.com'&&u.pathname==='/api/bsr/sk/get';
+  f.hostsOnly&&=u.hostname==='music.163.com'||u.hostname==='m801.music.126.net'||key;
+  if(key){f.accountAttached&&=/^deviceId=[a-f0-9]{32}$/.test(options.headers.cookie);return {status:200,url:options.url,headers:{'Content-Type':'application/json'},data:btoa(JSON.stringify({code:503}))};}
   if(u.hostname==='music.163.com'){
    f.accountAttached&&=options.headers.cookie==='MUSIC_U=audio-fixture-session';
    if(u.pathname.includes('/api/song/detail'))data={songs:[{id:f.id,name:'Generated tone',duration:2000,fee:1}]};
