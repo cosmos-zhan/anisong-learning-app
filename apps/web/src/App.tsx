@@ -22,6 +22,7 @@ import { HARUHIKAGE, isHaruhikage } from "../../../packages/core/presets";
 import { OfficialReference } from "./components/OfficialReference";
 import { Sheet } from "./components/Sheet";
 import { LyricsPractice } from "./lyrics/LyricsPractice";
+import { GrammarPage } from "./lyrics/GrammarPage";
 import { LyricsDisplayPanel } from "./lyrics/LyricsDisplayPanel";
 import { lyricsDisplay, saveLyricsDisplay, type LyricsDisplay } from "../../../packages/core/lyrics-display";
 import { TrimRange } from "./lyrics/TrimRange";
@@ -92,6 +93,8 @@ export function App({
       : "",
   );
   const [sheet, setSheet] = useState<"speed" | "trim" | "more" | "display" | null>(null);
+  const [grammarLine, setGrammarLine] = useState<number | null>(null);
+  useEffect(() => { if (view !== "practice" || !active) setGrammarLine(null); }, [view, active]);
   const [display, setDisplay] = useState(lyricsDisplay);
   const changeDisplay = (value: LyricsDisplay) => {
     setDisplay(value);
@@ -590,6 +593,7 @@ export function App({
           sheetOpen={!!sheet}
           onDisplay={changeDisplay}
           onSelect={select}
+          onInterpret={(index) => { if (!state.lines[index]) return; controller.pause(); flushRef.current(); setGrammarLine(index); }}
           onMode={chooseMode}
           onCancel={() => setAnchor(null)}
           onSeek={(position) => {
@@ -610,6 +614,9 @@ export function App({
             onExit?.();
           }}
         />
+      )}
+      {view === "practice" && grammarLine !== null && state.lines[grammarLine] && (
+        <GrammarPage line={state.lines[grammarLine]} index={grammarLine} onClose={() => setGrammarLine(null)} />
       )}
       {view === "legacy" && (
         <>
