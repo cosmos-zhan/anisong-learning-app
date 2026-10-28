@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, type ReactNode } from "react";
+import { Icon } from "./Icon";
 export type DismissSheet = (afterClose?: () => void) => void;
 const HISTORY_KEY = "anisongSheet";
 let sheetSequence = 0;
@@ -7,8 +8,12 @@ export function Sheet({
   onClose,
   children,
   className = "",
+  backButton = false,
+  subtitle,
 }: {
   className?: string;
+  backButton?: boolean;
+  subtitle?: string;
   title: string;
   onClose: () => void;
   children: ReactNode | ((dismiss: DismissSheet) => ReactNode);
@@ -126,11 +131,10 @@ export function Sheet({
         aria-label={title}
         className={`app-sheet ${className}`}
       >
-        <div className="sheet-title">
-          <h2>{title}</h2>
-          <button aria-label={`关闭${title}`} onClick={() => dismiss()}>
-            ✕
-          </button>
+        <div className={`sheet-title ${backButton ? "sheet-title-back" : ""}`}>
+          {backButton && <button aria-label={`关闭${title}`} onClick={() => dismiss()}><Icon name="back" /></button>}
+          <div><h2>{title}</h2>{subtitle && <p>{subtitle}</p>}</div>
+          {!backButton && <button aria-label={`关闭${title}`} onClick={() => dismiss()}>✕</button>}
         </div>
         {typeof children === "function" ? children(dismiss) : children}
       </section>

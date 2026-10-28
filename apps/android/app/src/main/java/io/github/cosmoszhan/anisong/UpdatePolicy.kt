@@ -31,5 +31,7 @@ object UpdatePolicy {
         require(packageName == PACKAGE && versionCode == expectedCode) { "安装包的包名或版本不一致。" }
         require(signer == installedSigner) { "安装包签名不同，无法覆盖更新。" }
     }
+    fun cachedIsInstallable(hash: String, code: Long, installedCode: Long, bytes: Long, fileBytes: Long): Boolean =
+        Regex("[a-f0-9]{64}").matches(hash) && code > installedCode && bytes in 1..MAX_APK && bytes == fileBytes
     fun digest(bytes: ByteArray): String = MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
 }

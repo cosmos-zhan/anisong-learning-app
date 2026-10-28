@@ -50,20 +50,25 @@ export function AppUpdates() {
     finally { if (mounted.current) setBusy(false); }
   };
   const install = async () => {
+    if (!candidate || status.state !== 'ready' || status.sha256 !== candidate.apk.digest.slice(7) || status.total !== candidate.apk.size) {
+      setError('安装包与发现的新版本不一致，请先下载当前版本。');
+      return;
+    }
     setBusy(true); setError('');
     try {
       const result = await updates.install();
       if (mounted.current) setMessage(result.permissionRequired ? '请允许“安装未知应用”，返回后再点“安装更新”。' : '请在系统安装窗口确认更新。');
-    } catch (e) { if (mounted.current) setError(e instanceof Error ? e.message : '无法打开安装窗口。'); }
+    } catch (e) { if (mounted.current) { setError(e instanceof Error ? e.message : '无法打开安装窗口。'); try { setStatus(await updates.status()); } catch { setStatus({ state: 'idle', received: 0, total: 0 }); } } }
     finally { if (mounted.current) setBusy(false); }
   };
   const active = status.state === 'downloading' || status.state === 'verifying';
+  const ready = !!candidate && status.state === 'ready' && status.sha256 === candidate.apk.digest.slice(7) && status.total === candidate.apk.size;
   return <section className="settings-card app-updates" aria-label="应用更新">
     <h2>应用更新</h2><p className="helper">当前版本 {version.appVersion} · 包含 Alpha 测试版更新</p>
     <button className="primary" disabled={busy || active} onClick={() => void check()}>{busy ? '请稍候…' : '检查更新'}</button>
     {message && <p role="status" className="helper">{message}</p>}
     {(error || status.error) && <p role="alert" className="error">{error || status.error}</p>}
-    {candidate && !active && status.state !== 'ready' && <div className="update-result">
+    {candidate && !active && !ready && <div className="update-result">
       <p>{candidate.version} · {size(candidate.apk.size)}</p>
       {native ? <button disabled={busy} onClick={() => void download()}>下载安装包</button> : <a className="back-link" href={candidate.apk.browser_download_url} rel="noreferrer">下载 Android 安装包 ↗</a>}
       <a href={candidate.page} target="_blank" rel="noreferrer">查看更新说明 ↗</a>
@@ -72,7 +77,7 @@ export function AppUpdates() {
       <progress aria-label="安装包下载进度" max={status.total || 1} value={status.received}/>
       <button onClick={() => void updates.cancel().then(() => updates.status()).then(setStatus).catch(() => setError('取消失败，请重试。'))}>取消下载更新</button>
     </div>}
-    {status.state === 'ready' && <div><p role="status">安装包已下载并校验，可以覆盖安装。</p><button className="primary" disabled={busy} onClick={() => void install()}>安装更新</button></div>}
+    {ready && <div><p role="status">{candidate?.version} 安装包已下载并校验，可以覆盖安装。</p><button className="primary" disabled={busy} onClick={() => void install()}>安装更新</button></div>}
     <p className="helper">{native ? '安装由 Android 系统确认。下载期间请保持 App 开启；同签名覆盖更新会保留本机资料。' : '网页会随站点发布更新。Android 手机可在这里检查并下载安装包。'}</p>
     <a className="back-link" href={RELEASES_PAGE} target="_blank" rel="noreferrer">所有发布版本 ↗</a>
   </section>;
