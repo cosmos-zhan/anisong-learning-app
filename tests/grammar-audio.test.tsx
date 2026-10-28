@@ -1,0 +1,63 @@
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
+import { App } from '../apps/web/src/App';
+import { LoopController, type LinePreviewPhase } from '../packages/core/controller';
+import { TestEngine, lyrics } from './helpers';
+beforeEach(() => { vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('Unexpected network')); });
+afterEach(() => vi.restoreAllMocks());
+
+it('plays only the requested line once, without changing the original selection, saved range or position', async () => {
+  const engine = new TestEngine(), controller = new LoopController(engine);
+  await controller.load('fixture'); controller.setLyrics(lyrics); await controller.select(1, 2, false); await controller.seek(18);
+  const before = controller.getSnapshot(); const phases: LinePreviewPhase[] = [];
+  await controller.previewLine(3, phase => phases.push(phase));
+  expect(engine.range).toEqual({ start: 25.9, end: 30.7 });
+  expect(engine.loop).toBe(false); expect(engine.position).toBe(25.9); expect(engine.playing).toBe(true);
+  engine.emit({ type: 'position', position: 27 });
+  expect(controller.getSnapshot().range).toEqual(before.range);
+  expect(controller.getSnapshot().selection).toEqual(before.selection);
+  expect(controller.getSnapshot().position).toBe(18);
+  await controller.stopPreview();
+  expect(engine.playing).toBe(false); expect(engine.range).toEqual(before.range);
+  expect(engine.position).toBe(18); expect(engine.loop).toBe(before.loop);
+  expect(phases).toEqual(['starting','playing','idle']); controller.dispose();
+});
+it('automatically stops and restores practice at the end of a single line', async () => {
+  const engine = new TestEngine(), controller = new LoopController(engine);
+  await controller.load('fixture'); controller.setLyrics(lyrics); await controller.select(1, 1, false); await controller.seek(18);
+  const phases: LinePreviewPhase[] = [];
+  await controller.previewLine(3, phase => phases.push(phase));
+  engine.emit({ type: 'end' });
+  await waitFor(() => expect(phases.at(-1)).toBe('idle'));
+  expect(engine.playing).toBe(false); expect(engine.range).toEqual({start:16.3,end:21.1}); expect(engine.position).toBe(18);
+  expect(controller.getSnapshot().selection).toEqual([1,1]); controller.dispose();
+});
+it('closing while the clip is preparing cancels playback before restoring the original range', async () => {
+  const engine = new TestEngine(), controller = new LoopController(engine);
+  await controller.load('fixture'); controller.setLyrics(lyrics); await controller.select(1, 1, false); await controller.seek(18);
+  let resume!: () => void; const originalSetRange = engine.setRange.bind(engine);
+  engine.setRange = vi.fn().mockImplementationOnce(async (range, loop) => { await new Promise<void>(resolve => { resume = resolve; }); originalSetRange(range,loop); }).mockImplementation(originalSetRange);
+  const playing = controller.previewLine(3, () => {}); const closing = controller.stopPreview();
+  resume(); await playing; await closing;
+  expect(engine.playing).toBe(false); expect(engine.range).toEqual({start:16.3,end:21.1}); expect(engine.position).toBe(18);
+  controller.dispose();
+});
+it('plays a long-pressed lyric from the grammar page and restores the earlier practice when the page closes', async () => {
+  localStorage.clear(); history.replaceState(null, '', '#lyrics');
+  const engine = new TestEngine(), controller = new LoopController(engine);
+  await controller.load('fixture'); controller.setLyrics(lyrics); await controller.select(1, 1, false); await controller.seek(18);
+  const ui = render(<App controller={controller} autoLoad={false} view="practice" />);
+  const row = screen.getByRole('button', {name:'第 4 句 four'});
+  fireEvent.pointerDown(row,{pointerType:'touch',clientX:30,clientY:40});
+  await act(async()=>{await new Promise(resolve=>setTimeout(resolve,550));});
+  fireEvent.pointerUp(row,{pointerType:'touch'});
+  const dialog=await screen.findByRole('dialog',{name:'语法解读'});
+  fireEvent.click(within(dialog).getByRole('button',{name:'播放本句'}));
+  await waitFor(()=>expect(engine.playing).toBe(true));
+  expect(engine.range).toEqual({start:25.9,end:30.7});
+  expect(controller.getSnapshot().selection).toEqual([1,1]);
+  fireEvent.click(within(dialog).getByRole('button',{name:'关闭语法解读'}));
+  await waitFor(()=>expect(screen.queryByRole('dialog',{name:'语法解读'})).toBeNull());
+  expect(engine.playing).toBe(false); expect(engine.range).toEqual({start:16.3,end:21.1}); expect(engine.position).toBe(18);
+  ui.unmount(); controller.dispose();
+});

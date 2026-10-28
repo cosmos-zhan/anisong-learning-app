@@ -49,3 +49,50 @@
 .lyrics-focus .selection-help > button { min-height: 44px; white-space: nowrap; color: #dcebe0; }
 .lyrics-focus .lyric { touch-action: pan-y; -webkit-touch-callout: none; }
 @media (max-width: 360px) { .lyrics-focus .selection-help { gap: 3px; font-size: 10px; } .lyrics-focus .selection-help > button { font-size: 10px; } }
+
+/* Match the reading-first design while keeping phone text and touch targets legible. */
+.lyrics-app .grammar-panel { font-family: -apple-system, BlinkMacSystemFont, "Noto Sans CJK JP", "Noto Sans JP", "PingFang SC", "Microsoft YaHei", sans-serif; }
+.grammar-panel .sheet-title-back { justify-content: flex-start; gap: 8px; margin: -4px -8px 16px; padding-bottom: 12px; border-bottom: 1px solid #dfe6dc; }
+.grammar-panel .sheet-title-back > button { width: 44px; min-width: 44px; min-height: 44px; display: grid; place-items: center; background: transparent; }
+.grammar-panel .sheet-title-back > div { flex: 1; min-width: 0; }
+.grammar-panel .sheet-title-back h2 { font-size: 19px; letter-spacing: .03em; line-height: 1.45; }
+.grammar-panel .sheet-title-back p { font-size: 12px; line-height: 1.4; margin: 1px 0 0; color: #71867a; }
+.grammar-panel .grammar-tabs button { font-size: 14px; }
+.grammar-content { font-size: 15px; line-height: 1.9; }
+.grammar-content .grammar-sentence { font-family: "Noto Serif CJK JP", "Noto Serif JP", "Songti SC", serif; font-size: clamp(23px, 6.2vw, 27px); font-weight: 600; line-height: 1.85; letter-spacing: .015em; }
+.grammar-content .grammar-roman, .grammar-content .grammar-local-translation { font-size: 13px; line-height: 1.7; }
+.grammar-line-actions { display: flex; align-items: center; gap: 12px; margin: 16px 0 4px; color: #71867a; font-size: 12px; }
+.grammar-panel .grammar-play { display: inline-flex; gap: 7px; align-items: center; justify-content: center; min-height: 44px; padding: 8px 15px; border: 1px solid #b6cdbd; border-radius: 12px; background: #eaf0e4; color: #286653; font-size: 14px; font-weight: 600; }
+.grammar-play svg { width: 15px; height: 15px; }
+.grammar-meaning { margin: 12px 0 25px; padding: 17px 18px; }
+.grammar-meaning .grammar-markdown p { font-size: 16px; line-height: 1.75; margin: 4px 0 0; }
+.grammar-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.grammar-section-heading h2 { flex: 1; }
+.grammar-panel .grammar-section-heading button { min-height: 44px; padding: 6px 10px; color: #286653; font-size: 13px; border-radius: 10px; }
+.grammar-panel .grammar-pieces { align-items: stretch; }
+.grammar-panel .grammar-pieces button { flex: 1; min-width: 72px; min-height: 58px; font-family: "Noto Serif CJK JP", "Noto Serif JP", serif; font-size: 16px; padding: 13px 9px 8px; }
+.grammar-panel ruby { ruby-position: over; }
+.grammar-panel ruby rt { color: #647b6e; font-family: "Noto Sans CJK JP", "Noto Sans JP", sans-serif; font-weight: 400; font-size: .55em; letter-spacing: .03em; }
+.grammar-piece-detail { font-size: 14px; line-height: 1.9; }
+.grammar-piece-detail strong { font-size: 15px; }
+.grammar-reading-hint { font-size: 12px; color: #71867a; margin: 4px 0; }
+.grammar-point h3 { font-size: 16px; }
+.grammar-point > div { min-width: 0; }
+.grammar-answer { white-space: normal; font-size: 15px; line-height: 1.95; }
+.grammar-markdown { overflow-wrap: anywhere; }
+.grammar-markdown p { white-space: pre-line; margin: .55em 0; }
+.grammar-markdown h3 { font-size: 16px; line-height: 1.6; margin: 1em 0 .35em; }
+.grammar-markdown strong { color: #286653; font-weight: 700; }
+.grammar-markdown ul, .grammar-markdown ol { padding-left: 1.55em; margin: .6em 0; }
+.grammar-markdown li { padding-left: .15em; margin: .25em 0; }
+.grammar-markdown blockquote { margin: .8em 0; padding: .35em .8em; border-left: 3px solid #9cb9a5; background: #eef3e9; color: #536c60; white-space: pre-line; }
+.grammar-markdown code { font-family: ui-monospace, monospace; font-size: .92em; background: #e8eee5; border-radius: 4px; padding: .1em .3em; }
+.grammar-markdown pre { overflow: auto; white-space: pre; background: #e8eee5; border-radius: 10px; padding: 12px; }
+.grammar-markdown pre code { background: transparent; padding: 0; }
+.grammar-markdown a { color: #286653; text-decoration: underline; }
+.grammar-table-wrap { overflow-x: auto; max-width: 100%; }
+.grammar-markdown table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.grammar-markdown th, .grammar-markdown td { border: 1px solid #d6e1d5; padding: 7px 9px; text-align: left; }
+.grammar-markdown th { background: #eaf0e4; }
+.grammar-hints button { font-size: 13px; }
+.grammar-ask textarea { font-size: 16px; }

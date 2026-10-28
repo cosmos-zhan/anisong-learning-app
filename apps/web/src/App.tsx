@@ -94,7 +94,8 @@ export function App({
   );
   const [sheet, setSheet] = useState<"speed" | "trim" | "more" | "display" | null>(null);
   const [grammarLine, setGrammarLine] = useState<number | null>(null);
-  useEffect(() => { if (view !== "practice" || !active) setGrammarLine(null); }, [view, active]);
+  const grammarGeneration = useRef(0);
+  useEffect(() => { if (view !== "practice" || !active) { ++grammarGeneration.current; void controller.stopPreview(); setGrammarLine(null); } }, [view, active, controller]);
   const [display, setDisplay] = useState(lyricsDisplay);
   const changeDisplay = (value: LyricsDisplay) => {
     setDisplay(value);
@@ -593,7 +594,7 @@ export function App({
           sheetOpen={!!sheet}
           onDisplay={changeDisplay}
           onSelect={select}
-          onInterpret={(index) => { if (!state.lines[index]) return; controller.pause(); flushRef.current(); setGrammarLine(index); }}
+          onInterpret={(index) => { if (!state.lines[index]) return; ++grammarGeneration.current; controller.pause(); flushRef.current(); setGrammarLine(index); }}
           onMode={chooseMode}
           onCancel={() => setAnchor(null)}
           onSeek={(position) => {
@@ -616,7 +617,9 @@ export function App({
         />
       )}
       {view === "practice" && grammarLine !== null && state.lines[grammarLine] && (
-        <GrammarPage line={state.lines[grammarLine]} index={grammarLine} onClose={() => setGrammarLine(null)} />
+        <GrammarPage line={state.lines[grammarLine]} index={grammarLine} audioAvailable={state.duration > 0 && state.phase !== "loading"}
+          onPlayLine={(notify) => controller.previewLine(grammarLine, notify)} onStopLine={() => controller.stopPreview()}
+          onClose={() => { const generation = grammarGeneration.current; void controller.stopPreview().finally(() => { if (grammarGeneration.current === generation) setGrammarLine(null); }); }} />
       )}
       {view === "legacy" && (
         <>
