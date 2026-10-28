@@ -149,11 +149,27 @@ class AnisongUpdatesPlugin : Plugin() {
         UpdatePolicy.validateArchive(archive.packageName, PackageInfoCompat.getLongVersionCode(archive), signer(archive), code, signer(installedInfo()))
         require(code > PackageInfoCompat.getLongVersionCode(installedInfo())) { "该版本已经安装，请重新检查更新。" }
     }
-    @PluginMethod fun status(call: PluginCall) {
-        var snapshot = progress
-        if (snapshot.state == "idle" && readyFile.isFile && preferences.contains("hash"))
-            snapshot = Progress("ready", readyFile.length(), readyFile.length())
-        call.resolve(JSObject().put("state", snapshot.state).put("received", snapshot.received).put("total", snapshot.total).put("error", snapshot.error))
+    @Synchronized @PluginMethod fun status(call: PluginCall) {
+        try {
+            var snapshot = progress
+            val hash = preferences.getString("hash", "") ?: ""
+            val bytes = preferences.getLong("bytes", 0)
+            val code = preferences.getLong("code", 0)
+            if (snapshot.state == "ready" || snapshot.state == "idle" && (readyFile.isFile || preferences.contains("hash"))) {
+                val installedCode = PackageInfoCompat.getLongVersionCode(installedInfo())
+                if (readyFile.isFile && UpdatePolicy.cachedIsInstallable(hash, code, installedCode, bytes, readyFile.length())) {
+                    snapshot = Progress("ready", bytes, bytes)
+                } else {
+                    preferences.edit().clear().apply()
+                    readyFile.delete()
+                    snapshot = Progress()
+                    progress = snapshot
+                }
+            }
+            val result = JSObject().put("state", snapshot.state).put("received", snapshot.received).put("total", snapshot.total).put("error", snapshot.error)
+            if (snapshot.state == "ready") result.put("sha256", hash).put("versionCode", code)
+            call.resolve(result)
+        } catch (_: Exception) { call.reject("无法读取安装包状态，请重试。") }
     }
     @Synchronized @PluginMethod fun cancel(call: PluginCall) {
         generation.incrementAndGet(); activeConnection?.disconnect(); activeConnection = null

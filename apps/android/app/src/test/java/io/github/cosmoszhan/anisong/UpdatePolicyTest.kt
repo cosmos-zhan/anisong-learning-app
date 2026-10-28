@@ -28,4 +28,12 @@ class UpdatePolicyTest {
         }
         UpdatePolicy.validateArchive(UpdatePolicy.PACKAGE, 6, hash, 6, hash)
     }
+    @Test fun onlyRestoresAValidCachedApkNewerThanTheInstalledVersion() {
+        assertTrue(UpdatePolicy.cachedIsInstallable(hash, 7, 6, 100, 100))
+        assertFalse(UpdatePolicy.cachedIsInstallable(hash, 6, 6, 100, 100))
+        assertFalse(UpdatePolicy.cachedIsInstallable(hash, 5, 6, 100, 100))
+        assertFalse(UpdatePolicy.cachedIsInstallable(hash, 7, 6, 100, 99))
+        assertFalse(UpdatePolicy.cachedIsInstallable("", 7, 6, 100, 100))
+        assertFalse(UpdatePolicy.cachedIsInstallable(hash, 7, 6, 0, 0))
+    }
 }

@@ -8,7 +8,12 @@ import { TestEngine, lyrics } from './helpers';
 
 const config = { endpoint: 'https://model.example/v1/chat/completions', model: 'test-model', key: 'test-secret' };
 const answer = JSON.stringify({ meaning: '想一直记得', pieces: [{ text: '覚えていたい', explanation: '想继续记着' }], points: [{ title: 'ている＋たい', explanation: '持续状态的愿望' }] });
-beforeEach(() => { localStorage.clear(); history.replaceState(null, '', '#lyrics'); });
+beforeEach(() => {
+  localStorage.clear(); history.replaceState(null, '', '#lyrics');
+  // Fail closed: opening the grammar panel may auto-start if another test left
+  // an in-memory session key. Individual cases replace this with fake replies.
+  vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('Unexpected network access in grammar test'));
+});
 afterEach(() => { vi.restoreAllMocks(); });
 function response(content: string) { return new Response(JSON.stringify({ choices: [{ message: { content } }] }), { status: 200, headers: { 'Content-Type': 'application/json' } }); }
 it('sends only the selected line and bounded conversation to the configured HTTPS model, without saving the secret', async () => {
