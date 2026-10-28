@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import { useEffect, useRef, type CSSProperties, type PointerEvent } from "react";
 import type { PlayerState } from "../../../../packages/core/types";
 import { currentLyric, type LyricsDisplay } from "../../../../packages/core/lyrics-display";
 import { useLyricFollow } from "./useLyricFollow";
@@ -26,6 +26,7 @@ export function LyricsPractice({
   sheetOpen,
   onDisplay,
   onSelect,
+  onInterpret,
   onMode,
   onCancel,
   onSeek,
@@ -45,6 +46,7 @@ export function LyricsPractice({
   sheetOpen: boolean;
   onDisplay: (value: LyricsDisplay) => void;
   onSelect: (index: number) => void;
+  onInterpret: (index: number) => void;
   onMode: (multi: boolean) => void;
   onCancel: () => void;
   onSeek: (position: number) => void;
@@ -56,6 +58,16 @@ export function LyricsPractice({
 }) {
   const { range, selection } = state,
     playing = state.phase === "playing";
+  const hold = useRef<{ timer: ReturnType<typeof setTimeout>; x: number; y: number } | null>(null);
+  const held = useRef(false);
+  const cancelHold = () => { if (hold.current) clearTimeout(hold.current.timer); hold.current = null; };
+  useEffect(() => () => cancelHold(), []);
+  const startHold = (event: PointerEvent<HTMLButtonElement>, index: number) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    cancelHold(); held.current = false;
+    const { clientX: x, clientY: y } = event;
+    hold.current = { x, y, timer: setTimeout(() => { hold.current = null; held.current = true; onInterpret(index); }, 520) };
+  };
   const currentIndex = currentLyric(state.lines, state.position);
   const follow = useLyricFollow(currentIndex, display.autoScroll,
     anchor !== null || sheetOpen || state.phase === "loading",
@@ -125,6 +137,7 @@ export function LyricsPractice({
         <div className="selection-help" role="status">
           <span className="selection-badge" aria-label="当前选中歌词">{selectionTitle}</span>
           <span>{helper}</span>
+          {state.lines.length > 0 && <button onClick={() => onInterpret(selection?.[0] ?? Math.max(0, currentIndex))}>解读本句</button>}
           {anchor !== null && <button onClick={onCancel}>取消</button>}
         </div>
       </section>
@@ -152,7 +165,13 @@ export function LyricsPractice({
                 aria-pressed={selected || anchor === index}
                 aria-current={current ? "true" : undefined}
                 className={`lyric ${selected ? "selected" : ""} ${selection?.[0] === index ? "range-first" : ""} ${selection?.[1] === index ? "range-last" : ""} ${anchor === index ? "anchor" : ""}`}
-                onClick={() => { if (!multi || anchor !== null) follow.resume(); onSelect(index); }}
+                onPointerDown={event => startHold(event, index)}
+                onPointerMove={event => { if (hold.current && Math.hypot(event.clientX - hold.current.x, event.clientY - hold.current.y) > 10) cancelHold(); }}
+                onPointerUp={cancelHold}
+                onPointerCancel={cancelHold}
+                onPointerLeave={cancelHold}
+                onContextMenu={event => event.preventDefault()}
+                onClick={() => { if (held.current) { held.current = false; return; } if (!multi || anchor !== null) follow.resume(); onSelect(index); }}
               >
                 <span className="line-number" aria-hidden="true">
                   {String(index + 1).padStart(2, "0")}

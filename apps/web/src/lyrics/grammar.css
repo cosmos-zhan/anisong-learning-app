@@ -1,0 +1,51 @@
+.lyrics-app .grammar-panel {
+  width: min(100%, 560px); height: 100dvh; max-height: 100dvh;
+  border: 0; border-radius: 0; padding: max(16px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(28px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+  background: #f6f6ef; color: #203c34; color-scheme: light; overscroll-behavior: contain;
+}
+.grammar-panel .sheet-title { margin-bottom: 18px; }
+.grammar-panel .sheet-title h2 { font-size: 20px; }
+.grammar-panel button { color: inherit; font: inherit; cursor: pointer; }
+.grammar-panel .grammar-tabs { display: flex; gap: 4px; padding: 4px; background: #e7ede2; border-radius: 12px; }
+.grammar-panel .grammar-tabs button { flex: 1; min-height: 44px; border-radius: 9px; background: transparent; }
+.grammar-panel .grammar-tabs button[aria-selected="true"] { background: #fffdf7; color: #286653; font-weight: 700; box-shadow: 0 1px 4px #163c2012; }
+.grammar-content { padding: 22px 0 0; font-size: 14px; line-height: 1.8; overflow-wrap: anywhere; }
+.grammar-content .grammar-eyebrow { color: #71867a; font-size: 12px; margin: 0 0 12px; }
+.grammar-content .grammar-sentence { font-size: 24px; line-height: 1.6; margin: 0 0 4px; color: #203c34; }
+.grammar-content .grammar-roman,.grammar-content .grammar-local-translation { font-size: 12px; color: #72857c; margin: 0 0 8px; }
+.grammar-content .grammar-settings-toggle { min-height: 44px; font-size: 12px; color: #286653; padding: 0; }
+.grammar-settings { border: 1px solid #d9e4d7; background: #fffdf7; border-radius: 16px; padding: 15px; margin-bottom: 20px; }
+.grammar-settings label { display: block; font-weight: 600; margin: 0 0 12px; }
+.grammar-settings input,.grammar-ask textarea { display: block; width: 100%; color: #203c34; background: white; border: 1px solid #b8c7ba; border-radius: 10px; padding: 10px; font: inherit; min-height: 44px; }
+.grammar-settings input { font-weight: 400; margin-top: 4px; }
+.grammar-settings p { font-size: 12px; color: #6c8074; margin: 8px 0; }
+.grammar-panel .grammar-primary { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 9px 16px; border-radius: 10px; color: #fffdf7; background: #286653; font-weight: 600; }
+.grammar-panel button:disabled { opacity: .5; }
+.grammar-meaning { background: #e7eee1; border-radius: 14px; padding: 14px 16px; margin: 6px 0 22px; }
+.grammar-meaning small { color: #708476; }
+.grammar-meaning p { font-size: 16px; margin: 4px 0 0; }
+.grammar-content section { margin: 18px 0 22px; }
+.grammar-content section h2 { font-size: 15px; margin: 0 0 10px; }
+.grammar-content section h2 small { font-size: 11px; font-weight: 400; color: #71867a; margin-left: 8px; }
+.grammar-pieces,.grammar-hints { display: flex; flex-wrap: wrap; gap: 8px; }
+.grammar-panel .grammar-pieces button,.grammar-panel .grammar-hints button { min-height: 44px; padding: 8px 12px; border: 1px solid #d4dfd2; background: #fffdf7; border-radius: 11px; }
+.grammar-panel .grammar-pieces button[aria-pressed="true"] { border-color: #568975; background: #e5eee0; }
+.grammar-piece-detail { padding: 12px 2px; }
+.grammar-piece-detail p,.grammar-point p,.grammar-answer p { white-space: pre-wrap; margin: 4px 0; }
+.grammar-point { display: flex; gap: 14px; border-top: 1px solid #dfe6dc; padding: 14px 0; }
+.grammar-point > span { color: #ad936f; font-size: 12px; }
+.grammar-point h3 { margin: 0; font-size: 15px; }
+.grammar-point p { color: #536c60; }
+.grammar-disclaimer,.grammar-empty { color: #71867a; font-size: 12px; }
+.grammar-error { padding: 12px; color: #813c49; background: #fae8e9; border-radius: 10px; }
+.grammar-status { padding: 14px; border-radius: 10px; background: #e7eee1; }
+.grammar-panel .grammar-status button { min-height: 44px; padding: 0 12px; color: #286653; text-decoration: underline; }
+.grammar-user { margin: 18px 0 12px 12%; border-radius: 14px; padding: 12px; background: #dceadb; white-space: pre-wrap; }
+.grammar-answer { white-space: pre-wrap; border-radius: 14px; padding: 14px; background: #fffdf7; }
+.grammar-answer strong { color: #286653; }
+.grammar-hints button { font-size: 12px; }
+.grammar-ask form { display: flex; gap: 8px; margin-top: 12px; align-items: end; }
+.grammar-ask textarea { resize: vertical; flex: 1; min-width: 0; }
+.lyrics-focus .selection-help > button { min-height: 44px; white-space: nowrap; color: #dcebe0; }
+.lyrics-focus .lyric { touch-action: pan-y; -webkit-touch-callout: none; }
+@media (max-width: 360px) { .lyrics-focus .selection-help { gap: 3px; font-size: 10px; } .lyrics-focus .selection-help > button { font-size: 10px; } }
