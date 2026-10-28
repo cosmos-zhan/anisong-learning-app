@@ -2,10 +2,19 @@ import type { AudioEngine,PlayerState,LyricLine,Range } from './types';
 import { rangeFor,adjustRange,assertRange } from './range';
 import { validateLyrics } from './lrc';
 const messages:Record<string,string>={PLAY_BLOCKED:'浏览器阻止了播放，请再点一次播放。',DECODE:'无法解码音频，请尝试 MP3、M4A 或 WAV。',LOAD:'音频读取失败，请重新选择文件。',SEEK:'音频未能跳到所选位置，请重新载入后重试。',NATIVE:'原生播放器发生错误，请重新载入音频。'};
+export type LinePreviewPhase='starting'|'playing'|'idle'|'error';
+type LinePreview={range:Range|null;position:number;loop:boolean;loadOperation:number;token:number;stopping:boolean;playing:boolean;task:Promise<void>;done?:Promise<void>;notify:(phase:LinePreviewPhase,message?:string)=>void};
 export class LoopController {
  private state:PlayerState={phase:'empty',duration:0,position:0,speed:0.75,loop:true,lines:[],selection:null,range:null,rounds:0,error:null,warnings:[],logs:[]};
  private listeners=new Set<()=>void>();private operation=0;private loadOperation=0;private unsubscribe:()=>void;
+ private preview:LinePreview|null=null;
  constructor(private engine:AudioEngine){this.unsubscribe=engine.onEvent(e=>{
+  if(this.preview){
+   if(e.type==='end'){void this.stopPreview();}
+   else if(e.type==='playing'&&!e.playing&&this.preview.playing&&!this.preview.stopping){void this.stopPreview();}
+   else if(e.type==='error'&&!this.preview.stopping){this.preview.notify('error',messages[e.code]??'本句播放失败，请重试。');void this.stopPreview();}
+   return;
+  }
   if(this.state.phase==='loading'||this.state.phase==='empty')return;
   if(e.type==='position')this.patch({position:e.position});
   if(e.type==='end')this.patch({phase:'ended',position:this.state.range?.end??0});
@@ -42,7 +51,34 @@ export class LoopController {
   try{if(this.state.phase==='ended')await this.engine.seek(this.state.range.start);
    if(token!==this.operation)return;await this.engine.play();if(token===this.operation)this.patch({phase:'playing',error:null});
   }catch(e){if(token===this.operation)this.fail(e instanceof Error&&e.message==='SEEK'?'SEEK':'PLAY_BLOCKED');}}
- pause(){++this.operation;this.engine.pause();this.patch({phase:this.state.range?'paused':this.state.phase,position:this.engine.getPosition()});}
+ pause(){if(this.preview){void this.stopPreview();return;}++this.operation;this.engine.pause();this.patch({phase:this.state.range?'paused':this.state.phase,position:this.engine.getPosition()});}
+ async previewLine(index:number,notify:(phase:LinePreviewPhase,message?:string)=>void):Promise<void>{
+  if(this.preview||this.state.phase==='loading'||this.state.duration<=0)return;
+  let lineRange:Range;
+  try{lineRange=rangeFor(this.state.lines,index,index,this.state.duration);}catch(error){notify('error',error instanceof Error?error.message:'这句音频不可用。');return;}
+  const token=++this.operation;
+  const entry:LinePreview={range:this.state.range?{...this.state.range}:null,position:this.state.position,loop:this.state.loop,loadOperation:this.loadOperation,token,stopping:false,playing:false,task:Promise.resolve(),notify};
+  this.preview=entry;this.engine.pause();notify('starting');
+  const isCurrent=()=>this.preview===entry&&!entry.stopping&&this.operation===token&&this.loadOperation===entry.loadOperation;
+  entry.task=(async()=>{try{
+   await this.engine.setRange(lineRange,false);if(!isCurrent())return;
+   await this.engine.seek(lineRange.start);if(!isCurrent())return;
+   await this.engine.play();if(!isCurrent()){this.engine.pause();return;}
+   entry.playing=true;notify('playing');
+  }catch(error){if(isCurrent()){notify('error',messages[error instanceof Error?error.message:'']??'本句播放失败，请重试。');queueMicrotask(()=>void this.stopPreview());}}})();
+  await entry.task;
+ }
+ stopPreview():Promise<void>{
+  const entry=this.preview;if(!entry)return Promise.resolve();if(entry.done)return entry.done;
+  entry.stopping=true;this.engine.pause();
+  entry.done=(async()=>{await entry.task.catch(()=>{});this.engine.pause();
+   try{if(this.preview===entry&&this.operation===entry.token&&this.loadOperation===entry.loadOperation&&entry.range){
+    await this.engine.setRange(entry.range,entry.loop);
+    if(this.preview===entry&&this.operation===entry.token&&this.loadOperation===entry.loadOperation)await this.engine.seek(Math.max(entry.range.start,Math.min(entry.range.end-0.001,entry.position)));
+   }}catch{if(this.preview===entry)entry.notify('error','无法恢复练习位置，请重新选择歌词。');}
+   finally{if(this.preview===entry){this.preview=null;entry.notify('idle');}}
+  })();return entry.done;
+ }
  async setSpeed(speed:number){if(![0.5,0.75,1].includes(speed))return;try{await this.engine.setSpeed(speed);this.patch({speed});}catch{this.fail('NATIVE');}}
  async setLoop(loop:boolean){try{if(this.state.range)await this.engine.setRange(this.state.range,loop);this.patch({loop});}catch{this.fail('NATIVE');}}
  async seek(position:number){const range=this.state.range;if(!range)return;const token=++this.operation;try{const p=Math.max(range.start,Math.min(range.end-0.001,position));await this.engine.seek(p);if(token===this.operation)this.patch({position:this.engine.getPosition(),phase:this.state.phase==='ended'?'paused':this.state.phase});}catch{if(token===this.operation)this.fail('SEEK');}}
