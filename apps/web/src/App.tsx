@@ -617,7 +617,7 @@ export function App({
         />
       )}
       {view === "practice" && grammarLine !== null && state.lines[grammarLine] && (
-        <GrammarPage line={state.lines[grammarLine]} index={grammarLine} audioAvailable={state.duration > 0 && state.phase !== "loading"}
+        <GrammarPage line={state.lines[grammarLine]} lines={state.lines} songId={songId} songTitle={title} index={grammarLine} audioAvailable={state.duration > 0 && state.phase !== "loading"}
           onPlayLine={(notify) => controller.previewLine(grammarLine, notify)} onStopLine={() => controller.stopPreview()}
           onClose={() => { const generation = grammarGeneration.current; void controller.stopPreview().finally(() => { if (grammarGeneration.current === generation) setGrammarLine(null); }); }} />
       )}

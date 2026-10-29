@@ -6,7 +6,7 @@ const root=resolve('dist'), output=resolve('test-results/piano-browser');
 mkdirSync(output,{recursive:true});
 const browser=await chromium.launch({args:['--no-sandbox','--disable-dev-shm-usage']});
 const lines='[00:00.00]もう一度\n[00:01.00]歌っていたい\n[00:03.00]明日へ\n';
-const answer=JSON.stringify({meaning:'想继续唱歌',pieces:[{text:'歌っていたい',explanation:'想继续唱着',segments:[{text:'歌',reading:'うた'},{text:'っていたい'}]}],points:[{title:'ている＋たい',explanation:'持续状态的愿望'}]});
+const answer=JSON.stringify({meaning:'想继续唱歌',pieces:[{text:'歌っていたい',romaji:'utatte itai',explanation:'想继续唱着',segments:[{text:'歌',reading:'うた'},{text:'っていたい'}]}],points:[{title:'ている＋たい',explanation:'持续状态的愿望'}]});
 const results=[], errors=[];
 try {
  for(const [width,height] of [[320,640],[393,873]]){
@@ -38,16 +38,28 @@ try {
   await dialog.getByRole('button',{name:'保存并开始解读'}).click();
   await dialog.getByText('想继续唱歌',{exact:true}).waitFor();
   assert.equal(await dialog.locator('ruby rt').first().textContent(),'うた');
+  assert.equal(await dialog.getByText('utatte itai',{exact:true}).first().isVisible(),true);
+  await dialog.getByRole('button',{name:'罗马音开'}).click(); assert.equal(await dialog.getByText('utatte itai',{exact:true}).count(),0);
+  await dialog.getByRole('button',{name:'罗马音关'}).click();
+  const dockBefore=await dialog.locator('.grammar-ask').boundingBox();
+  await dialog.locator('.grammar-content').evaluate(el=>{el.scrollTop=el.scrollHeight});
+  const dockAfter=await dialog.locator('.grammar-ask').boundingBox();
+  assert(dockBefore && dockAfter && Math.abs(dockAfter.y-dockBefore.y)<1 && dockAfter.y+dockAfter.height<=height+1, JSON.stringify({dockBefore,dockAfter}));
   await dialog.getByRole('button',{name:'假名开'}).click();assert.equal(await dialog.locator('ruby').count(),0);
   await dialog.getByRole('button',{name:'假名关'}).click();assert((await dialog.locator('ruby').count())>0);
   await dialog.getByRole('button',{name:'这句的动词是怎么变化的？'}).click();
   await dialog.getByRole('heading',{name:'重点'}).waitFor();assert.equal(await dialog.getByText('持续状态',{exact:true}).evaluate(e=>e.tagName),'STRONG');
   assert.equal(await dialog.locator('.grammar-answer li').count(),2);
+  await dialog.getByRole('button',{name:'隐藏历史'}).click(); assert.equal(await dialog.getByRole('heading',{name:'重点'}).count(),0);
+  await dialog.getByRole('button',{name:'显示历史'}).click(); assert.equal(await dialog.getByRole('heading',{name:'重点'}).count(),1);
   const geometry=await dialog.evaluate(e=>({width:e.clientWidth,scrollWidth:e.scrollWidth}));
   assert(geometry.width<=width && geometry.scrollWidth<=geometry.width+1,JSON.stringify(geometry));
   await page.screenshot({path:resolve(output,`grammar-${width}x${height}.png`)});
   await dialog.getByRole('button',{name:'关闭语法解读'}).click();
   await dialog.waitFor({state:'hidden'});assert(await page.getByLabel('当前选中歌词').textContent()==='第 2 句');
+  await page.getByRole('button',{name:'解读本句',exact:true}).click();
+  await dialog.getByRole('tab',{name:'本句追问 1'}).click(); await dialog.getByRole('heading',{name:'重点'}).waitFor();
+  assert.equal(calls,2); await dialog.getByRole('button',{name:'关闭语法解读'}).click();
   results.push({width,height,calls,singleLinePlaybackCompleted:true,furiganaToggle:true,markdown:true,practiceRestored:true,...geometry});
   await context.close();
  }
