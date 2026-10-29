@@ -96,3 +96,24 @@
 .grammar-markdown th { background: #eaf0e4; }
 .grammar-hints button { font-size: 13px; }
 .grammar-ask textarea { font-size: 16px; }
+
+/* Keep the composer in view while only the reading and conversation scroll. */
+.lyrics-app .grammar-panel { display: flex; flex-direction: column; overflow: hidden; padding-bottom: 0; }
+.grammar-panel .sheet-title, .grammar-panel .grammar-tabs { flex: none; }
+.grammar-content { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-bottom: 20px; }
+.grammar-ask { flex: none; margin: 0 -20px; padding: 10px 20px max(12px, env(safe-area-inset-bottom)); background: #fffdf7; border-top: 1px solid #d9e4d7; box-shadow: 0 -5px 18px #213e3012; }
+.grammar-hints { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+.grammar-panel .grammar-hints button { flex: none; min-height: 36px; white-space: nowrap; padding: 5px 10px; }
+.grammar-ask form { margin-top: 8px; }
+.grammar-ask textarea { max-height: 100px; resize: none; }
+.grammar-context-controls { margin: 14px 0 4px; font-size: 13px; color: #536c60; }
+.grammar-context-controls label { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.grammar-context-controls select { min-height: 38px; max-width: 100%; color: #203c34; border: 1px solid #b8c7ba; border-radius: 8px; padding: 5px; background: #fffdf7; }
+.grammar-context-controls p { margin: 5px 0; font-size: 12px; line-height: 1.5; }
+.grammar-display-toggles { display: flex; flex-wrap: wrap; }
+.grammar-piece-roman { display: block; color: #71867a; font: 12px/1.4 -apple-system, sans-serif; margin-top: 4px; overflow-wrap: anywhere; }
+.grammar-history-heading { display: flex; justify-content: space-between; align-items: center; color: #71867a; font-size: 13px; }
+.grammar-history-heading button { min-height: 44px; padding: 0 8px; color: #286653; }
+
+.grammar-panel .grammar-roman-toggle { min-height: 38px; padding: 4px 10px; border-radius: 9px; background: #e7eee1; color: #286653; font-size: 13px; }
+.grammar-history-note { font-size: 12px; color: #71867a; line-height: 1.5; }

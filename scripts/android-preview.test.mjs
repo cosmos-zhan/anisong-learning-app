@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { previewVersion, publicBuild, publishPreview } from "./android-preview.mjs";
+import { previewVersion, publicBuild, publishPreview, releaseNotes } from "./android-preview.mjs";
 
 test("regular and explicit prerelease versions become preview downloads", () => {
   assert.equal(previewVersion("0.3.6", 2026102001).tag, "v0.3.6-alpha.1");
@@ -48,4 +48,10 @@ test("permission errors cannot become a successful publication", async () => {
 });
 test("an unrelated existing draft is not replaced", async () => {
   await assert.rejects(publishPreview({ info, files: [], api: async () => ({ draft: true, target_commitish: "b".repeat(40) }) }), /another source/);
+});
+
+test("release notes include version-specific updates", () => {
+  const notes = releaseNotes(info, ["固定追问输入框", "选择歌词上下文"]);
+  assert.match(notes, /本次更新/); assert.match(notes, /固定追问输入框/); assert.match(notes, /选择歌词上下文/);
+  assert.throws(() => releaseNotes(info, [null]), /Invalid release changes/);
 });
