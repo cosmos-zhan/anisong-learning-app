@@ -5,6 +5,7 @@ import { downloadManager } from "../../../packages/core/download-manager";
 import { App } from "./App";
 import { PianoWorkspace } from "./piano/PianoWorkspace";
 import { Icon } from "./components/Icon";
+import { Cover } from "./components/Cover";
 import { Feedback } from "./components/Feedback";
 import { AppUpdates } from "./components/AppUpdates";
 import {
@@ -56,25 +57,6 @@ const modeName = (r: PracticeRecord) =>
       : r.mode === "free"
         ? "自由弹奏"
         : "自动试听";
-export function Cover({
-  small = false,
-  title = "春日影",
-}: {
-  small?: boolean;
-  title?: string;
-}) {
-  return (
-    <div className={`art-cover ${small ? "small" : ""}`} aria-hidden="true">
-      <i />
-      <span>
-        {title.slice(0, 1)}
-        <br />
-        {title.slice(1, 3)}
-      </span>
-      <b>♪</b>
-    </div>
-  );
-}
 export function Workspace() {
   const [page, setPage] = useState<Page>(currentPage),
     [song, setSong] = useState<Song>(() => initialSong(location.search));
@@ -268,7 +250,7 @@ export function Workspace() {
                   <span>↗</span>
                 </div>
                 <div className="featured-song">
-                  <Cover title={lastSong.title} />
+                  <Cover id={lastSong.id} title={lastSong.title} />
                   <div>
                     <p className="eyebrow">
                       {isHaruhikage(lastSong) ? "CRYCHIC" : "本地曲库"}
@@ -360,7 +342,7 @@ export function Workspace() {
                       key={s.id}
                       onClick={() => choose(s)}
                     >
-                      <Cover small title={s.title} />
+                      <Cover small id={s.id} title={s.title} />
                       <span>
                         <strong>{s.title}</strong>
                         <small>
@@ -394,7 +376,7 @@ export function Workspace() {
           {page === "song" && (
             <>
               <div className="detail-hero">
-                <Cover title={song.title} />
+                <Cover id={song.id} title={song.title} />
                 <p className="eyebrow">
                   {isHaruhikage(song) ? "CRYCHIC VERSION" : "LOCAL PRACTICE"}
                 </p>

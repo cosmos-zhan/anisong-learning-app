@@ -101,7 +101,7 @@
 .lyrics-app .grammar-panel { display: flex; flex-direction: column; overflow: hidden; padding-bottom: 0; }
 .grammar-panel .sheet-title, .grammar-panel .grammar-tabs { flex: none; }
 .grammar-content { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-bottom: 20px; }
-.grammar-ask { flex: none; margin: 0 -20px; padding: 10px 20px max(12px, env(safe-area-inset-bottom)); background: #fffdf7; border-top: 1px solid #d9e4d7; box-shadow: 0 -5px 18px #213e3012; }
+.grammar-ask { flex: none; margin: 0 -20px; padding: 10px 20px calc(16px + max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px))); background: #fffdf7; border-top: 1px solid #d9e4d7; box-shadow: 0 -5px 18px #213e3012; }
 .grammar-hints { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
 .grammar-panel .grammar-hints button { flex: none; min-height: 36px; white-space: nowrap; padding: 5px 10px; }
 .grammar-ask form { margin-top: 8px; }

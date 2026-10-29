@@ -41,6 +41,9 @@ try {
   assert.equal(await dialog.getByText('utatte itai',{exact:true}).first().isVisible(),true);
   await dialog.getByRole('button',{name:'罗马音开'}).click(); assert.equal(await dialog.getByText('utatte itai',{exact:true}).count(),0);
   await dialog.getByRole('button',{name:'罗马音关'}).click();
+  await page.evaluate(() => document.documentElement.style.setProperty('--safe-area-inset-bottom', '32px'));
+  const sendBottom=await dialog.getByRole('button',{name:'发送'}).boundingBox();
+  assert(sendBottom && height - (sendBottom.y + sendBottom.height) >= 47, JSON.stringify({sendBottom,height}));
   const dockBefore=await dialog.locator('.grammar-ask').boundingBox();
   await dialog.locator('.grammar-content').evaluate(el=>{el.scrollTop=el.scrollHeight});
   const dockAfter=await dialog.locator('.grammar-ask').boundingBox();

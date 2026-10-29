@@ -1607,3 +1607,5 @@ html.document-scroll #root {
   .app-shell:not(.is-focus) .bottom-nav { padding-top: 2px; padding-bottom: max(2px, env(safe-area-inset-bottom), var(--safe-area-inset-bottom, 0px)); }
   .app-shell:not(.is-focus) .bottom-nav button { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 4px 12px; }
 }
+
+.art-cover img, .download-cover img { display: block; width: 100%; height: 100%; object-fit: cover; }
