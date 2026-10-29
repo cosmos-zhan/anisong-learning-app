@@ -42,7 +42,12 @@ export function grammarMessages(lyric: string, history: ChatMessage[], context?:
     extra = `\n歌曲：${title || '未提供'}\n歌词上下文（${context.scope === 'full' ? '全文' : '前后各三句'}${content.length > 16000 ? '，过长已截断' : ''}）：\n${content.slice(0, 16000)}\n`;
   }
   const initial: ChatMessage = { role: 'user', content: `待分析的歌词：\n${text}\n${extra}\n${grammarInstruction}` };
-  return [{ role: 'system', content: grammarSystemPrompt }, initial, ...history.slice(-12).map(item => ({ role: item.role, content: bounded(item.content, 5000) }))];
+  // The caller supplies the initial interpretation followed by complete Q&A
+  // pairs and the pending question. Keep the interpretation independently of
+  // the rolling window so that old turns cannot evict it or split a pair.
+  const interpretation = history[0]?.role === 'assistant' ? history.slice(0, 1) : [];
+  const conversation = history.slice(interpretation.length);
+  return [{ role: 'system', content: grammarSystemPrompt }, initial, ...[...interpretation, ...conversation.slice(-13)].map(item => ({ role: item.role, content: bounded(item.content, 5000) }))];
 }
 export async function grammarRequest(config: GrammarConfig, lyric: string, history: ChatMessage[], signal: AbortSignal, context?: GrammarContext): Promise<string> {
   if (signal.aborted) throw new DOMException('Aborted', 'AbortError');

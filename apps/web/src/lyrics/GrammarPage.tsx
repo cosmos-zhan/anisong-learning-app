@@ -21,11 +21,15 @@ export function GrammarPage({ line, lines = [line], songId = "demo-original", so
   const [config, setConfig] = useState<GrammarConfig>(grammarSettings);
   const [editing, setEditing] = useState(!config.key);
   const [tab, setTab] = useState<'reading' | 'chat'>('reading');
-  const storageKey = `anisong:grammar-history:${encodeURIComponent(songId)}:${line.start}:${encodeURIComponent(line.text)}`;
+  const legacyKey = `anisong:grammar-history:${encodeURIComponent(songId)}:${line.start}:${encodeURIComponent(line.text)}`;
+  const storageKey = `${legacyKey}:${index}`;
   const [saved] = useState(() => { try {
-    const value = JSON.parse(localStorage.getItem(storageKey) ?? 'null');
-    if (typeof value?.raw !== 'string' || value.raw.length > 50000 || !Array.isArray(value.entries)) return null;
-    return { raw: value.raw as string, entries: value.entries.filter((entry: Entry) => typeof entry?.question === 'string' && typeof entry?.answer === 'string').slice(-30) as Entry[] };
+    // Legacy keys lacked a line index; reuse them only when unambiguous.
+    const legacyIsUnique = lines.filter(item => item.start === line.start && item.text === line.text).length === 1;
+    const stored = localStorage.getItem(storageKey) ?? (legacyIsUnique ? localStorage.getItem(legacyKey) : null);
+    const value = JSON.parse(stored ?? 'null');
+    if (typeof value?.raw !== 'string' || !value.raw.trim() || value.raw.length > 50000 || !Array.isArray(value.entries)) return null;
+    return { raw: value.raw as string, entries: value.entries.filter((entry: Entry) => typeof entry?.question === 'string' && !!entry.question.trim() && entry.question.length <= 1000 && typeof entry?.answer === 'string' && !!entry.answer.trim() && entry.answer.length <= 50000).slice(-30) as Entry[] };
   } catch { return null; } });
   const [result, setResult] = useState<GrammarResult | null>(() => saved ? parseGrammar(saved.raw) : null);
   const [word, setWord] = useState(0);
@@ -42,6 +46,7 @@ export function GrammarPage({ line, lines = [line], songId = "demo-original", so
   const [showReading, setShowReading] = useState(() => { try { return localStorage.getItem('anisong:grammarFurigana') !== 'off'; } catch { return true; } });
   const contentRef = useRef<HTMLElement>(null);
   const active = useRef<AbortController | null>(null);
+  const pendingQuestion = useRef('');
   const mounted = useRef(true);
   const started = useRef(false);
   const run = async (settings: GrammarConfig, query?: string) => {
@@ -49,18 +54,18 @@ export function GrammarPage({ line, lines = [line], songId = "demo-original", so
     const prompt = query?.trim();
     if (query !== undefined && !prompt) return;
     const abort = new AbortController(); active.current = abort; setBusy(true); setError('');
-    if (prompt) { setTab('chat'); setShowHistory(true); setQuestion(''); }
+    if (prompt) { pendingQuestion.current = prompt; setTab('chat'); setShowHistory(true); setQuestion(''); }
     const history: ChatMessage[] = result ? [{ role: 'assistant', content: result.raw }, ...entries.flatMap(e => [{ role: 'user' as const, content: e.question }, { role: 'assistant' as const, content: e.answer }])] : [];
     if (prompt) history.push({ role: 'user', content: prompt });
     try {
       const response = await grammarRequest(settings, line.text, history, abort.signal, { title: songTitle, lines, index, scope });
       if (!mounted.current || abort.signal.aborted) return;
-      if (prompt) setEntries(previous => [...previous, { question: prompt, answer: response }]);
+      if (prompt) setEntries(previous => [...previous, { question: prompt, answer: response }].slice(-30));
       else { setResult(parseGrammar(response)); setWord(0); setEntries([]); }
     } catch (failure) {
       if (mounted.current && !abort.signal.aborted) { setError(failure instanceof Error ? failure.message : '解读失败，请重试。'); if (prompt) setQuestion(prompt); }
     } finally {
-      if (active.current === abort) { active.current = null; if (mounted.current) setBusy(false); }
+      if (active.current === abort) { active.current = null; pendingQuestion.current = ''; if (mounted.current) setBusy(false); }
     }
   };
   // The selected lyric stays fixed for the lifetime of this dialog.
@@ -76,7 +81,7 @@ export function GrammarPage({ line, lines = [line], songId = "demo-original", so
     try { localStorage.setItem(storageKey, JSON.stringify({ raw: result.raw, entries: entries.slice(-30) })); setStorageError(false); }
     catch { setStorageError(true); }
   }, [storageKey, result, entries]);
-  const stop = () => { active.current?.abort(); active.current = null; setBusy(false); setError('已停止本次请求。'); };
+  const stop = () => { active.current?.abort(); active.current = null; if (pendingQuestion.current) setQuestion(pendingQuestion.current); pendingQuestion.current = ''; setBusy(false); setError('已停止本次请求。'); };
   const save = (event: React.FormEvent) => {
     event.preventDefault();
     try { saveGrammarSettings(config); setEditing(false); setError(''); if (!result) void run(config); }
@@ -123,7 +128,7 @@ export function GrammarPage({ line, lines = [line], songId = "demo-original", so
       </>}
       {tab === 'chat' && result && <section className="grammar-thread" aria-live="polite">
         <div className="grammar-history-heading"><span>对话记录{entries.length ? ` · ${entries.length} 条` : ''}</span>{!!entries.length && <button onClick={() => setShowHistory(!showHistory)} aria-pressed={showHistory}>{showHistory ? '隐藏历史' : '显示历史'}</button>}</div>{!!entries.length && <p className="grammar-history-note">记录保存在本机；隐藏后仍会作为对话上下文发送（最多最近 6 轮）。</p>}
-        {storageError && <p className="grammar-error">本机空间不足，历史可能无法保存。</p>}
+        {storageError && <p className="grammar-error" role="alert">本机存储不可用或空间不足，历史可能无法保存。</p>}
         {!entries.length && <p className="grammar-empty">从一个没懂的地方，接着问下去。</p>}
         {showHistory && entries.map((entry, i) => <div key={i}><p className="grammar-user">{entry.question}</p><div className="grammar-answer"><strong>语法解读</strong><GrammarMarkdown text={entry.answer} /></div></div>)}
       </section>}
