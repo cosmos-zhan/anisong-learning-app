@@ -11,7 +11,9 @@ assert.equal(info.repository, process.env.GITHUB_REPOSITORY);
 assert.equal(info.publicMediaOnly, true);
 publicBuild(info.mediaConfig, info.frontendVersion, info.sha);
 assert.equal(info.frontendVersion.appVersion, info.version);
-requireReleaseSigner(info, JSON.parse(readFileSync('.github/android-preview.json', 'utf8')));
+const previewConfig = JSON.parse(readFileSync('.github/android-preview.json', 'utf8'));
+requireReleaseSigner(info, previewConfig);
+assert(Array.isArray(previewConfig.changes) && previewConfig.changes.length > 0, 'Missing version-specific release notes');
 const files = [info.apkName, "build-info.json", "SHA256SUMS.txt"].map(name => {
   assert(!name.includes("/") && !name.includes("\\"));
   return { name, path: resolve(directory, name) };
@@ -38,7 +40,7 @@ async function upload(template, file) {
   assert.equal(asset.state, "uploaded");
   assert.equal(asset.digest, `sha256:${sha256(file.path)}`);
 }
-const result = await publishPreview({ api, upload, info, files });
+const result = await publishPreview({ api, upload, info, files, changes: previewConfig.changes });
 console.log(JSON.stringify(result));
 if (process.env.GITHUB_STEP_SUMMARY)
   appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${result.skipped ? "已存在，保留原版" : "已发布预发布测试包"}: ${result.url}\n`);

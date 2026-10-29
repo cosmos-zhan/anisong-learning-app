@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { GrammarPage } from '../apps/web/src/lyrics/GrammarPage';
 import { GrammarMarkdown } from '../apps/web/src/lyrics/GrammarMarkdown';
-import { parseGrammar, saveGrammarSettings } from '../packages/core/grammar';
+import { grammarMessages, parseGrammar, saveGrammarSettings } from '../packages/core/grammar';
 
 const result = { meaning:'想再一次唱歌', pieces:[{text:'歌っていたい',explanation:'表示**持续**的愿望',segments:[{text:'歌',reading:'うた'},{text:'っていたい'}]}], points:[{title:'ている＋たい',explanation:'想继续做某事。'}] };
 beforeEach(()=>{localStorage.clear();history.replaceState(null,'','#lyrics');vi.spyOn(globalThis,'fetch').mockRejectedValue(new Error('Unexpected network'));});
@@ -48,4 +48,29 @@ it('renders the actual follow-up reply with Markdown emphasis and lists',async()
  expect(await within(dialog).findByRole('heading',{name:'区别'})).toBeVisible();
  expect(within(dialog).getByText('持续').tagName).toBe('STRONG');
  expect(within(dialog).getByRole('list').querySelectorAll('li')).toHaveLength(2);
+});
+
+it('sends the selected lyric context and bounds full lyrics without including annotations',()=>{
+ const lines=Array.from({length:10},(_,i)=>({text:`歌词${i}`,romaji:`secret${i}`}));
+ const near=grammarMessages('歌词5',[],{title:'歌名',lines,index:5,scope:'nearby'})[1].content;
+ expect(near).toContain('歌名'); expect(near).toContain('歌词2'); expect(near).toContain('歌词8'); expect(near).not.toContain('歌词1'); expect(near).not.toContain('secret');
+ const full=grammarMessages('歌词5',[],{title:'歌名',lines,index:5,scope:'full'})[1].content;
+ expect(full).toContain('歌词0'); expect(full).toContain('歌词9');
+ const long=grammarMessages('当前',[],{lines:Array.from({length:30},()=>({text:'文'.repeat(1000)})),index:1,scope:'full'})[1].content;
+ expect(long).toContain('过长已截断'); expect(long.length).toBeLessThan(18000);
+});
+it('persists per-line history, lets the user hide it and restores it after reopening',async()=>{
+ saveGrammarSettings({endpoint:'https://model.example/v1/chat/completions',model:'fixture',key:'test-secret'});
+ const reply=(content:string)=>new Response(JSON.stringify({choices:[{message:{content}}]}),{status:200});
+ const fetcher=vi.spyOn(globalThis,'fetch').mockResolvedValueOnce(reply(JSON.stringify(result))).mockResolvedValueOnce(reply('保留的回答'));
+ const props={line:{start:1,text:'歌っていたい',romaji:'utatte itai'}, lines:[{start:1,text:'歌っていたい'}], songId:'song-a',index:0,audioAvailable:true,onPlayLine:async()=>{},onStopLine:async()=>{},onClose:()=>{}};
+ const ui=render(<GrammarPage {...props}/>); const dialog=screen.getByRole('dialog',{name:'语法解读'});
+ await within(dialog).findByText('想再一次唱歌');
+ fireEvent.click(within(dialog).getByRole('button',{name:'罗马音开'})); expect(within(dialog).queryByText('utatte itai')).toBeNull();
+ fireEvent.click(within(dialog).getByRole('button',{name:'罗马音关'})); expect(within(dialog).getByText('utatte itai')).toBeVisible();
+ fireEvent.click(within(dialog).getByRole('button',{name:'这句的动词是怎么变化的？'})); await within(dialog).findByText('保留的回答');
+ fireEvent.click(within(dialog).getByRole('button',{name:'隐藏历史'})); expect(within(dialog).queryByText('保留的回答')).toBeNull();
+ fireEvent.click(within(dialog).getByRole('button',{name:'显示历史'})); expect(within(dialog).getByText('保留的回答')).toBeVisible();
+ ui.unmount(); render(<GrammarPage {...props}/>); const reopened=screen.getByRole('dialog',{name:'语法解读'});
+ fireEvent.click(within(reopened).getByRole('tab',{name:'本句追问 1'})); expect(within(reopened).getByText('保留的回答')).toBeVisible(); expect(fetcher).toHaveBeenCalledTimes(2);
 });
