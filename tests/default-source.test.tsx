@@ -35,3 +35,14 @@ it('the default source settings contain no access-code input',async()=>{
   expect(screen.getByLabelText('素材源地址')).toHaveValue(DEFAULT_SOURCE);
   expect(screen.queryByLabelText('访问码（私人素材源可选）')).not.toBeInTheDocument();
 });
+it('keeps source connection errors on source pages instead of unrelated workflows',async()=>{
+  vi.stubGlobal('fetch',vi.fn().mockRejectedValue(new TypeError('offline')));
+  render(<DownloadsPage onSaved={vi.fn()} onRemoved={vi.fn()} onOpen={vi.fn()} onExit={vi.fn()} onMaterials={vi.fn()}/>);
+  fireEvent.click(screen.getByRole('button',{name:'在线歌曲'}));
+  expect(await screen.findByRole('alert')).toHaveTextContent('无法读取在线歌曲');
+  fireEvent.click(screen.getByRole('button',{name:'返回上一页'}));
+  await waitFor(()=>expect(screen.getByRole('heading',{name:'下载与导入'})).toBeVisible());
+  expect(screen.queryByRole('alert')).toBeNull();
+  fireEvent.click(screen.getByRole('button',{name:'下载任务'}));
+  expect(screen.queryByRole('alert')).toBeNull();
+});

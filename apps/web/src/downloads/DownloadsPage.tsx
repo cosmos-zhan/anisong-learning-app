@@ -23,6 +23,7 @@ export function DownloadsPage({onSaved,onRemoved,onOpen,onExit,onMaterials}:{onS
   const [catalog,setCatalog]=useState<MediaCatalog|undefined>(()=>isDefaultSource(address)?defaultCatalog():undefined),[records,setRecords]=useState<LocalMaterial[]>([]);
   const [token,setToken]=useState(''),[loading,setLoading]=useState(false);
   const [error,setError]=useState(''),[notice,setNotice]=useState(''),[search,setSearch]=useState(''),[removing,setRemoving]=useState('');
+  const [sourceError,setSourceError]=useState('');
   const [importing,setImporting]=useState(false),[importProgress,setImportProgress]=useState<DownloadProgress>();
   const [deleting,setDeleting]=useState(false);
   const [neteaseBusy,setNeteaseBusy]=useState(false);
@@ -38,7 +39,7 @@ export function DownloadsPage({onSaved,onRemoved,onOpen,onExit,onMaterials}:{onS
   },[]);
   const read=async(url:string,code=token,activate=true)=>{
     request.current?.abort();const controller=new AbortController();request.current=controller;
-    setLoading(true);setError('');if(!isDefaultSource(url))setCatalog(undefined);access.current=undefined;
+    setLoading(true);setSourceError('');if(!isDefaultSource(url))setCatalog(undefined);access.current=undefined;
     const timeout=setTimeout(()=>controller.abort(new Error('读取歌曲列表超时，请检查网络后重试。')),30000);
     try{
       const auth=isDefaultSource(url)?undefined:sourceAccess(url,code);
@@ -47,7 +48,7 @@ export function DownloadsPage({onSaved,onRemoved,onOpen,onExit,onMaterials}:{onS
       access.current=auth;setCatalog(next);setAddress(url);
       if(activate&&currentView.current==='source')open('songs');
       try{localStorage.setItem('anisong:mediaSource',url);}catch{/* Source preference is optional. */}
-    }catch(e){if(mounted.current&&request.current===controller){if(!controller.signal.aborted)setError(e instanceof TypeError?'无法读取在线歌曲，请检查网络和素材源权限。已下载歌曲仍可使用。':(e as Error).message);else if(controller.signal.reason instanceof Error&&controller.signal.reason.name!=='AbortError')setError(controller.signal.reason.message);}}
+    }catch(e){if(mounted.current&&request.current===controller){if(!controller.signal.aborted)setSourceError(e instanceof TypeError?'无法读取在线歌曲，请检查网络和素材源权限。已下载歌曲仍可使用。':(e as Error).message);else if(controller.signal.reason instanceof Error&&controller.signal.reason.name!=='AbortError')setSourceError(controller.signal.reason.message);}}
     finally{clearTimeout(timeout);if(mounted.current&&request.current===controller)setLoading(false);}
   };
   useEffect(()=>{void read(address,'',false);},[]); // Loading a source must not override a tab selected meanwhile.
@@ -82,7 +83,7 @@ export function DownloadsPage({onSaved,onRemoved,onOpen,onExit,onMaterials}:{onS
       {media.catalog&&<button type="button" disabled={loading} onClick={()=>{setToken('');void read(defaultSource(),'');}}>下载本站私人练习素材</button>}
       <button type="button" disabled={loading} onClick={()=>{setToken('');void read(sample(),'');}}>试用原创示例源</button>
     </form>}
-    {error&&<p className="error" role="alert">{error}</p>}{notice&&<p className="download-notice" role="status">{notice}</p>}
+    {sourceError&&['songs','source'].includes(page)&&<p className="error" role="alert">{sourceError}</p>}{error&&['hub','package','local'].includes(page)&&<p className="error" role="alert">{error}</p>}{notice&&<p className="download-notice" role="status">{notice}</p>}
     {page==='songs'&&<section role="tabpanel" aria-label="在线歌曲"><div className="download-section-title"><div><h2>{catalog?.title??'在线歌曲'}</h2><p>音频、歌词、乐谱一起下载</p></div><button disabled={loading} onClick={()=>void read(address,token)}>刷新</button></div>
       <input className="search-field" aria-label="搜索下载歌曲" placeholder="搜索歌曲名称" value={search} onChange={e=>setSearch(e.target.value)}/>
       {loading&&<p role="status" className="helper">正在读取在线歌曲…</p>}
