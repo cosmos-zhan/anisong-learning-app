@@ -117,3 +117,4 @@
 
 .grammar-panel .grammar-roman-toggle { min-height: 38px; padding: 4px 10px; border-radius: 9px; background: #e7eee1; color: #286653; font-size: 13px; }
 .grammar-history-note { font-size: 12px; color: #71867a; line-height: 1.5; }
+.grammar-panel .grammar-context-summary{width:100%;display:flex;justify-content:space-between;align-items:center;margin:12px 0;padding:10px 12px;border-radius:10px;background:#e7f0e7;color:#285d49;text-align:left;font-size:13px}.grammar-context-summary span{color:#286653}.grammar-panel .grammar-chat-entry{width:100%;margin:12px 0 20px}.grammar-settings label{margin:0 0 16px}.grammar-settings input{min-height:48px}.grammar-panel .grammar-tabs button{min-height:42px}

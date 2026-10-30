@@ -52,6 +52,9 @@ it('plays a long-pressed lyric from the grammar page and restores the earlier pr
   await act(async()=>{await new Promise(resolve=>setTimeout(resolve,550));});
   fireEvent.pointerUp(row,{pointerType:'touch'});
   const dialog=await screen.findByRole('dialog',{name:'语法解读'});
+  // The first visit opens model settings. Return to reading without making a model request.
+  fireEvent.click(within(dialog).getByRole('button',{name:'关闭语法解读'}));
+  await waitFor(()=>expect(within(dialog).getByRole('button',{name:'播放本句'})).toBeVisible());
   fireEvent.click(within(dialog).getByRole('button',{name:'播放本句'}));
   await waitFor(()=>expect(engine.playing).toBe(true));
   expect(engine.range).toEqual({start:25.9,end:30.7});

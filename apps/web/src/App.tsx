@@ -643,8 +643,8 @@ export function App({
         </>
       )}
       {view !== "practice" && (
-        <section className="song-card" aria-label="音频导入">
-          <div className="song-top">
+        <section className={`song-card ${view === "materials" ? "song-materials-card" : ""}`} aria-label="音频导入">
+          <div className="song-top" hidden={view === "materials"}>
             <div className="cover" aria-hidden="true">
               <span>♪</span>
               <i />
@@ -667,7 +667,7 @@ export function App({
               </p>
             </div>
           </div>
-          {(view === "preview" || preset) && (
+          {(view === "preview" || (preset && view !== "materials")) && (
             <button
               className="whole-track-play"
               disabled={disabled}
@@ -684,6 +684,7 @@ export function App({
           )}
           {view !== "preview" && (
             <div className="imports">
+              <div className="material-item"><div><strong>音频</strong><small>{state.duration > 0 ? `已关联 · ${format(state.duration)}` : '尚未导入'}</small></div>
               {isNative() ? (
                 <button onClick={() => void importAudio()}>＋ 导入音频</button>
               ) : (
@@ -701,6 +702,7 @@ export function App({
                   />
                 </label>
               )}
+              </div><div className="material-item"><div><strong>歌词</strong><small>{state.lines.length ? `已关联 · ${state.lines.length} 句` : '尚未导入'}</small></div>
               <label
                 className={`file-button ${view === "legacy" && !state.duration ? "disabled" : ""}`}
               >
@@ -720,6 +722,7 @@ export function App({
                   }}
                 />
               </label>
+              </div>
               {bundledAudio.available && (view === "legacy" || preset) && (
                 <button onClick={() => void loadPreset()}>内置春日影</button>
               )}

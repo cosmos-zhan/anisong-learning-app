@@ -44,6 +44,7 @@ it('renders the actual follow-up reply with Markdown emphasis and lists',async()
  render(<GrammarPage line={{start:0,text:'歌っていたい'}} index={0} audioAvailable onPlayLine={async()=>{}} onStopLine={async()=>{}} onClose={()=>{}}/>);
  const dialog=screen.getByRole('dialog',{name:'语法解读'});
  await waitFor(()=>expect(within(dialog).getByText('想再一次唱歌')).toBeVisible());
+ fireEvent.click(within(dialog).getByRole('button',{name:'围绕这句追问'}));
  fireEvent.click(within(dialog).getByRole('button',{name:'这句的动词是怎么变化的？'}));
  expect(await within(dialog).findByRole('heading',{name:'区别'})).toBeVisible();
  expect(within(dialog).getByText('持续').tagName).toBe('STRONG');
@@ -68,9 +69,26 @@ it('persists per-line history, lets the user hide it and restores it after reope
  await within(dialog).findByText('想再一次唱歌');
  fireEvent.click(within(dialog).getByRole('button',{name:'罗马音开'})); expect(within(dialog).queryByText('utatte itai')).toBeNull();
  fireEvent.click(within(dialog).getByRole('button',{name:'罗马音关'})); expect(within(dialog).getByText('utatte itai')).toBeVisible();
+ fireEvent.click(within(dialog).getByRole('button',{name:'围绕这句追问'}));
  fireEvent.click(within(dialog).getByRole('button',{name:'这句的动词是怎么变化的？'})); await within(dialog).findByText('保留的回答');
  fireEvent.click(within(dialog).getByRole('button',{name:'隐藏历史'})); expect(within(dialog).queryByText('保留的回答')).toBeNull();
  fireEvent.click(within(dialog).getByRole('button',{name:'显示历史'})); expect(within(dialog).getByText('保留的回答')).toBeVisible();
  ui.unmount(); render(<GrammarPage {...props}/>); const reopened=screen.getByRole('dialog',{name:'语法解读'});
  fireEvent.click(within(reopened).getByRole('tab',{name:'本句追问 1'})); expect(within(reopened).getByText('保留的回答')).toBeVisible(); expect(fetcher).toHaveBeenCalledTimes(2);
+});
+it('keeps an unsent question when opening settings and returning to chat',async()=>{
+ saveGrammarSettings({endpoint:'https://model.example/v1/chat/completions',model:'fixture',key:'test-secret'});
+ vi.spyOn(globalThis,'fetch').mockResolvedValue(new Response(JSON.stringify({choices:[{message:{content:JSON.stringify(result)}}]}),{status:200}));
+ const close=vi.fn();
+ render(<GrammarPage line={{start:0,text:'歌っていたい'}} index={0} audioAvailable onPlayLine={async()=>{}} onStopLine={async()=>{}} onClose={close}/>);
+ const dialog=screen.getByRole('dialog',{name:'语法解读'});
+ await within(dialog).findByText('想再一次唱歌');
+ fireEvent.click(within(dialog).getByRole('button',{name:'围绕这句追问'}));
+ fireEvent.change(within(dialog).getByLabelText('对当前句子的追问'),{target:{value:'这个时态为什么这样用？'}});
+ fireEvent.click(within(dialog).getByRole('button',{name:/上下文/}));
+ fireEvent.change(within(dialog).getByLabelText('发送歌词上下文'),{target:{value:'full'}});
+ fireEvent.click(within(dialog).getByRole('button',{name:'保存并返回'}));
+ await waitFor(()=>expect(within(dialog).getByLabelText('对当前句子的追问')).toHaveValue('这个时态为什么这样用？'));
+ expect(within(dialog).getByRole('button',{name:/上下文：全文/})).toBeVisible();
+ expect(close).not.toHaveBeenCalled();
 });

@@ -1,10 +1,18 @@
 import { describe, expect, it, vi, afterEach } from 'vitest';
-import { compareVersions, selectUpdate, verifyUpdateInfo, fetchReleases, RELEASES_PAGE } from '../packages/core/updates';
+import { compareVersions, selectUpdate, verifyUpdateInfo, fetchReleases, releaseHistory, RELEASES_PAGE } from '../packages/core/updates';
 const digest = 'a'.repeat(64), signer = 'b'.repeat(64);
 const asset = (tag: string, name: string, size = 10000000) => ({ name, size, state: 'uploaded', digest: `sha256:${digest}`, browser_download_url: `${RELEASES_PAGE}/download/${tag}/${name}` });
 const release = (version = '0.6.0-alpha.1') => ({ tag_name: `v${version}`, draft: false, prerelease: true, html_url: `${RELEASES_PAGE}/tag/v${version}`, assets: [asset(`v${version}`, `anisong-${version}-debug.apk`), asset(`v${version}`, 'build-info.json', 900)] });
 afterEach(() => vi.unstubAllGlobals());
 describe('application updates', () => {
+  it('lists published version notes in version order without trusting release URLs', () => {
+    const first = {...release('0.6.0'), body: '## 本次更新\n\n- 支持逐句追问\n- 显示罗马音\n\n## Android Alpha 测试版\n\n无关的说明'};
+    const newer = {...release('0.10.0-alpha.1'), body: '## 本次更新\n\n- 改善导航\n', html_url:'https://evil.test/'};
+    expect(releaseHistory([first, newer, {...first, draft:true}, {tag_name:'../../evil',draft:false}])).toEqual([
+      {version:'0.10.0-alpha.1',changes:['改善导航'],page:`${RELEASES_PAGE}/tag/v0.10.0-alpha.1`},
+      {version:'0.6.0',changes:['支持逐句追问','显示罗马音'],page:`${RELEASES_PAGE}/tag/v0.6.0`},
+    ]);
+  });
   it('includes Alpha releases, compares versions numerically and never offers a downgrade', () => {
     expect(compareVersions('0.10.0-alpha.1', '0.9.0')).toBe(1);
     expect(compareVersions('0.6.0', '0.6.0-rc.9')).toBe(1);

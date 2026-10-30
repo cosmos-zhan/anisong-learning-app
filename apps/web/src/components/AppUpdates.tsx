@@ -1,13 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { isNative } from '../../../../packages/audio-native';
 import { updates, type UpdateStatus } from '../../../../packages/audio-native/updates';
-import { fetchReleases, selectUpdate, verifyUpdateInfo, RELEASES_PAGE, type AppUpdate } from '../../../../packages/core/updates';
+import { fetchReleases, selectUpdate, verifyUpdateInfo, releaseHistory, RELEASES_PAGE, type AppUpdate, type ReleaseNote } from '../../../../packages/core/updates';
 import version from '../version.json';
+import preview from '../../../../.github/android-preview.json';
 
 const size = (bytes: number) => `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 export function AppUpdates() {
   const native = isNative();
   const [candidate, setCandidate] = useState<AppUpdate>();
+  const [history, setHistory] = useState<ReleaseNote[]>([]), [historyLoaded, setHistoryLoaded] = useState(false);
   const [busy, setBusy] = useState(false), [message, setMessage] = useState(''), [error, setError] = useState('');
   const [status, setStatus] = useState<UpdateStatus>({ state: 'idle', received: 0, total: 0 });
   const controller = useRef<AbortController | null>(null), mounted = useRef(true);
@@ -34,6 +36,7 @@ export function AppUpdates() {
       const releases = native ? (await updates.releases()).releases : await fetchReleases(request.signal);
       if (!mounted.current || request.signal.aborted) return;
       const next = selectUpdate(releases, installed.version);
+      setHistory(releaseHistory(releases)); setHistoryLoaded(true);
       setCandidate(next); setMessage(next ? `发现新版本 ${next.version}` : '当前已是最新版本（包含 Alpha 测试版）。');
     } catch (e) { if (mounted.current) setError(request.signal.aborted ? '检查更新超时，请重试。' : e instanceof Error ? e.message : '无法检查更新，请检查网络。'); }
     finally { clearTimeout(timeout); if (mounted.current) setBusy(false); }
@@ -79,6 +82,11 @@ export function AppUpdates() {
     </div>}
     {ready && <div><p role="status">{candidate?.version} 安装包已下载并校验，可以覆盖安装。</p><button className="primary" disabled={busy} onClick={() => void install()}>安装更新</button></div>}
     <p className="helper">{native ? '安装由 Android 系统确认。下载期间请保持 App 开启；同签名覆盖更新会保留本机资料。' : '网页会随站点发布更新。Android 手机可在这里检查并下载安装包。'}</p>
+    <section className="release-history" aria-label="版本更新说明"><h3>版本更新说明</h3>
+      {!history.some(row => row.version === version.appVersion) && <article><strong>{version.appVersion} · 当前版本</strong><ul>{preview.changes.map(change => <li key={change}>{change}</li>)}</ul></article>}
+      {history.map(row => <article key={row.version}><strong>{row.version}{row.version === version.appVersion ? ' · 当前版本' : ''}</strong>{row.changes.length ? <ul>{row.changes.map((change,i) => <li key={i}>{change}</li>)}</ul> : <p className="helper">该版本未提供更新说明。</p>}<a href={row.page} target="_blank" rel="noreferrer">查看发布页 ↗</a></article>)}
+      {!historyLoaded && <p className="helper">点击“检查更新”可查看其他版本的说明。</p>}
+    </section>
     <a className="back-link" href={RELEASES_PAGE} target="_blank" rel="noreferrer">所有发布版本 ↗</a>
   </section>;
 }

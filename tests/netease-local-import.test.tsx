@@ -20,3 +20,14 @@ test('a failed import presents file versus address status and leaves download un
   expect(screen.getByText('播放接口 / 极高音质：获取地址，接口拒绝（返回码 500）')).toBeInTheDocument();
   expect(screen.getByRole('button',{name:'下载并导入本机'})).toBeDisabled();
 });
+test('keeps the share link when moving between import and account pages',async()=>{
+ const props={disabled:false,onBusy:()=>{},onSaved:()=>{},standalone:true,onOpenAccount:vi.fn()};
+ const ui=render(<NeteaseLocalImport {...props} accountPage={false}/>);
+ fireEvent.change(screen.getByLabelText('分享链接或歌曲 ID'),{target:{value:'https://music.163.com/song?id=123'}});
+ fireEvent.click(screen.getByRole('button',{name:/网易云账号/}));
+ expect(props.onOpenAccount).toHaveBeenCalledOnce();
+ ui.rerender(<NeteaseLocalImport {...props} accountPage/>);
+ expect(await screen.findByRole('button',{name:'退出登录'})).toBeVisible();
+ ui.rerender(<NeteaseLocalImport {...props} accountPage={false}/>);
+ expect(screen.getByLabelText('分享链接或歌曲 ID')).toHaveValue('https://music.163.com/song?id=123');
+});

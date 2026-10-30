@@ -6,6 +6,7 @@ export interface AppRelease { tag_name: string; draft: boolean; prerelease: bool
 export interface AppUpdate { version: string; tag: string; apk: UpdateAsset; infoUrl: string; notes: string; page: string }
 export interface InstalledApp { version: string; versionCode: number; signerSha256: string }
 export interface VerifiedUpdate { url: string; sha256: string; bytes: number; versionCode: number; signerSha256: string }
+export interface ReleaseNote { version: string; changes: string[]; page: string }
 function versionParts(input: string): number[] | undefined {
   const m = /^v?(\d+)\.(\d+)\.(\d+)(?:-(alpha|beta|rc)\.(\d+))?$/.exec(input);
   if (!m) return;
@@ -17,6 +18,17 @@ export function compareVersions(a: string, b: string): number {
   if (!aa || !bb) throw new Error('版本信息格式无效。');
   for (let i = 0; i < aa.length; i++) if (aa[i] !== bb[i]) return Math.sign(aa[i] - bb[i]);
   return 0;
+}
+/** Extract only the release's update section; render the returned strings as text. */
+export function releaseHistory(value: unknown): ReleaseNote[] {
+  if (!Array.isArray(value)) return [];
+  return (value as AppRelease[]).filter(r => r && !r.draft && typeof r.tag_name === 'string' && versionParts(r.tag_name))
+    .sort((a,b) => compareVersions(b.tag_name,a.tag_name)).slice(0, 100).map(r => {
+      const body = typeof r.body === 'string' ? r.body.slice(0, 20000) : '';
+      const section = body.match(/(?:^|\n)#{1,3}\s*本次更新[^\n]*\n([\s\S]*?)(?=\n#{1,3}\s|$)/)?.[1] ?? '';
+      const changes = section.split('\n').map(line => line.trim().replace(/^[-*]\s+/, '')).filter(Boolean).slice(0, 20).map(line => line.slice(0, 500));
+      return { version: r.tag_name.replace(/^v/, ''), changes, page: `${RELEASES_PAGE}/tag/${r.tag_name}` };
+    });
 }
 function assetAt(asset: UpdateAsset, tag: string, name: string): boolean {
   return asset?.state === 'uploaded' && asset.name === name && asset.browser_download_url === `${DOWNLOAD_PREFIX}${tag}/${name}` &&

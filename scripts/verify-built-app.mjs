@@ -27,6 +27,8 @@ for (const key of [
   "MutationObserver",
   "Element",
   "HTMLElement",
+  "HTMLMediaElement",
+  "Audio",
   "HTMLCanvasElement",
   "Node",
   "Event",
@@ -39,6 +41,8 @@ for (const key of [
     value: dom.window[key],
   });
 globalThis.self = dom.window;
+HTMLMediaElement.prototype.pause = function () {};
+HTMLMediaElement.prototype.load = function () {};
 globalThis.requestAnimationFrame = dom.window.requestAnimationFrame.bind(
   dom.window,
 );
@@ -135,6 +139,7 @@ try {
     TextEncoder,
     TextDecoder,
     AudioContext,
+    Audio,
     setTimeout,
     clearTimeout,
     setInterval,
@@ -408,11 +413,12 @@ try {
   click(document.querySelector('[aria-label="退出钢琴练习"]'));
   await until(() => buttonText("暂停并返回"));
   click(buttonText("暂停并返回"));
-  await until(
-    () =>
-      document.querySelector(".piano-preparation") &&
-      document.querySelector(".bottom-nav"),
-  );
+  await until(() => document.querySelector(".piano-preparation"));
+  if (document.querySelector(".bottom-nav")) throw new Error("Secondary preparation page unexpectedly includes bottom navigation.");
+  click(document.querySelector('[aria-label="返回歌曲"]'));
+  await until(() => document.querySelector(".page-song"));
+  click(document.querySelector('[aria-label="返回曲库"]'));
+  await until(() => document.querySelector(".page-library .bottom-nav"));
   click(document.querySelector('.bottom-nav [aria-label="练习"]'));
   await until(() => document.querySelector(".page-home"));
   if (!document.querySelector(".browse h1")?.textContent.includes("今天"))

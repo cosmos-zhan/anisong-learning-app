@@ -59,6 +59,8 @@ it("home, library, new song association and settings use the same song without a
   );
   await screen.findByText("尚未关联音频，请导入本机音频。");
   expect(fetch).not.toHaveBeenCalled(); // Custom song must never fetch a different demo.
+  await user.click(screen.getByRole("button", { name: "返回歌曲" }));
+  await user.click(screen.getByRole("button", { name: "返回曲库" }));
   await user.click(screen.getByRole("button", { name: "设置" }));
   fireEvent.change(screen.getByRole("combobox", { name: "默认练习速度" }), {
     target: { value: "0.5" },
@@ -325,4 +327,16 @@ it("lyrics keep playing when the app is hidden; actual media pause/resume events
   expect(engine.playing).toBe(true);
   Object.defineProperty(document, "hidden", { configurable: true, value: false });
   ui.unmount(); controller.dispose();
+});
+it('returns to local import after choosing a song for materials', async () => {
+  history.replaceState(null, '', '/#downloads');
+  const user = userEvent.setup();
+  render(<Workspace />);
+  await user.click(screen.getByRole('button', {name: '本地文件导入'}));
+  await user.click(screen.getByRole('button', {name: '导入音频、歌词或乐谱 ›'}));
+  const select = await screen.findByRole('combobox', {name: '关联歌曲'});
+  const options = Array.from(select.querySelectorAll('option'));
+  if (options.length > 1) await user.selectOptions(select, options[1].value);
+  await user.click(screen.getByRole('button', {name: '返回本地文件导入'}));
+  expect(await screen.findByRole('heading', {name: '本地文件导入'})).toBeVisible();
 });

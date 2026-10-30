@@ -10,10 +10,12 @@ export function Sheet({
   className = "",
   backButton = false,
   subtitle,
+  onNavigateBack,
 }: {
   className?: string;
   backButton?: boolean;
   subtitle?: string;
+  onNavigateBack?: () => boolean;
   title: string;
   onClose: () => void;
   children: ReactNode | ((dismiss: DismissSheet) => ReactNode);
@@ -21,6 +23,8 @@ export function Sheet({
   const ref = useRef<HTMLElement>(null),
     close = useRef(onClose);
   close.current = onClose;
+  const navigateBack = useRef(onNavigateBack);
+  navigateBack.current = onNavigateBack;
   const navigation = useRef<{
     id: string;
     url: string;
@@ -29,6 +33,7 @@ export function Sheet({
     after?: () => void;
   } | null>(null);
   const dismiss = useCallback<DismissSheet>((afterClose) => {
+    if (!afterClose && navigateBack.current?.()) return;
     const entry = navigation.current;
     if (entry?.closing) return;
     if (

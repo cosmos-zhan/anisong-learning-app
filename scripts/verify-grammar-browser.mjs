@@ -29,18 +29,21 @@ try {
   await page.getByRole('button',{name:'第 2 句 歌っていたい',exact:true}).waitFor();
   await page.getByRole('button',{name:'解读本句',exact:true}).click();
   const dialog=page.getByRole('dialog',{name:'语法解读'});
-  await dialog.getByRole('button',{name:'播放本句',exact:true}).click();
-  await dialog.getByRole('button',{name:'停止本句',exact:true}).waitFor();
-  await dialog.getByRole('button',{name:'播放本句',exact:true}).waitFor({timeout:10000});
   await dialog.getByLabel('接口地址').fill('https://model.example/v1/chat/completions');
   await dialog.getByLabel('模型名称').fill('fixture');
   await dialog.getByLabel('API 密钥').fill('test-secret');
   await dialog.getByRole('button',{name:'保存并开始解读'}).click();
   await dialog.getByText('想继续唱歌',{exact:true}).waitFor();
+  await dialog.getByRole('button',{name:'播放本句',exact:true}).click();
+  await dialog.getByRole('button',{name:'停止本句',exact:true}).waitFor();
+  await dialog.getByRole('button',{name:'播放本句',exact:true}).waitFor({timeout:10000});
   assert.equal(await dialog.locator('ruby rt').first().textContent(),'うた');
   assert.equal(await dialog.getByText('utatte itai',{exact:true}).first().isVisible(),true);
   await dialog.getByRole('button',{name:'罗马音开'}).click(); assert.equal(await dialog.getByText('utatte itai',{exact:true}).count(),0);
   await dialog.getByRole('button',{name:'罗马音关'}).click();
+  await dialog.getByRole('button',{name:'假名开'}).click();assert.equal(await dialog.locator('ruby').count(),0);
+  await dialog.getByRole('button',{name:'假名关'}).click();assert((await dialog.locator('ruby').count())>0);
+  await dialog.getByRole('button',{name:'围绕这句追问'}).click();
   await page.evaluate(() => document.documentElement.style.setProperty('--safe-area-inset-bottom', '32px'));
   const sendBottom=await dialog.getByRole('button',{name:'发送'}).boundingBox();
   assert(sendBottom && height - (sendBottom.y + sendBottom.height) >= 47, JSON.stringify({sendBottom,height}));
@@ -48,8 +51,6 @@ try {
   await dialog.locator('.grammar-content').evaluate(el=>{el.scrollTop=el.scrollHeight});
   const dockAfter=await dialog.locator('.grammar-ask').boundingBox();
   assert(dockBefore && dockAfter && Math.abs(dockAfter.y-dockBefore.y)<1 && dockAfter.y+dockAfter.height<=height+1, JSON.stringify({dockBefore,dockAfter}));
-  await dialog.getByRole('button',{name:'假名开'}).click();assert.equal(await dialog.locator('ruby').count(),0);
-  await dialog.getByRole('button',{name:'假名关'}).click();assert((await dialog.locator('ruby').count())>0);
   await dialog.getByRole('button',{name:'这句的动词是怎么变化的？'}).click();
   await dialog.getByRole('heading',{name:'重点'}).waitFor();assert.equal(await dialog.getByText('持续状态',{exact:true}).evaluate(e=>e.tagName),'STRONG');
   assert.equal(await dialog.locator('.grammar-answer li').count(),2);
@@ -59,10 +60,13 @@ try {
   assert(geometry.width<=width && geometry.scrollWidth<=geometry.width+1,JSON.stringify(geometry));
   await page.screenshot({path:resolve(output,`grammar-${width}x${height}.png`)});
   await dialog.getByRole('button',{name:'关闭语法解读'}).click();
+  await dialog.getByRole('button',{name:'围绕这句追问'}).waitFor();
+  await dialog.getByRole('button',{name:'关闭语法解读'}).click();
   await dialog.waitFor({state:'hidden'});assert(await page.getByLabel('当前选中歌词').textContent()==='第 2 句');
   await page.getByRole('button',{name:'解读本句',exact:true}).click();
   await dialog.getByRole('tab',{name:'本句追问 1'}).click(); await dialog.getByRole('heading',{name:'重点'}).waitFor();
   assert.equal(calls,2); await dialog.getByRole('button',{name:'关闭语法解读'}).click();
+  await dialog.getByRole('button',{name:'关闭语法解读'}).click();
   results.push({width,height,calls,singleLinePlaybackCompleted:true,furiganaToggle:true,markdown:true,practiceRestored:true,...geometry});
   await context.close();
  }
