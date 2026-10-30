@@ -46,19 +46,28 @@ try {
   });
   const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
   await page.goto('https://anisong.test/?song=demo-original#downloads');
+  await page.getByRole('button',{name:'在线歌曲',exact:true}).click();
   await page.getByRole('heading',{name:'春日影 · CRYCHIC',exact:true}).waitFor();
   await page.getByRole('button',{name:'下载到本地',exact:true}).waitFor();
+  await page.getByRole('button',{name:'返回上一页'}).click();
   await page.getByRole('button',{name:'下载源设置',exact:true}).click();
   await page.getByRole('button',{name:'试用原创示例源',exact:true}).click();
   await page.getByRole('button',{name:'下载到本地',exact:true}).click();
   await page.getByRole('tabpanel',{name:'下载任务',exact:true}).waitFor();
   // Delay the actual audio response, leave the module, and only then release it.
-  await page.getByRole('button',{name:'曲库',exact:true}).click();
+  await page.getByRole('button',{name:'返回上一页'}).click();
+  await page.getByRole('heading',{name:'在线歌曲',exact:true}).waitFor();
+  await page.getByRole('button',{name:'返回上一页'}).click();
+  await page.getByRole('heading',{name:'下载源设置',exact:true}).waitFor();
+  await page.getByRole('button',{name:'返回上一页'}).click();
+  await page.getByRole('heading',{name:'下载与导入',exact:true}).waitFor();
+  await page.getByRole('button',{name:'返回曲库'}).click();
   holdAudio=false;releaseAudio();
   await page.getByRole('button',{name:/下载管理 · 1 首已下载/}).waitFor();
   await page.getByRole('button',{name:/下载管理 · 1 首已下载/}).click();
-  await page.getByRole('tab',{name:'已下载',exact:true}).click();
+  await page.getByRole('button',{name:'已下载',exact:true}).click();
   await page.getByRole('region',{name:'本地下载',exact:true}).getByRole('button',{name:'歌词学唱',exact:true}).waitFor();
+  await page.getByRole('button',{name:'返回上一页'}).click();
   await page.getByRole('button',{name:'下载源设置',exact:true}).click();
   // Cross-origin private source: wrong code must fail before the asset binding is invoked.
   await page.getByLabel('素材源地址',{exact:true}).fill('https://private-media.test/catalog.json');
@@ -75,7 +84,8 @@ try {
   // The replacement for cloud-browser login: download a private package in the user's browser,
   // then import its real bytes through the App file picker with the media server unavailable.
   blockMedia=true;
-  await page.getByText('本地导入与存储',{exact:true}).click();
+  await page.goto('https://anisong.test/?song=demo-original#downloads');
+  await page.getByRole('button',{name:'本地文件导入',exact:true}).click();
   const packFiles={};for(const [name,path] of assetPaths)packFiles[name.slice(1)]=readFileSync(path);
   const badCatalog=structuredClone(privateCatalog);badCatalog.songs[0].lyrics.sha256='0'.repeat(64);
   await page.getByLabel('选择素材包导入',{exact:true}).setInputFiles({name:'bad.anisong.zip',mimeType:'application/zip',buffer:Buffer.from(zipSync({'catalog.json':strToU8(JSON.stringify(badCatalog)),...packFiles}))});
@@ -94,7 +104,7 @@ try {
   assert.equal(blocked,0,'Saved audio, LRC and score must load without contacting the media host after a page reload');
   blockMedia=false;
   await page.goto('https://anisong.test/?song=demo-original#downloads');
-  await page.getByRole('tab',{name:'已下载',exact:true}).click();
+  await page.getByRole('button',{name:'已下载',exact:true}).click();
   await page.getByRole('button',{name:'移除下载',exact:true}).click();
   await page.getByRole('alertdialog',{name:'确认移除下载',exact:true}).getByRole('button',{name:'确认移除',exact:true}).click();
   await page.getByText('还没有下载歌曲',{exact:true}).waitFor();

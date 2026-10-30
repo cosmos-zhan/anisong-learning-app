@@ -49,16 +49,17 @@ try {
     await swipe(page, cdp, await page.locator('.shell-content').boundingBox(), width, height);
     await page.waitForFunction(() => Math.max(document.scrollingElement.scrollTop,document.querySelector('.shell-content').scrollTop) > 20, undefined, { timeout: 5000 });
     results.push({ name: 'first-home-touch-scroll', width, height, firstScroll, reloadScroll: await page.evaluate(() => Math.max(document.scrollingElement.scrollTop,document.querySelector('.shell-content').scrollTop)) });
-    for (const name of ["home", "library", "downloads", "song", "materials", "piano-prep", "settings", "recents", "about"]) {
+    for (const name of ["home", "library", "downloads", "song", "materials", "piano-prep", "settings", "updates", "recents", "about"]) {
       await page.goto(`https://anisong.test/?song=demo-original#${name}`);
-      await page.locator(".shell-title").waitFor();
+      await page.locator(name === 'downloads' ? '.download-page-header' : '.shell-title').waitFor();
       await page.evaluate(() => document.fonts.ready);
       if (name === "piano-prep") await page.getByRole("button", {name:"进入钢琴练习 →",exact:true}).waitFor();
-      const header = await page.locator(".shell-header").boundingBox();
-      const back = page.locator(".shell-back"); const before = await back.count() ? await back.boundingBox() : null;
+      const headerLocator = page.locator(name === 'downloads' ? '.download-page-header' : '.shell-header');
+      const header = await headerLocator.boundingBox();
+      const back = page.locator(name === 'downloads' ? '.download-page-header button' : '.shell-back'); const before = await back.count() ? await back.boundingBox() : null;
       await page.locator(".shell-content").hover(); await page.mouse.wheel(0, 1200);
       await page.waitForTimeout(150); // Let the browser process real wheel scrolling.
-      const after = await page.locator(".shell-header").boundingBox();
+      const after = await headerLocator.boundingBox();
       assert(Math.abs(header.y - after.y) < 1, `${name}: header moved on scroll`);
       if (before) {
         const b = await back.boundingBox();
@@ -75,8 +76,10 @@ try {
       }
       const geometry = await page.evaluate(() => ({ height:document.body.scrollHeight, width:document.body.scrollWidth, scroll:document.scrollingElement.scrollTop }));
       assert(geometry.width <= width+1, `${name}: horizontal document overflow ${JSON.stringify(geometry)}`);
-      const nav = await page.locator('.bottom-nav').boundingBox();
-      assert(Math.abs(nav.y+nav.height-height)<2,`${name}: bottom navigation left the viewport`);
+      if (['home','library','settings'].includes(name)) {
+        const nav = await page.locator('.bottom-nav').boundingBox();
+        assert(Math.abs(nav.y+nav.height-height)<2,`${name}: bottom navigation left the viewport`);
+      } else assert.equal(await page.locator('.bottom-nav').count(), 0, `${name}: secondary page has bottom navigation`);
       await page.screenshot({ path: resolve(output, `app-${name}-${width}x${height}.png`) });
       results.push({ name, width,height,header:after,...geometry });
     }

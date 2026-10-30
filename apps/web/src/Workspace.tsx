@@ -36,6 +36,7 @@ const pages = [
   "library",
   "downloads",
   "settings",
+  "updates",
   "song",
   "materials",
   "lyrics",
@@ -72,6 +73,7 @@ export function Workspace() {
   const pendingDownloads=downloadTasks.filter(t=>['queued','downloading','cancelling'].includes(t.status)).length;
   useEffect(()=>{let alive=true;void materialStore.all().then(rows=>{if(alive)setDownloads(rows.filter(r=>r.download));}).catch(()=>{});return()=>{alive=false;};},[revision]);
   const scrollArea = useRef<HTMLDivElement>(null);
+  const materialsFromDownloads = useRef(false);
   const [feedback, setFeedback] = useState(false);
   const navigate = useCallback((next: Page) => {
     if (currentPage() === next) {
@@ -101,6 +103,7 @@ export function Workspace() {
   },[changed,song.id]);
   useEffect(()=>downloadManager.onSaved(downloaded),[downloaded]);
   const choose = (next: Song, destination: Page = "song") => {
+    if (destination === "materials" && page !== "materials") materialsFromDownloads.current = false;
     if (next.id !== song.id) {
       setVisited({ lyrics: false, piano: false });
       setSong(next);
@@ -113,7 +116,8 @@ export function Workspace() {
     const url = new URL(location.href);
     url.searchParams.set("song", next.id);
     url.hash = destination;
-    history.pushState(null, "", url);
+    if (page === "materials" && destination === "materials") history.replaceState(null, "", url);
+    else history.pushState(null, "", url);
     setPage(destination);
     changed();
   };
@@ -178,10 +182,10 @@ export function Workspace() {
   }, [browserLayout, focus, page, song.id]);
   const headerTitle: Partial<Record<Page, string>> = {
     home: "ANISONG", library: "我的曲库", settings: "设置", song: song.title,
-    downloads: "下载管理", materials: "歌曲资料", "piano-prep": "钢琴学谱", recents: "最近练习", about: "关于 Anisong",
+    downloads: "下载管理", updates: "应用更新", materials: "歌曲资料", "piano-prep": "钢琴学谱", recents: "最近练习", about: "关于 Anisong",
   };
   const backTarget: Partial<Record<Page, Page>> = {
-    downloads: "library", song: "library", materials: "song", "piano-prep": "song", recents: "home", about: "settings",
+    downloads: "library", updates: "settings", song: "library", materials: "song", "piano-prep": "song", recents: "home", about: "settings",
   };
   const goPractice = (module: "lyrics" | "piano", target = song) =>
     choose(target, module === "lyrics" ? "lyrics" : "piano-prep");
@@ -213,11 +217,11 @@ export function Workspace() {
       className={`app-shell ${browserLayout ? "browser-layout" : ""} ${focus ? "is-focus" : ""} page-${page}`}
       data-revision={revision}
     >
-      {!focus && (
+      {!focus && page !== "downloads" && (
         <header className="shell-header" aria-label="页面导航">
           {backTarget[page] ? (
-            <button className="shell-back" aria-label={`返回${backTarget[page] === "song" ? "歌曲" : backTarget[page] === "library" ? "曲库" : backTarget[page] === "settings" ? "设置" : "练习"}`}
-              onClick={() => navigate(backTarget[page]!)}><Icon name="back" /></button>
+            <button className="shell-back" aria-label={page === "materials" && materialsFromDownloads.current ? "返回本地文件导入" : `返回${backTarget[page] === "song" ? "歌曲" : backTarget[page] === "library" ? "曲库" : backTarget[page] === "settings" ? "设置" : "练习"}`}
+              onClick={() => { if (page === "materials" && materialsFromDownloads.current) { materialsFromDownloads.current = false; history.back(); } else navigate(backTarget[page]!); }}><Icon name="back" /></button>
           ) : <span className="shell-emblem" aria-hidden="true">♫</span>}
           <strong className="shell-title">{headerTitle[page]}</strong>
           <span className="shell-caption">一小段，慢慢学会</span>
@@ -231,7 +235,7 @@ export function Workspace() {
               {notice}
             </p>
           )}
-          {page === "downloads" && <DownloadsPage onSaved={downloaded} onRemoved={id=>{
+          {page === "downloads" && <DownloadsPage onExit={()=>navigate("library")} onMaterials={()=>{materialsFromDownloads.current=true;navigate("materials");}} onSaved={downloaded} onRemoved={id=>{
             try{localStorage.removeItem(`anisong:materials:${id}`);}catch{/* Optional summary mirror. */}
             if(id===song.id)setVisited({lyrics:false,piano:false});changed();
           }} onOpen={(id,title,destination)=>choose({id,title,scoreIds:[],updatedAt:""},destination??'song')} />}
@@ -305,7 +309,7 @@ export function Workspace() {
                 <h1>我的曲库</h1>
                 <button
                   className="primary"
-                  onClick={() => navigate("materials")}
+                  onClick={() => { materialsFromDownloads.current = false; navigate("materials"); }}
                 >
                   ＋ 导入
                 </button>
@@ -393,7 +397,7 @@ export function Workspace() {
               </div>
               <div className="section-heading">
                 <h2>歌曲资料</h2>
-                <button onClick={() => navigate("materials")}>
+                <button onClick={() => { materialsFromDownloads.current = false; navigate("materials"); }}>
                   关联 / 替换 →
                 </button>
               </div>
@@ -415,7 +419,7 @@ export function Workspace() {
                 <button
                   className="info-row"
                   key={label}
-                  onClick={() => navigate("materials")}
+                  onClick={() => { materialsFromDownloads.current = false; navigate("materials"); }}
                 >
                   <span>{label}</span>
                   <strong>{value}</strong>
@@ -497,7 +501,7 @@ export function Workspace() {
             <>
               <p className="eyebrow">MAKE IT YOURS</p>
               <h1>设置</h1>
-              <AppUpdates />
+              <button className="info-row" onClick={() => navigate("updates")}>应用更新 <span>›</span></button>
               <section className="settings-card">
                 <h2>练习偏好</h2>
                 <label className="field-label">
@@ -570,6 +574,7 @@ export function Workspace() {
               </p>
             </>
           )}
+          {page === "updates" && <AppUpdates />}
           {page === "about" && (
             <>
               <h1>关于 Anisong</h1>
@@ -645,7 +650,7 @@ export function Workspace() {
         </div>
       )}
       </div>
-      {!focus && (
+      {["home", "library", "settings"].includes(page) && (
         <nav className="bottom-nav" aria-label="主导航">
           {[
             ["home", "⌂", "练习"],

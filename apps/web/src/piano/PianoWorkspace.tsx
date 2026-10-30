@@ -698,6 +698,7 @@ export function PianoWorkspace({
                 }}
               />
             </label>
+            <details className="saved-score-details"><summary>已保存的乐谱与更多操作</summary>
             {isHaruhikage(song) && bundledScore && (
               <button disabled={busy} onClick={reloadBuiltIn}>
                 恢复内置曲谱
@@ -725,7 +726,7 @@ export function PianoWorkspace({
             >
               下载原创合法示例谱 ↗
             </a>
-            <p role="status" className="helper">
+            </details><p role="status" className="helper">
               {notice}
             </p>
           </section>

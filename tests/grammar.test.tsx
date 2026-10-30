@@ -51,10 +51,13 @@ it('long press opens the selected sentence, pauses playback, supports follow-up,
   const dialog = await screen.findByRole('dialog', { name: '语法解读' });
   await waitFor(() => expect(within(dialog).getByText('想一直记得')).toBeVisible());
   expect(engine.playing).toBe(false); expect(engine.position).toBe(originalPosition);
+  await userEvent.click(within(dialog).getByRole('button', { name: '围绕这句追问' }));
   await userEvent.click(within(dialog).getByRole('button', { name: '这句的动词是怎么变化的？' }));
   await waitFor(() => expect(within(dialog).getByText('不是过去式。')).toBeVisible());
   const request = JSON.parse(String(mock.mock.calls[1][1]?.body));
   expect(request.messages.at(-1).content).toBe('这句的动词是怎么变化的？');
+  await userEvent.click(within(dialog).getByRole('button', { name: '关闭语法解读' }));
+  await within(dialog).findByText('想一直记得');
   await userEvent.click(within(dialog).getByRole('button', { name: '关闭语法解读' }));
   await waitFor(() => expect(screen.queryByRole('dialog', { name: '语法解读' })).toBeNull());
   expect(engine.position).toBe(originalPosition); expect(engine.playing).toBe(false);

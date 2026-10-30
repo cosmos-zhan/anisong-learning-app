@@ -38,6 +38,7 @@ try {
       }
     });
     await page.goto(`${origin}/?song=${songId}#downloads`);
+    await page.getByRole('button',{name:'在线歌曲'}).click();
     await page.getByRole('heading', { name: profile.title, exact: true }).waitFor();
     assert.equal(await page.getByLabel('访问码（私人素材源可选）', { exact: true }).count(), 0);
     await page.locator('article.download-row').filter({has:page.getByRole('heading',{name:profile.title,exact:true})}).getByRole('button',{name:'下载到本地',exact:true}).click();

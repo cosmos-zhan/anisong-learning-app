@@ -5,7 +5,7 @@ import { downloadManager } from '../packages/core/download-manager';
 import { DownloadsPage } from '../apps/web/src/downloads/DownloadsPage';
 import { defaultCatalog, DEFAULT_SOURCE, PREVIOUS_DEMO_SOURCE, preferredSource } from '../packages/core/default-source';
 vi.mock('../apps/web/src/bundled-audio.json', () => ({ default: { catalog: null, package: null } }));
-beforeEach(() => { localStorage.clear(); vi.stubGlobal('fetch', vi.fn(async()=>new Response(JSON.stringify(defaultCatalog())))); });
+beforeEach(() => { history.replaceState(null, '', '/#downloads'); localStorage.clear(); vi.stubGlobal('fetch', vi.fn(async()=>new Response(JSON.stringify(defaultCatalog())))); });
 afterEach(() => vi.unstubAllGlobals());
 it('migrates the previous example default while preserving a user-selected source', () => {
   expect(preferredSource()).toBe(DEFAULT_SOURCE);
@@ -18,7 +18,8 @@ it('migrates the previous example default while preserving a user-selected sourc
 });
 it('one click queues Haruhikage with no access dialog, token or manual source URL', async () => {
   const enqueue=vi.spyOn(downloadManager,'enqueue').mockImplementation(()=>{});
-  render(<DownloadsPage onSaved={vi.fn()} onRemoved={vi.fn()} onOpen={vi.fn()}/>);
+  render(<DownloadsPage onSaved={vi.fn()} onRemoved={vi.fn()} onOpen={vi.fn()} onExit={vi.fn()} onMaterials={vi.fn()}/>);
+  fireEvent.click(screen.getByRole('button',{name:/在线歌曲/}));
   await screen.findByRole('heading', { name: '春日影 · CRYCHIC' });
   await waitFor(()=>expect(fetch).toHaveBeenCalledWith(DEFAULT_SOURCE,expect.objectContaining({credentials:'same-origin'})));
   expect(vi.mocked(fetch).mock.calls[0][1]?.headers).toBeUndefined();
@@ -26,11 +27,11 @@ it('one click queues Haruhikage with no access dialog, token or manual source UR
   expect(enqueue).toHaveBeenCalledWith(expect.objectContaining({id:'haruhikage-crychic'}),undefined);
   expect(screen.getByRole('tabpanel',{name:'下载任务'})).toBeVisible();
   expect(screen.queryByLabelText('访问码（私人素材源可选）')).not.toBeInTheDocument();
-  expect(screen.getByRole('button',{name:'下载源设置'})).toHaveAttribute('aria-expanded','false');
+  expect(screen.queryByLabelText('素材源地址')).not.toBeInTheDocument();
 });
 it('the default source settings contain no access-code input',async()=>{
-  render(<DownloadsPage onSaved={vi.fn()} onRemoved={vi.fn()} onOpen={vi.fn()}/>);
-  fireEvent.click(screen.getByRole('button',{name:'下载源设置'}));
+  render(<DownloadsPage onSaved={vi.fn()} onRemoved={vi.fn()} onOpen={vi.fn()} onExit={vi.fn()} onMaterials={vi.fn()}/>);
+  fireEvent.click(screen.getByRole('button',{name:/下载源设置/}));
   expect(screen.getByLabelText('素材源地址')).toHaveValue(DEFAULT_SOURCE);
   expect(screen.queryByLabelText('访问码（私人素材源可选）')).not.toBeInTheDocument();
 });
