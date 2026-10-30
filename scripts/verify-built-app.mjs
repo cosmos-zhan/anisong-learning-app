@@ -27,6 +27,8 @@ for (const key of [
   "MutationObserver",
   "Element",
   "HTMLElement",
+  "HTMLMediaElement",
+  "Audio",
   "HTMLCanvasElement",
   "Node",
   "Event",
@@ -39,6 +41,8 @@ for (const key of [
     value: dom.window[key],
   });
 globalThis.self = dom.window;
+HTMLMediaElement.prototype.pause = function () {};
+HTMLMediaElement.prototype.load = function () {};
 globalThis.requestAnimationFrame = dom.window.requestAnimationFrame.bind(
   dom.window,
 );
@@ -135,6 +139,7 @@ try {
     TextEncoder,
     TextDecoder,
     AudioContext,
+    Audio,
     setTimeout,
     clearTimeout,
     setInterval,
