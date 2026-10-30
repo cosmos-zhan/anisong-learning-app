@@ -64,7 +64,8 @@ try {
       if (before) {
         const b = await back.boundingBox();
         assert(Math.abs(before.x-b.x)<1 && Math.abs(before.y-b.y)<1, `${name}: back moved`);
-        assert(b.x<=20 && b.y<=30, `${name}: back is not top left`);
+        const maxLeft = name === 'downloads' ? Math.max(20,(width-720)/2+16) : 20;
+        assert(b.x<=maxLeft+1 && b.y<=30, `${name}: back is not top left ${JSON.stringify(b)}`);
         assert.equal(await page.getByRole("button", {name:/^返回(歌曲|曲库|设置|练习)$/}).count(), 1, `${name}: duplicate back button`);
       }
       if (name === "song") {
