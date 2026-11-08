@@ -3,6 +3,7 @@ import type { PlayerState } from "../../../../packages/core/types";
 import { currentLyric, type LyricsDisplay } from "../../../../packages/core/lyrics-display";
 import { useLyricFollow } from "./useLyricFollow";
 import { Icon } from "../components/Icon";
+import { RomajiLyrics } from "./RomajiLyrics";
 import "./lyrics.css";
 
 export const practiceTime = (value: number) => {
@@ -178,8 +179,7 @@ export function LyricsPractice({
                 </span>
                 <span className="lyric-content">
                   {current && <span className="lyric-current-label">当前句</span>}
-                  <span className="lyric-text">{line.text}</span>
-                  {display.romaji && line.romaji && <span className="lyric-romaji">{line.romaji}</span>}
+                  {display.romaji && line.romaji ? <RomajiLyrics text={line.text} romaji={line.romaji} /> : <span className="lyric-text">{line.text}</span>}
                   {display.translation && line.translation && <span className="lyric-translation">{line.translation}</span>}
                 </span>
               </button>
