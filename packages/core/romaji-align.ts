@@ -55,10 +55,13 @@ export function alignRomaji(text: string, romaji: string): RomajiAlignment {
   const readings = romaji.trim().split(/\s+/);
   if (readings.some(word => !normalize(word))) return fallback();
   if (!words.length || !readings.length || words.length > 64 || readings.length > 64 || romaji.length > 1500) return fallback();
-  type Step = { endWord: number; endReading: number; score: number; next?: Step };
+  // Some sources put a space between every syllable rather than between words.
+  // Without a kanji pronunciation dictionary those boundaries are ambiguous.
+  if (readings.length > words.length && readings.filter(word => normalize(word).length <= 3).length / readings.length > 0.6) return fallback();
+  type Step = { endWord: number; endReading: number; score: number; ways: number; next?: Step };
   const memo = new Map<string, Step | null>();
   function visit(i: number, j: number): Step | null {
-    if (i === words.length && j === readings.length) return {endWord:i,endReading:j,score:0};
+    if (i === words.length && j === readings.length) return {endWord:i,endReading:j,score:0,ways:1};
     if (i === words.length || j === readings.length) return null;
     const key = `${i}:${j}`; if (memo.has(key)) return memo.get(key)!;
     let best: Step | null = null;
@@ -71,12 +74,13 @@ export function alignRomaji(text: string, romaji: string): RomajiAlignment {
         if (!compatible(part,sound)) continue;
         const next=visit(endWord,endReading); if (!next) continue;
         const score=next.score+100-(endWord-i-1)*2-(endReading-j-1);
-        if (!best || score>best.score) best={endWord,endReading,score,next};
+        if (!best || score>best.score) best={endWord,endReading,score,ways:next.ways,next};
+        else if (score === best.score) best.ways=Math.min(2,best.ways+next.ways);
       }
     }
     memo.set(key,best);return best;
   }
-  let step=visit(0,0); if (!step || !step.next) return fallback();
+  let step=visit(0,0); if (!step || !step.next || step.ways>1) return fallback();
   const groups: RomajiPart[]=[]; let i=0,j=0,previousEnd=0;
   while (step.next) {
     const first=words[i],last=words[step.endWord-1];

@@ -11,13 +11,15 @@ describe('lyric romanization alignment', () => {
       {text:'赤い',romaji:'akai'},{text:'花',romaji:'hana'},{text:'が',romaji:'ga'},{text:'咲く',romaji:'saku!'},
     ]);
   });
-  it('handles kana particles, syllable-separated input and macron long vowels', () => {
-    const parts=alignRomaji('猫は遠い','ne ko wa tōi');
+  it('handles kana particles and macron long vowels', () => {
+    const parts=alignRomaji('猫は遠い','neko wa tōi');
     expect(parts.parts.map(p=>p.text).join('')).toBe('猫は遠い');
-    expect(parts.parts.filter(p=>p.romaji)).toEqual([{text:'猫は',romaji:'ne ko wa'},{text:'遠い',romaji:'tōi'}]);
+    expect(parts.parts.filter(p=>p.romaji)).toEqual([{text:'猫',romaji:'neko'},{text:'は',romaji:'wa'},{text:'遠い',romaji:'tōi'}]);
   });
   it('falls back to a single line when kana and reading conflict', () => {
     expect(alignRomaji('猫が走る','cat dog')).toEqual({parts:[{text:'猫が走る',romaji:'cat dog'}],aligned:false});
+    expect(alignRomaji('猫花青い','ne ko ha na aoi').aligned).toBe(false);
+    expect(alignRomaji('赤い花が咲く','a ka i ha na ga sa ku').aligned).toBe(false);
   });
   it('falls back safely without Japanese segmentation or on oversized input', () => {
     expect(alignRomaji('hello world','hello world').aligned).toBe(false);

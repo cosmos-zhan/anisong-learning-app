@@ -553,7 +553,7 @@
 .lyrics-focus .lyric-text { color:#d3dfd5; font-size:20px; line-height:1.55; }
 .lyrics-focus .lyric-romaji { color:#d2b69c; font-size:13px; line-height:1.6; overflow-wrap:anywhere; }
 .lyric-romaji .lyric-text { display:block; white-space:pre-wrap; line-height:2.3; overflow-wrap:normal; }
-.lyric-romaji ruby { ruby-position:over; ruby-align:center; white-space:nowrap; }
+.lyric-romaji ruby { ruby-position:over; ruby-align:center; white-space:nowrap; margin-right:.16em; }
 .lyric-romaji rt { color:#d2b69c; font-size:0.62em; font-weight:400; line-height:1.25; text-align:center; }
 .lyric-romaji-fallback { display:flex; flex-direction:column; }
 .lyric-romaji-fallback .lyric-text { line-height:1.55; overflow-wrap:anywhere; }
