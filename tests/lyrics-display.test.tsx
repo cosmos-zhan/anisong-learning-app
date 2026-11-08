@@ -103,3 +103,13 @@ it("display panel remains usable on HTTP previews without randomUUID", async () 
     ui.unmount();controller.dispose();
   }
 });
+it('renders aligned romaji over each word and leaves untranslated text unchanged when hidden',async()=>{
+ const {controller,ui,user}=await setup('[00:00]赤い花\n[00:00][romaji]akai hana\n[00:10]two\n[00:20]three\n[00:30]four');
+ const row=screen.getByRole('button',{name:'第 1 句 赤い花'});
+ const groups=within(row).getAllByText(/akai|hana/).filter(node=>node.tagName==='RT');
+ expect(groups).toHaveLength(2);expect(groups[0].parentElement?.firstChild?.textContent).toBe('赤い');expect(groups[1].parentElement?.firstChild?.textContent).toBe('花');
+ await user.click(screen.getByRole('button',{name:'歌词显示'}));
+ await user.click(screen.getByRole('checkbox',{name:'显示罗马音'}));
+ expect(row.querySelector('ruby')).toBeNull();expect(within(row).getByText('赤い花')).toBeVisible();
+ ui.unmount();controller.dispose();
+});
