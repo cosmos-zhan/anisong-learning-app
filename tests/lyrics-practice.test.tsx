@@ -88,6 +88,30 @@ it("new lyric rows still seek and play; reverse multi-selection pauses at the an
   ui.unmount();
   c.dispose();
 });
+it("closing the range picker keeps the clip; the next regular lyric tap plays just that line", async () => {
+  const { engine, controller, ui } = await practice();
+  const picker = screen.getByRole("button", { name: "选段" });
+  fireEvent.click(picker);
+  fireEvent.click(screen.getByRole("button", { name: "多句连续" }));
+  fireEvent.click(screen.getByRole("button", { name: "第 3 句 three" }));
+  fireEvent.click(screen.getByRole("button", { name: "第 4 句 four" }));
+  await waitFor(() => expect(engine.playing).toBe(true));
+  fireEvent.click(picker);
+  expect(picker).toHaveAttribute("aria-expanded", "false");
+  expect(controller.getSnapshot().selection).toEqual([2, 3]);
+  expect(engine.playing).toBe(true);
+
+  fireEvent.click(screen.getByRole("button", { name: "第 2 句 いつまでも覚えていたい" }));
+  expect(picker).toHaveAttribute("aria-expanded", "false");
+  expect(controller.getSnapshot().selection).toEqual([1, 1]);
+  await waitFor(() => expect(engine.playing).toBe(true));
+  expect(engine.position).toBe(16.3);
+
+  fireEvent.click(picker);
+  expect(screen.getByRole("button", { name: "多句连续" })).toHaveAttribute("aria-pressed", "true");
+  ui.unmount();
+  controller.dispose();
+});
 it("speed panel pauses audio, changes actual speed, preserves range and consumes only the panel Back entry", async () => {
   const { engine, controller: c, user, ui } = await practice();
   await user.click(screen.getByRole("button", { name: "播放" }));

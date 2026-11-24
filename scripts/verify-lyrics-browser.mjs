@@ -48,10 +48,9 @@ try {
     await page.screenshot({path:resolve(output,`lyrics-display-${width}x${height}.png`)});
     await checkbox.check(); await page.getByRole('button',{name:'完成',exact:true}).click();
     await page.getByRole('dialog').waitFor({state:'hidden'});
-    await chooseRange.click();
-    await page.getByRole('button',{name:'单句循环',exact:true}).click();
     await line(10).click();await page.getByRole('button',{name:'暂停',exact:true}).click();
-    await chooseRange.click();
+    assert.equal(await chooseRange.getAttribute('aria-expanded'),'false');
+    assert.equal(await page.getByLabel('当前选中歌词').textContent(),'第 10 句');
     await page.waitForFunction(()=>{const list=document.querySelector('.lyrics'),row=document.querySelector('.lyric[aria-current="true"]');if(!list||!row)return false;const a=list.getBoundingClientRect(),b=row.getBoundingClientRect();return b.top>=a.top-1&&b.bottom<=a.bottom+1;});
     const geometry=await page.evaluate(()=>{const a=document.querySelector('.lyrics-header').getBoundingClientRect(),b=document.querySelector('.lyrics-player').getBoundingClientRect();return {width:document.body.scrollWidth,height:document.body.scrollHeight,headerTop:a.top,playerBottom:b.bottom};});
     assert(geometry.width<=width+1&&geometry.height<=height+1,JSON.stringify(geometry));

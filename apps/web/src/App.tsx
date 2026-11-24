@@ -512,8 +512,8 @@ export function App({
         setNotice((e as Error).message);
     }
   };
-  const select = (i: number) => {
-    if (!multi) {
+  const select = (i: number, multiple = multi) => {
+    if (!multiple) {
       void controller.select(i);
       return;
     }
