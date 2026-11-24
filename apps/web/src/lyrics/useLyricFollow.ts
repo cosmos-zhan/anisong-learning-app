@@ -5,11 +5,12 @@ export function useLyricFollow(current: number, enabled: boolean, blocked: boole
   const list = useRef<HTMLDivElement>(null);
   const [browsing, setBrowsing] = useState(false);
   const resume = useCallback(() => setBrowsing(false), []);
+  useLayoutEffect(() => { if (!enabled) resume(); }, [enabled, resume]);
   const suspend = useCallback(() => { if (enabled) { const el = list.current; if (el) el.scrollTo?.({top: el.scrollTop, behavior: 'auto'}); setBrowsing(true); } }, [enabled]);
   const center = useCallback((instant = false) => {
     const container = list.current;
     if (!container || !enabled || blocked || browsing || current < 0) return;
-    const row = container.querySelector<HTMLElement>(`[data-line="${current}"]`);
+    const row = container.querySelector<HTMLElement>(`[data-line="${current}"]`)?.parentElement;
     if (!row) return;
     const top = row.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop;
     const target = lyricScrollTop(top, row.offsetHeight, container.clientHeight, container.scrollHeight);

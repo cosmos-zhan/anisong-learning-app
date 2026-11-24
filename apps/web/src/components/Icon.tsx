@@ -11,8 +11,10 @@ export function Icon({
     | "previous"
     | "next"
     | "languages"
-    | "follow";
-    // Additional controls share the existing lightweight icon system.
+    | "follow"
+    | "repeat"
+    | "segment"
+    | "sparkle";
 }) {
   const paths = {
     back: "m14 5-7 7 7 7",
@@ -25,6 +27,9 @@ export function Icon({
     languages: "M3 5h12M9 3v2M5 5c0 5 6 9 9 9M13 5c0 5-6 9-10 9M14 21l4-10 4 10M16 17h4",
     follow: "M3 5h12M3 10h9M3 15h6M18 7v10a3 3 0 1 1-3-3h3",
     next: "M18 5v14M6 5l10 7-10 7Z",
+    repeat: "m17 3 4 4-4 4M21 7H7a4 4 0 0 0-4 4m4 10-4-4 4-4m-4 4h14a4 4 0 0 0 4-4",
+    segment: "M8 5H4v14h4m8-14h4v14h-4M8 9h8m-8 3h8m-8 3h8",
+    sparkle: "m11 3 2.5 6.5L20 12l-6.5 2.5L11 21l-2.5-6.5L2 12l6.5-2.5L11 3Zm9 0v4m-2-2h4",
   };
   return (
     <svg

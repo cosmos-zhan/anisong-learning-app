@@ -47,7 +47,7 @@ async function practice(lines = lyrics) {
 it("displays relative clip progress while the real slider and seek keep original-song seconds", async () => {
   const { engine, controller: c, ui } = await practice();
   expect(screen.getByRole("heading", { name: "春日影" })).toBeVisible();
-  expect(screen.getByText("CRYCHIC ver. · 歌词学唱")).toBeVisible();
+  expect(screen.getByText("CRYCHIC")).toBeVisible();
   act(() => {
     engine.position = 18;
     engine.emit({ type: "position", position: 18 });
@@ -73,6 +73,7 @@ it("new lyric rows still seek and play; reverse multi-selection pauses at the an
   expect(engine.range).toEqual({ start: 25.9, end: 30.7 });
   expect(engine.position).toBe(25.9);
   expect(engine.playing).toBe(true);
+  await user.click(screen.getByRole("button", { name: "选段" }));
   await user.click(screen.getByRole("button", { name: "多句连续" }));
   await user.click(screen.getByRole("button", { name: "第 4 句 four" }));
   expect(engine.playing).toBe(false);

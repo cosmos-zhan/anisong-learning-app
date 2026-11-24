@@ -46,9 +46,6 @@
 .grammar-hints button { font-size: 12px; }
 .grammar-ask form { display: flex; gap: 8px; margin-top: 12px; align-items: end; }
 .grammar-ask textarea { resize: vertical; flex: 1; min-width: 0; }
-.lyrics-focus .selection-help > button { min-height: 44px; white-space: nowrap; color: #dcebe0; }
-.lyrics-focus .lyric { touch-action: pan-y; -webkit-touch-callout: none; }
-@media (max-width: 360px) { .lyrics-focus .selection-help { gap: 3px; font-size: 10px; } .lyrics-focus .selection-help > button { font-size: 10px; } }
 
 /* Match the reading-first design while keeping phone text and touch targets legible. */
 .lyrics-app .grammar-panel { font-family: -apple-system, BlinkMacSystemFont, "Noto Sans CJK JP", "Noto Sans JP", "PingFang SC", "Microsoft YaHei", sans-serif; }

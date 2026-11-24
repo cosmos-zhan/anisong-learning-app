@@ -585,14 +585,14 @@ export function App({
       {view === "practice" && (
         <LyricsPractice
           state={state}
+          songId={songId}
           title={preset ? "春日影" : title}
-          subtitle={preset ? "CRYCHIC ver. · 歌词学唱" : "歌词学唱"}
+          subtitle={preset ? "CRYCHIC" : ""}
           multi={multi}
           anchor={anchor}
           notice={notice}
           display={display}
-          sheetOpen={!!sheet}
-          onDisplay={changeDisplay}
+          sheetOpen={!!sheet || grammarLine !== null}
           onSelect={select}
           onInterpret={(index) => { if (!state.lines[index]) return; ++grammarGeneration.current; controller.pause(); flushRef.current(); setGrammarLine(index); }}
           onMode={chooseMode}
