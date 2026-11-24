@@ -44,7 +44,7 @@ export function LyricsPractice({
   notice: string;
   display: LyricsDisplay;
   sheetOpen: boolean;
-  onSelect: (index: number) => void;
+  onSelect: (index: number, multiple: boolean) => void;
   onInterpret: (index: number) => void;
   onMode: (multi: boolean) => void;
   onCancel: () => void;
@@ -61,6 +61,7 @@ export function LyricsPractice({
   const [choosingRange, setChoosingRange] = useState(false);
   const lyricsTab = useRef<HTMLButtonElement>(null);
   const rangePicker = !coverView && (choosingRange || anchor !== null) && lines.length > 0;
+  const selectingMultiple = rangePicker && multi;
 
   const hold = useRef<{ timer: ReturnType<typeof setTimeout>; x: number; y: number } | null>(null);
   const held = useRef(false);
@@ -186,8 +187,8 @@ export function LyricsPractice({
                       onContextMenu={event => event.preventDefault()}
                       onClick={() => {
                         if (held.current) { held.current = false; return; }
-                        if (!multi || anchor !== null) follow.resume();
-                        onSelect(index);
+                        if (!selectingMultiple || anchor !== null) follow.resume();
+                        onSelect(index, selectingMultiple);
                       }}
                     >
                       {rangePicker && <span className="line-number" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>}
