@@ -365,6 +365,8 @@ try {
   click(document.querySelector('[aria-label="更多钢琴操作"]'));
   await until(() => buttonText("反馈 ↗"));
   click(buttonText("反馈 ↗"));
+  await until(() => buttonText("预览和提交"));
+  click(buttonText("预览和提交"));
   await until(() =>
     document.querySelector(".report")?.value.includes('"piano"'),
   );
@@ -420,9 +422,9 @@ try {
   await until(() => document.querySelector(".page-song"));
   click(document.querySelector('[aria-label="返回曲库"]'));
   await until(() => document.querySelector(".page-library .bottom-nav"));
-  click(document.querySelector('.bottom-nav [aria-label="练习"]'));
+  click(document.querySelector('.bottom-nav [aria-label="首页"]'));
   await until(() => document.querySelector(".page-home"));
-  if (!document.querySelector(".browse h1")?.textContent.includes("今天"))
+  if (document.querySelector(".shell-title")?.textContent !== "首页")
     throw new Error("Production home missing.");
   click(document.querySelector('.bottom-nav [aria-label="曲库"]'));
   await until(() => document.querySelector(".library-list"));

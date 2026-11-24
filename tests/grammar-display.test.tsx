@@ -85,8 +85,8 @@ it('keeps an unsent question when opening settings and returning to chat',async(
  await within(dialog).findByText('想再一次唱歌');
  fireEvent.click(within(dialog).getByRole('button',{name:'围绕这句追问'}));
  fireEvent.change(within(dialog).getByLabelText('对当前句子的追问'),{target:{value:'这个时态为什么这样用？'}});
- fireEvent.click(within(dialog).getByRole('button',{name:/上下文/}));
- fireEvent.change(within(dialog).getByLabelText('发送歌词上下文'),{target:{value:'full'}});
+ fireEvent.click(within(dialog).getByRole('button',{name:'模型与上下文'}));
+ fireEvent.click(within(dialog).getByRole('radio',{name:/全文/}));
  fireEvent.click(within(dialog).getByRole('button',{name:'保存并返回'}));
  await waitFor(()=>expect(within(dialog).getByLabelText('对当前句子的追问')).toHaveValue('这个时态为什么这样用？'));
  expect(within(dialog).getByRole('button',{name:/上下文：全文/})).toBeVisible();

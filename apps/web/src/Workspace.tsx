@@ -6,6 +6,7 @@ import { App } from "./App";
 import { PianoWorkspace } from "./piano/PianoWorkspace";
 import { Icon } from "./components/Icon";
 import { Cover } from "./components/Cover";
+import { Sheet } from "./components/Sheet";
 import { Feedback } from "./components/Feedback";
 import { AppUpdates } from "./components/AppUpdates";
 import {
@@ -58,6 +59,18 @@ const modeName = (r: PracticeRecord) =>
       : r.mode === "free"
         ? "自由弹奏"
         : "自动试听";
+const navigation = [
+  ["home", "home", "首页"],
+  ["library", "library", "曲库"],
+  ["settings", "settings", "设置"],
+] as const;
+function practiceDate(savedAt: string) {
+  const day = new Date(savedAt), today = new Date(), yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+  if (day.toDateString() === today.toDateString()) return "今天";
+  if (day.toDateString() === yesterday.toDateString()) return "昨天";
+  return Number.isNaN(day.getTime()) ? "更早" : day.toLocaleDateString("zh-CN");
+}
 export function Workspace() {
   const [page, setPage] = useState<Page>(currentPage),
     [song, setSong] = useState<Song>(() => initialSong(location.search));
@@ -67,13 +80,15 @@ export function Workspace() {
     [filter, setFilter] = useState("all"),
     [prefs, setPrefs] = useState(preferences),
     [notice, setNotice] = useState(""),
-    [newTitle, setNewTitle] = useState("");
+    [newTitle, setNewTitle] = useState(""),
+    [creating, setCreating] = useState(false);
   const [downloads, setDownloads] = useState<LocalMaterial[]>([]);
   const downloadTasks=useSyncExternalStore(downloadManager.subscribe,downloadManager.snapshot);
   const pendingDownloads=downloadTasks.filter(t=>['queued','downloading','cancelling'].includes(t.status)).length;
   useEffect(()=>{let alive=true;void materialStore.all().then(rows=>{if(alive)setDownloads(rows.filter(r=>r.download));}).catch(()=>{});return()=>{alive=false;};},[revision]);
   const scrollArea = useRef<HTMLDivElement>(null);
   const materialsFromDownloads = useRef(false);
+  const downloadsReturn = useRef<"home" | "library">("library");
   const [feedback, setFeedback] = useState(false);
   const navigate = useCallback((next: Page) => {
     if (currentPage() === next) {
@@ -181,18 +196,26 @@ export function Workspace() {
     return () => document.documentElement.classList.remove('document-scroll');
   }, [browserLayout, focus, page, song.id]);
   const headerTitle: Partial<Record<Page, string>> = {
-    home: "ANISONG", library: "我的曲库", settings: "设置", song: song.title,
-    downloads: "下载管理", updates: "应用更新", materials: "歌曲资料", "piano-prep": "钢琴学谱", recents: "最近练习", about: "关于 Anisong",
+    home: "首页", library: "曲库", settings: "设置", song: "歌曲详情",
+    updates: "应用更新", materials: "歌曲资料", "piano-prep": "钢琴学谱", recents: "最近练习", about: "关于 Anisong",
   };
   const backTarget: Partial<Record<Page, Page>> = {
-    downloads: "library", updates: "settings", song: "library", materials: "song", "piano-prep": "song", recents: "home", about: "settings",
+    updates: "settings", song: "library", materials: "song", "piano-prep": "song", recents: "home", about: "settings",
   };
   const goPractice = (module: "lyrics" | "piano", target = song) =>
     choose(target, module === "lyrics" ? "lyrics" : "piano-prep");
+  const openDownloads = (from: "home" | "library") => {
+    downloadsReturn.current = from;
+    navigate("downloads");
+  };
+  const closeCreate = () => {
+    setCreating(false);
+    setNewTitle("");
+  };
   const description = (r: PracticeRecord) =>
     `${modeName(r)} · ${r.range ? `第 ${r.range[0] + 1}${r.range[1] === r.range[0] ? "" : `–${r.range[1] + 1}`} ${r.module === "lyrics" ? "句" : "小节"}` : "整曲"} · ${r.speed}× · 循环${r.loop ? "开" : "关"}`;
-  const recentRows = (limit = 30) =>
-    records.slice(0, limit).map((r) => {
+  const recentRows = (list: PracticeRecord[], showTime = false) =>
+    list.map((r) => {
       const s = catalog.find((s) => s.id === r.songId);
       return s ? (
         <button
@@ -200,31 +223,41 @@ export function Workspace() {
           key={`${r.songId}:${r.module}`}
           onClick={() => goPractice(r.module, s)}
         >
-          <span className="round-icon">
-            {r.module === "lyrics" ? "♫" : "♩"}
-          </span>
+          <Cover small id={s.id} piano={r.module === "piano"} />
           <span>
             <strong>{s.title}</strong>
             <small>{description(r)}</small>
-            <small>{new Date(r.savedAt).toLocaleString("zh-CN")}</small>
           </span>
-          <b>›</b>
+          {showTime && <small className="recent-time">{new Date(r.savedAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}</small>}
+          <Icon name="right" />
         </button>
       ) : null;
     });
+  const recentDays = new Map<string, PracticeRecord[]>();
+  if (page === "recents") {
+    for (const record of records.slice(0, 30)) {
+      const date = practiceDate(record.savedAt);
+      const list = recentDays.get(date) ?? [];
+      list.push(record);
+      recentDays.set(date, list);
+    }
+  }
   return (
     <div
       className={`app-shell ${browserLayout ? "browser-layout" : ""} ${focus ? "is-focus" : ""} page-${page}`}
       data-revision={revision}
     >
       {!focus && page !== "downloads" && (
-        <header className="shell-header" aria-label="页面导航">
-          {backTarget[page] ? (
+        <header className={`shell-header ${backTarget[page] ? "shell-subpage" : "shell-root"}`} aria-label="页面导航">
+          {backTarget[page] && (
             <button className="shell-back" aria-label={page === "materials" && materialsFromDownloads.current ? "返回本地文件导入" : `返回${backTarget[page] === "song" ? "歌曲" : backTarget[page] === "library" ? "曲库" : backTarget[page] === "settings" ? "设置" : "练习"}`}
               onClick={() => { if (page === "materials" && materialsFromDownloads.current) { materialsFromDownloads.current = false; history.back(); } else navigate(backTarget[page]!); }}><Icon name="back" /></button>
-          ) : <span className="shell-emblem" aria-hidden="true">♫</span>}
-          <strong className="shell-title">{headerTitle[page]}</strong>
-          <span className="shell-caption">一小段，慢慢学会</span>
+          )}
+          <div className="shell-heading">
+            <h1 className="shell-title">{headerTitle[page]}</h1>
+            {page === "home" && <span className="shell-caption">Anisong</span>}
+          </div>
+          {page === "library" && <button className="shell-action" type="button" aria-label="新建歌曲" onClick={() => setCreating(true)}><Icon name="plus" /></button>}
         </header>
       )}
       <div className="shell-content" ref={scrollArea}>
@@ -235,210 +268,132 @@ export function Workspace() {
               {notice}
             </p>
           )}
-          {page === "downloads" && <DownloadsPage onExit={()=>navigate("library")} onMaterials={()=>{materialsFromDownloads.current=true;navigate("materials");}} onSaved={downloaded} onRemoved={id=>{
+          {page === "downloads" && <DownloadsPage returnHome={downloadsReturn.current === "home"} onExit={()=>navigate(downloadsReturn.current)} onMaterials={()=>{materialsFromDownloads.current=true;navigate("materials");}} onSaved={downloaded} onRemoved={id=>{
             try{localStorage.removeItem(`anisong:materials:${id}`);}catch{/* Optional summary mirror. */}
             if(id===song.id)setVisited({lyrics:false,piano:false});changed();
           }} onOpen={(id,title,destination)=>choose({id,title,scoreIds:[],updatedAt:""},destination??'song')} />}
           {page === "home" && (
             <>
-              <div className="page-heading">
-                <div>
-                  <p className="eyebrow">YOUR PRACTICE SPACE</p>
-                  <h1>今天，练一小段。</h1>
-                </div>
-                <span className="seed-mark">✳</span>
-              </div>
               <section className="continue-card">
-                <div className="card-heading">
-                  <span>{last ? "接着上次练习" : "从喜欢的歌开始"}</span>
-                  <span>↗</span>
-                </div>
                 <div className="featured-song">
-                  <Cover id={lastSong.id} title={lastSong.title} />
-                  <div>
-                    <p className="eyebrow">
-                      {isHaruhikage(lastSong) ? "CRYCHIC" : "本地曲库"}
-                    </p>
-                    <h2>{lastSong.title}</h2>
-                    <p>{last ? description(last) : "歌词学唱 · 钢琴学谱"}</p>
-                  </div>
+                  <button className="featured-details" onClick={() => choose(lastSong)} aria-label={`查看${lastSong.title}的歌曲资料`}>
+                    <span className="eyebrow">{last ? "继续练习" : "开始练习"}</span>
+                    <strong>{lastSong.title}</strong>
+                    <small>{last ? description(last) : "歌词学唱 · 钢琴学谱"}</small>
+                  </button>
+                  <Cover id={lastSong.id} piano={last?.module === "piano"} />
                 </div>
-                <button
-                  className="primary full"
-                  onClick={() => goPractice(last?.module ?? "lyrics", lastSong)}
-                >
-                  {last
-                    ? `继续${last.module === "lyrics" ? "学唱" : "学谱"}`
-                    : "开始学唱"}{" "}
-                  <span>→</span>
-                </button>
-                <button className="quiet full" onClick={() => choose(lastSong)}>
-                  查看歌曲与资料
+                <button className="primary full action-with-icon" onClick={() => goPractice(last?.module ?? "lyrics", lastSong)}>
+                  <Icon name="play" />
+                  {last ? `继续${last.module === "lyrics" ? "学唱" : "学谱"}` : "开始学唱"}
                 </button>
               </section>
-              <button
-                className="piano-entry"
-                onClick={() => goPractice("piano")}
-              >
-                <span className="round-icon">♩</span>
-                <span>
+              <div className="home-shortcuts">
+                <button className="shortcut" onClick={() => goPractice("piano")}>
+                  <Icon name="piano" />
                   <strong>钢琴学谱</strong>
-                  <small>上方看谱，下方动手弹</small>
-                </span>
-                <b>→</b>
-              </button>
-              <button className="download-library-entry" onClick={()=>navigate('downloads')}>↓ 我的下载 · {downloads.length} 首{pendingDownloads?` · ${pendingDownloads} 项进行中`:''}</button>
+                  <small>打开乐谱</small>
+                </button>
+                <button className="shortcut" onClick={() => openDownloads("home")}>
+                  <Icon name="download" />
+                  <strong>下载与导入</strong>
+                  <small>{pendingDownloads ? `${pendingDownloads} 项进行中` : `${downloads.length} 首已下载`}</small>
+                </button>
+              </div>
               <div className="section-heading">
                 <h2>最近练习</h2>
-                <button onClick={() => navigate("recents")}>查看全部 →</button>
+                {records.length > 0 && <button onClick={() => navigate("recents")}>查看全部</button>}
               </div>
               {records.length ? (
-                recentRows(3)
+                <div className="list-panel">{recentRows(records.slice(0, 3))}</div>
               ) : (
                 <div className="empty-card">
-                  <span>♪</span>
-                  <p>第一段练习，从这里开始。</p>
-                  <small>练习后会保存歌曲、范围和速度。</small>
+                  <Icon name="note" />
+                  <p>还没有练习记录</p>
+                  <small>练习后可从这里继续。</small>
                 </div>
               )}
             </>
           )}
           {page === "library" && (
             <>
-              <div className="page-heading">
-                <h1>我的曲库</h1>
-                <button
-                  className="primary"
-                  onClick={() => { materialsFromDownloads.current = false; navigate("materials"); }}
-                >
-                  ＋ 导入
-                </button>
-              </div>
-              <button className="download-library-entry" onClick={()=>navigate("downloads")}>↓ 下载管理 · {downloads.length} 首已下载{pendingDownloads?` · ${pendingDownloads} 项进行中`:''}</button>
-              <input
-                className="search-field"
-                aria-label="搜索歌曲"
-                placeholder="搜索歌曲名称"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
+              <label className="library-search">
+                <Icon name="search" />
+                <input className="search-field" type="search" aria-label="搜索歌曲" placeholder="搜索歌曲" value={search} onChange={(e) => setSearch(e.target.value)} />
+              </label>
               <div className="chips" aria-label="曲库筛选">
                 {[
                   ["all", "全部"],
                   ["lyrics", "可学唱"],
                   ["score", "可学谱"],
                 ].map(([key, name]) => (
-                  <button
-                    key={key}
-                    aria-pressed={filter === key}
-                    onClick={() => setFilter(key)}
-                  >
-                    {name}
-                  </button>
+                  <button key={key} aria-pressed={filter === key} onClick={() => setFilter(key)}>{name}</button>
                 ))}
               </div>
-              <div className="library-list">
-                {visibleSongs.map((s) => {
-                  const m = summary(s);
-                  return (
-                    <button
-                      className="song-row"
-                      key={s.id}
-                      onClick={() => choose(s)}
-                    >
-                      <Cover small id={s.id} title={s.title} />
-                      <span>
-                        <strong>{s.title}</strong>
-                        <small>
-                          {isHaruhikage(s)
-                            ? "CRYCHIC"
-                            : s.id === DEMO_SONG.id
-                              ? "原创合法示例"
-                              : "本地歌曲"}
-                        </small>
-                        <span className="material-tags">
-                          {m.audio ? "音频 ✓" : "待加音频"} ·{" "}
-                          {m.lyrics ? "歌词 ✓" : "待加歌词"} ·{" "}
-                          {m.score ? "乐谱 ✓" : "待加乐谱"}
+              <button className="download-library-entry" onClick={() => openDownloads("library")}>
+                <Icon name="download" /><span>下载与导入</span>
+                <small>{downloads.length} 首已下载{pendingDownloads ? ` · ${pendingDownloads} 项进行中` : ""}</small>
+                <Icon name="right" />
+              </button>
+              {visibleSongs.length ? (
+                <div className="library-list list-panel">
+                  {visibleSongs.map((s) => {
+                    const m = summary(s);
+                    const kinds = [m.audio && "音频", m.lyrics && "歌词", m.score && "乐谱"].filter(Boolean).join("、");
+                    const artist = isHaruhikage(s) ? "CRYCHIC" : s.id === DEMO_SONG.id ? "原创示例" : "";
+                    return (
+                      <button className="song-row" key={s.id} onClick={() => choose(s)}>
+                        <Cover small id={s.id} piano={!!m.score && !m.audio} />
+                        <span>
+                          <strong>{s.title}</strong>
+                          <small>{[artist, kinds || "尚未关联资料"].filter(Boolean).join(" · ")}</small>
                         </span>
-                      </span>
-                      <b>›</b>
-                    </button>
-                  );
-                })}
-              </div>
-              {visibleSongs.length === 0 && (
-                <div className="empty-card">
-                  没有找到这首歌，换个关键词试试。
+                        <Icon name="right" />
+                      </button>
+                    );
+                  })}
                 </div>
+              ) : (
+                <div className="empty-card">没有找到匹配的歌曲。</div>
               )}
-              <p className="helper">
-                音频、歌词与乐谱关联到同一首歌曲，学唱和学谱的时间轴各自独立。
-              </p>
             </>
           )}
           {page === "song" && (
             <>
               <div className="detail-hero">
-                <Cover id={song.id} title={song.title} />
-                <p className="eyebrow">
-                  {isHaruhikage(song) ? "CRYCHIC VERSION" : "LOCAL PRACTICE"}
-                </p>
-                <h1>{song.title}</h1>
-                <p>把喜欢的一段，变成会唱、会弹的一段。</p>
+                <Cover id={song.id} />
+                <h2>{song.title}</h2>
+                {isHaruhikage(song) && <p>CRYCHIC ver.</p>}
+                {song.id === DEMO_SONG.id && <p>原创示例</p>}
               </div>
               <div className="practice-entries">
-                <button className="primary" onClick={() => navigate("lyrics")}>
-                  ♫ 歌词学唱 <small>逐句听 · 连续循环</small>
-                </button>
-                <button onClick={() => navigate("piano-prep")}>
-                  ♩ 钢琴学谱 <small>选小节 · 看谱弹奏</small>
-                </button>
+                <button className="primary action-with-icon" onClick={() => navigate("lyrics")}><Icon name="note" />歌词学唱</button>
+                <button className="action-with-icon" onClick={() => navigate("piano-prep")}><Icon name="piano" />钢琴学谱</button>
               </div>
               <div className="section-heading">
                 <h2>歌曲资料</h2>
-                <button onClick={() => { materialsFromDownloads.current = false; navigate("materials"); }}>
-                  关联 / 替换 →
-                </button>
+                <button onClick={() => { materialsFromDownloads.current = false; navigate("materials"); }}>管理</button>
               </div>
-              {[
-                ["音频", summary(song).audio ?? "尚未导入"],
-                [
-                  "歌词",
-                  summary(song).lyrics
-                    ? `${summary(song).lyrics} 句 · LRC`
-                    : "尚未导入",
-                ],
-                [
-                  "乐谱",
-                  summary(song).score
-                    ? `${summary(song).score}${summary(song).bars ? ` · ${summary(song).bars} 小节 / ${summary(song).parts} 声部` : ""}`
-                    : "尚未导入",
-                ],
-              ].map(([label, value]) => (
-                <button
-                  className="info-row"
-                  key={label}
-                  onClick={() => { materialsFromDownloads.current = false; navigate("materials"); }}
-                >
-                  <span>{label}</span>
-                  <strong>{value}</strong>
-                  <span>›</span>
-                </button>
-              ))}
-              <p className="helper">
-                整曲试听可在下方操作；开始学唱时点任一句，从该句真实跳转。
-              </p>
+              <div className="list-panel">
+                {([
+                  ["note", "音频", summary(song).audio],
+                  ["file", "歌词", summary(song).lyrics ? `${summary(song).lyrics} 句 · LRC` : undefined],
+                  ["piano", "乐谱", summary(song).score],
+                ] as const).map(([icon, label, value]) => (
+                  <button className="info-row detail-material" key={label} onClick={() => { materialsFromDownloads.current = false; navigate("materials"); }}>
+                    <Icon name={icon} /><span><strong>{label}</strong><small>{value ?? "尚未关联"}</small></span><Icon name="right" />
+                  </button>
+                ))}
+              </div>
             </>
           )}
           {page === "materials" && (
             <>
-              <h1>添加歌曲资料</h1>
-              <p className="helper">
-                选择关联歌曲，分别导入音频、LRC 或 MusicXML。无需一次凑齐。
-              </p>
+              <div className="section-heading">
+                <h2>关联歌曲</h2>
+                <button onClick={() => setCreating(true)}>新建歌曲</button>
+              </div>
               <label className="field-label">
-                关联到
                 <select
                   aria-label="关联歌曲"
                   value={song.id}
@@ -447,65 +402,25 @@ export function Workspace() {
                     if (s) choose(s, "materials");
                   }}
                 >
-                  {catalog.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.title}
-                    </option>
-                  ))}
+                  {catalog.map((s) => <option key={s.id} value={s.id}>{s.title}</option>)}
                 </select>
               </label>
-              <form
-                className="create-song"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (!newTitle.trim()) return;
-                  const next = {
-                    id: `local-${crypto.randomUUID()}`,
-                    title: newTitle.trim().slice(0, 120),
-                    scoreIds: [],
-                    updatedAt: "",
-                  };
-                  choose(next, "materials");
-                  setNewTitle("");
-                }}
-              >
-                <input
-                  aria-label="新歌曲名称"
-                  placeholder="或输入新歌曲名称"
-                  value={newTitle}
-                  onChange={(e) => setNewTitle(e.target.value)}
-                  maxLength={120}
-                />
-                <button type="submit" disabled={!newTitle.trim()}>
-                  新建歌曲
-                </button>
-              </form>
-              <div className="section-heading">
-                <h2>{song.title}</h2>
-                <span>仅在本机处理</span>
-              </div>
             </>
           )}
           {page === "recents" && (
-            <>
-              <h1>最近练习</h1>
-              <p className="helper">恢复上次设置，点播放后才会发声。</p>
-              {records.length ? (
-                recentRows()
-              ) : (
-                <div className="empty-card">还没有练习记录。</div>
-              )}
-            </>
+            recentDays.size ? [...recentDays].map(([day, list]) => (
+              <section className="recent-day" key={day}>
+                <h2>{day}</h2>
+                <div className="list-panel">{recentRows(list, true)}</div>
+              </section>
+            )) : <div className="empty-card">还没有练习记录。</div>
           )}
           {page === "settings" && (
             <>
-              <p className="eyebrow">MAKE IT YOURS</p>
-              <h1>设置</h1>
-              <button className="info-row" onClick={() => navigate("updates")}>应用更新 <span>›</span></button>
-              <section className="settings-card">
-                <h2>练习偏好</h2>
-                <label className="field-label">
-                  新练习默认速度
+              <h2 className="group-title">练习偏好</h2>
+              <section className="list-panel settings-preferences" aria-label="练习偏好">
+                <label className="preference-row">
+                  <span><strong>新练习默认速度</strong><small>已保存的练习沿用上次设置</small></span>
                   <select
                     aria-label="默认练习速度"
                     value={prefs.speed}
@@ -527,8 +442,8 @@ export function Workspace() {
                     ))}
                   </select>
                 </label>
-                <label className="field-label">
-                  新乐谱辅助标记
+                <label className="preference-row">
+                  <span><strong>新乐谱辅助标记</strong><small>打开新乐谱时生效</small></span>
                   <select
                     aria-label="默认音符标记"
                     value={prefs.labels}
@@ -551,53 +466,41 @@ export function Workspace() {
                     <option value="none">关闭</option>
                   </select>
                 </label>
-                <p className="helper">
-                  已保存的练习继续使用上次设置；练习页可临时调整。
-                </p>
               </section>
-              <section className="settings-card">
-                <h2>本地资料</h2>
-                <p className="helper">
-                  内置资料随此测试版提供。导入的音频、歌词和乐谱保存在本机浏览器；保存失败会提示。清理站点数据或卸载
-                  App 可能删除记录，请保留源文件。Android
-                  外部音频权限失效时需重选。
-                </p>
-              </section>
-              <button className="info-row" onClick={() => setFeedback(true)}>
-                反馈与建议 <span>↗</span>
-              </button>
-              <button className="info-row" onClick={() => navigate("about")}>
-                关于 Anisong <span>›</span>
-              </button>
-              <p className="build-label">
-                v{version.appVersion} · {version.sha}
-              </p>
+              <h2 className="group-title">应用</h2>
+              <div className="list-panel">
+                <button className="info-row detail-material" onClick={() => navigate("updates")}><Icon name="download" /><span><strong>应用更新</strong><small>当前版本 {version.appVersion}</small></span><Icon name="right" /></button>
+                <button className="info-row detail-material" onClick={() => setFeedback(true)}><Icon name="file" /><span><strong>反馈与建议</strong><small>预览报告后提交</small></span><Icon name="right" /></button>
+                <button className="info-row detail-material" onClick={() => navigate("about")}><Icon name="note" /><span><strong>关于 Anisong</strong><small>版本和项目源码</small></span><Icon name="right" /></button>
+              </div>
+              <h2 className="group-title">本地资料</h2>
+              <div className="settings-card">
+                <p className="helper">导入的音频、歌词和乐谱保存在此设备。请保留原文件，以便清除数据或外部音频权限失效后重新导入。</p>
+              </div>
             </>
           )}
           {page === "updates" && <AppUpdates />}
           {page === "about" && (
             <>
-              <h1>关于 Anisong</h1>
-              <p>一小段，也能慢慢学会。</p>
-              <section className="settings-card">
-                <p>版本 {version.appVersion}</p>
-                <p>提交 {version.sha}</p>
-                <p>分支 {version.branch}</p>
-                <p>构建 {version.builtAt}</p>
-              </section>
-              <h2>当前测试版边界</h2>
-              <p className="helper">
-                学唱与乐谱不自动同步；钢琴采用合成音色，等待弹对只支持单音轨。Android 自动试听和学唱支持后台媒体服务；交互弹奏、旋转或打开练习设置会暂停。网页后台受浏览器限制，循环可能有短暂停顿。请在
-                Android 手机上完成实际听音验收。
-              </p>
-              <a
-                className="back-link"
-                href="https://github.com/cosmos-zhan/anisong-learning-app"
-                target="_blank"
-                rel="noreferrer"
-              >
-                查看源码与维护文档 ↗
-              </a>
+              <div className="detail-hero">
+                <Cover id={HARUHIKAGE.id} />
+                <h2>Anisong</h2>
+                <p>{version.appVersion}</p>
+              </div>
+              <div className="list-panel">
+                <a className="info-row detail-material" href="https://github.com/cosmos-zhan/anisong-learning-app" target="_blank" rel="noreferrer">
+                  <Icon name="file" /><span><strong>源码与发行版</strong><small>cosmos-zhan/anisong-learning-app</small></span><Icon name="right" />
+                </a>
+                <button className="info-row detail-material" onClick={() => setFeedback(true)}><Icon name="note" /><span><strong>反馈与建议</strong><small>提交可复现的问题</small></span><Icon name="right" /></button>
+              </div>
+              <h2 className="group-title">当前测试版</h2>
+              <div className="settings-card">
+                <p className="helper">歌词时间来自 LRC。钢琴学谱读取 MusicXML 或 MXL，可以按小节练习。等待弹对支持单音轨。</p>
+                <details className="build-details">
+                  <summary>构建信息</summary>
+                  <small>{version.sha} · {version.branch} · {version.builtAt}</small>
+                </details>
+              </div>
             </>
           )}
         </main>
@@ -652,29 +555,37 @@ export function Workspace() {
       </div>
       {["home", "library", "settings"].includes(page) && (
         <nav className="bottom-nav" aria-label="主导航">
-          {[
-            ["home", "⌂", "练习"],
-            ["library", "♫", "曲库"],
-            ["settings", "⚙", "设置"],
-          ].map(([target, icon, label]) => (
+          {navigation.map(([target, icon, label]) => (
             <button
               key={target}
               aria-label={label}
-              aria-current={
-                page === target ||
-                (target === "library" &&
-                  ["song", "materials", "downloads"].includes(page)) ||
-                (target === "home" && ["recents", "piano-prep"].includes(page))
-                  ? "page"
-                  : undefined
-              }
-              onClick={() => navigate(target as Page)}
+              aria-current={page === target ? "page" : undefined}
+              onClick={() => navigate(target)}
             >
-              <span aria-hidden="true">{icon}</span>
+              <Icon name={icon} />
               {label}
             </button>
           ))}
         </nav>
+      )}
+      {creating && (page === "library" || page === "materials") && (
+        <Sheet title="新建歌曲" className="create-song-sheet" onClose={closeCreate}>
+          {(dismiss) => (
+            <form className="create-song" onSubmit={(event) => {
+              event.preventDefault();
+              const title = newTitle.trim();
+              if (!title) return;
+              const next = { id: `local-${crypto.randomUUID()}`, title, scoreIds: [], updatedAt: "" };
+              dismiss(() => choose(next, "materials"));
+            }}>
+              <label className="field-label">
+                歌名
+                <input aria-label="新歌曲名称" placeholder="输入歌名" value={newTitle} onChange={(event) => setNewTitle(event.target.value)} maxLength={120} />
+              </label>
+              <button className="primary full" type="submit" disabled={!newTitle.trim()}>创建歌曲</button>
+            </form>
+          )}
+        </Sheet>
       )}
       {feedback && (
         <Feedback

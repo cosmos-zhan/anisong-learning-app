@@ -15,6 +15,7 @@ import {
 } from "../../../packages/audio-native";
 import { parseLrc } from "../../../packages/core/lrc";
 import { Feedback } from "./components/Feedback";
+import { Icon } from "./components/Icon";
 import type { PlayerState } from "../../../packages/core/types";
 import version from "./version.json";
 import type { Song } from "../../../packages/core/song";
@@ -533,6 +534,12 @@ export function App({
   const range = state.range;
   const playing = state.phase === "playing";
   const selection = state.selection;
+  const trackPlaying = playing && !selection;
+  const toggleTrack = () => {
+    if (trackPlaying) controller.pause();
+    else if (selection) void controller.selectTrack(true);
+    else void controller.play();
+  };
   const disabled = !range || state.phase === "loading";
   const move = (delta: number) => {
     if (!selection) return;
@@ -643,48 +650,63 @@ export function App({
         </>
       )}
       {view !== "practice" && (
-        <section className={`song-card ${view === "materials" ? "song-materials-card" : ""}`} aria-label="音频导入">
-          <div className="song-top" hidden={view === "materials"}>
-            <div className="cover" aria-hidden="true">
-              <span>♪</span>
-              <i />
-              <i />
-              <i />
+        view === "preview" ? (
+          <section aria-label="整曲试听" className="track-preview">
+            <h2 className="group-title">整曲试听</h2>
+            <div className="settings-card track-player">
+              <button
+                className="play-button"
+                aria-label={trackPlaying ? "暂停整曲" : "播放整曲"}
+                disabled={disabled}
+                onClick={toggleTrack}
+              >
+                <Icon name={trackPlaying ? "pause" : "play"} />
+              </button>
+              <input type="range" aria-label="整曲进度" className="progress" min={0} max={state.duration || 1} step="0.01"
+                value={selection ? 0 : Math.max(0, Math.min(state.duration, state.position))}
+                disabled={disabled || !!selection} onChange={(event) => void controller.seek(Number(event.target.value))} />
+              <span>{format(selection ? 0 : state.position).split(".")[0]} / {format(state.duration).split(".")[0]}</span>
             </div>
-            <div className="song-info">
-              <span className="eyebrow">
-                {preset
-                  ? "CRYCHIC · 默认练习歌曲"
-                  : demo
-                    ? "原创旋律 · 可直接试听"
-                    : "本地音频 · 留在设备上"}
-              </span>
-              <h1>{title}</h1>
-              <p>
-                {state.duration > 0
-                  ? `${format(state.duration)} · ${isNative() ? "Media3 原生音频" : "浏览器真实音频"}`
-                  : "准备你的第一段练习"}
-              </p>
+            {notice && <p className="helper" role="status">{notice}</p>}
+            {state.error && <p className="error" role="alert">{state.error}</p>}
+            {state.warnings.map(warning => <p className="warning" key={warning}>{warning}</p>)}
+          </section>
+        ) : (
+          <section className={`song-card ${view === "materials" ? "song-materials-card" : ""}`} aria-label="音频导入">
+            <div className="song-top" hidden={view === "materials"}>
+              <div className="cover" aria-hidden="true">
+                <span>♪</span>
+                <i />
+                <i />
+                <i />
+              </div>
+              <div className="song-info">
+                <span className="eyebrow">
+                  {preset
+                    ? "CRYCHIC · 默认练习歌曲"
+                    : demo
+                      ? "原创旋律 · 可直接试听"
+                      : "本地音频 · 留在设备上"}
+                </span>
+                <h1>{title}</h1>
+                <p>
+                  {state.duration > 0
+                    ? `${format(state.duration)} · ${isNative() ? "Media3 原生音频" : "浏览器真实音频"}`
+                    : "准备你的第一段练习"}
+                </p>
+              </div>
             </div>
-          </div>
-          {(view === "preview" || (preset && view !== "materials")) && (
-            <button
-              className="whole-track-play"
-              disabled={disabled}
-              onClick={() =>
-                playing && !selection
-                  ? controller.pause()
-                  : selection
-                    ? void controller.selectTrack(true)
-                    : void controller.play()
-              }
-            >
-              {playing && !selection ? "Ⅱ 暂停整曲" : "▶ 播放整曲"}
-            </button>
-          )}
-          {view !== "preview" && (
+            {preset && view !== "materials" && (
+              <button className="whole-track-play action-with-icon" disabled={disabled}
+                onClick={toggleTrack}>
+                <Icon name={trackPlaying ? "pause" : "play"} />
+                {trackPlaying ? "暂停整曲" : "播放整曲"}
+              </button>
+            )}
             <div className="imports">
-              <div className="material-item"><div><strong>音频</strong><small>{state.duration > 0 ? `已关联 · ${format(state.duration)}` : '尚未导入'}</small></div>
+              <div className="material-item">
+                <Icon name="note" />
+                <div><strong>音频</strong><small>{state.duration > 0 ? `已关联 · ${format(state.duration)}` : "尚未导入"}</small></div>
               {isNative() ? (
                 <button onClick={() => void importAudio()}>＋ 导入音频</button>
               ) : (
@@ -702,7 +724,10 @@ export function App({
                   />
                 </label>
               )}
-              </div><div className="material-item"><div><strong>歌词</strong><small>{state.lines.length ? `已关联 · ${state.lines.length} 句` : '尚未导入'}</small></div>
+              </div>
+              <div className="material-item">
+                <Icon name="file" />
+                <div><strong>歌词</strong><small>{state.lines.length ? `已关联 · ${state.lines.length} 句` : "尚未导入"}</small></div>
               <label
                 className={`file-button ${view === "legacy" && !state.duration ? "disabled" : ""}`}
               >
@@ -736,21 +761,21 @@ export function App({
                 />
               )}
             </div>
-          )}
-          {view === "legacy" && onPiano && (
-            <button className="song-piano-entry" onClick={onPiano}>
-              ♩ 钢琴学谱 · 关联当前歌曲
-            </button>
-          )}
-          <p className="notice" role="status">
-            {notice || "音频与歌词只在此设备处理，不上传。"}
-          </p>
-          {view === "materials" && state.error && (
-            <p className="error" role="alert">
-              {state.error}
+            {view === "legacy" && onPiano && (
+              <button className="song-piano-entry" onClick={onPiano}>
+                ♩ 钢琴学谱 · 关联当前歌曲
+              </button>
+            )}
+            <p className="notice" role="status">
+              {notice || "音频与歌词只在此设备处理，不上传。"}
             </p>
-          )}
-        </section>
+            {view === "materials" && state.error && (
+              <p className="error" role="alert">
+                {state.error}
+              </p>
+            )}
+          </section>
+        )
       )}
       {view === "legacy" && demo && (
         <p className="demo-note">
@@ -854,7 +879,7 @@ export function App({
           </div>
         </section>
       )}
-      {view !== "materials" && view !== "practice" && (
+      {view === "legacy" && (
         <section className="controls" aria-label="播放器">
           <div className="range-summary">
             <span className="tag">
@@ -929,24 +954,18 @@ export function App({
             </button>
           </div>
           <div className="play-options">
-            {view === "legacy" ? (
-              <div className="speeds" role="group" aria-label="播放速度">
-                {[0.5, 0.75, 1].map((speed) => (
-                  <button
-                    key={speed}
-                    aria-pressed={state.speed === speed}
-                    className={state.speed === speed ? "active" : ""}
-                    onClick={() => void controller.setSpeed(speed)}
-                  >
-                    {speed}×
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <button onClick={() => openSheet("speed")}>
-                {state.speed}× 速度
-              </button>
-            )}
+            <div className="speeds" role="group" aria-label="播放速度">
+              {[0.5, 0.75, 1].map((speed) => (
+                <button
+                  key={speed}
+                  aria-pressed={state.speed === speed}
+                  className={state.speed === speed ? "active" : ""}
+                  onClick={() => void controller.setSpeed(speed)}
+                >
+                  {speed}×
+                </button>
+              ))}
+            </div>
             <button
               className={`loop-button ${state.loop ? "active" : ""}`}
               aria-pressed={state.loop}
@@ -955,22 +974,12 @@ export function App({
               ↻ 循环{state.loop ? "开" : "关"}
             </button>
           </div>
-          {view === "legacy" ? (
-            <details className="fine-tune">
-              <summary>
-                片段边界微调 <span>± 0.1s</span>
-              </summary>
-              {edges}
-            </details>
-          ) : (
-            <button
-              className="trim-entry"
-              disabled={disabled}
-              onClick={() => openSheet("trim")}
-            >
-              片段边界微调 · ±0.1 秒 →
-            </button>
-          )}
+          <details className="fine-tune">
+            <summary>
+              片段边界微调 <span>± 0.1s</span>
+            </summary>
+            {edges}
+          </details>
           {state.error && (
             <p className="error" role="alert">
               {state.error}
@@ -1039,6 +1048,7 @@ export function App({
                     </button>
                   ))}
                   <p className="helper">只改变节奏，不改变音高。</p>
+                  <button className="primary full" onClick={() => dismiss()}>完成</button>
                 </div>
               ) : sheet === "trim" ? (
                 view === "practice" && range ? (

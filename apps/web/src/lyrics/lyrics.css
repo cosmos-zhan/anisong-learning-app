@@ -4,19 +4,19 @@
   height: 100dvh;
   margin: 0;
   padding: max(8px, env(safe-area-inset-top), var(--safe-area-inset-top, 0px)) 0 0;
-  color: #faf5ea;
+  color: var(--ink);
   color-scheme: dark;
   overflow: hidden;
   background:
     radial-gradient(ellipse at 25% 24%, #65705b91, transparent 53%),
     radial-gradient(ellipse at 77% 14%, #776b4f70, transparent 51%),
-    linear-gradient(#343c34, #283b34 46%, #142421);
+    linear-gradient(#343c34, #283b34 46%, var(--canvas));
 }
 
 .lyrics-focus {
-  --lyrics-ink: #faf5ea;
+  --lyrics-ink: var(--ink);
   --lyrics-muted: #c3ccbf;
-  --lyrics-accent: #eecea1;
+  --lyrics-accent: var(--accent);
   display: grid;
   grid-template:
     "header" auto
@@ -192,7 +192,7 @@
   border-radius: 0;
   background: transparent;
   text-align: center;
-  color: #b5c1b2;
+  color: var(--ink-muted);
   touch-action: pan-y;
   -webkit-touch-callout: none;
 }
@@ -236,13 +236,16 @@
 }
 .lyrics-focus .lyric-interpret svg { width: 14px; height: 14px; }
 
-.lyric-row:has(.line-number)[data-range] { background: #bcc6ac18; }
-.lyric-row[data-anchor] { border-radius: 10px; background: #ebc99622; }
+.lyric-row:has(.line-number)[data-range] { background: var(--surface-selected); box-shadow: inset 2px 0 var(--accent); }
+.lyric-row[data-range-start] { border-radius: 10px 10px 0 0; }
+.lyric-row[data-range-end] { border-radius: 0 0 10px 10px; }
+.lyric-row[data-range-start][data-range-end], .lyric-row[data-anchor] { border-radius: 10px; }
+.lyric-row[data-anchor] { border-radius: 10px; background: color-mix(in srgb, var(--accent) 18%, transparent); }
 .lyrics-focus .lyric:has(.line-number) { padding-inline: 31px; }
 .lyrics-focus .line-number,
 .lyrics-edge { position: absolute; font-size: 10px; color: var(--lyrics-accent); }
 .lyrics-focus .line-number { left: 5px; }
-.lyrics-edge { right: 4px; }
+.lyrics-edge { right: 4px; padding: 2px 4px; border-radius: 5px; background: var(--surface-raised); }
 
 .lyrics-focus .lyrics-return {
   position: absolute;
@@ -479,10 +482,10 @@
 }
 
 .app-sheet.lyrics-sheet {
-  color-scheme: light;
-  background: #f6f5ef;
-  color: #203c34;
-  height: min(537px, 88dvh);
+  color-scheme: dark;
+  background: var(--surface);
+  color: var(--ink);
+  max-height: 88dvh;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -498,7 +501,7 @@
   flex-shrink: 0;
 }
 .lyrics-sheet .helper {
-  color: #75847d;
+  color: var(--ink-muted);
   font-size: 12px;
   line-height: 1.7;
 }
@@ -517,18 +520,19 @@
   padding: 12px 18px;
   border: 0;
   border-radius: 13px;
-  background: #fffdf7;
+  background: var(--surface-raised);
   font-size: 17px;
 }
 .lyrics-sheet .speed-options button[aria-pressed="true"] {
-  background: #dcebe0;
-  color: #286653;
+  background: var(--surface-raised);
+  color: var(--accent);
 }
 .lyrics-sheet .speed-options .helper {
-  margin-top: auto;
-  padding: 20px 4px;
+  margin: 0;
+  padding: 6px 2px;
 }
 .app-sheet.lyrics-trim-sheet {
+  height: min(420px, 88dvh);
   overflow: hidden;
 }
 .trim-draft {
@@ -563,7 +567,7 @@
 }
 .trim-edge > div > span {
   font-size: 12px;
-  color: #75847d;
+  color: var(--ink-muted);
 }
 .trim-edge output {
   font-size: 24px;
@@ -573,38 +577,38 @@
 .trim-edge button {
   min-height: 46px;
   padding: 8px;
-  border: 1px solid #e2e6de;
+  border: 1px solid var(--line);
   border-radius: 14px;
-  background: #fffdf7;
+  background: var(--surface-raised);
 }
 .trim-draft > .primary {
   min-height: 46px;
   flex-shrink: 0;
-  background: #286653;
-  color: #fffdf7;
+  background: var(--accent);
+  color: var(--accent-ink);
   border-radius: 14px;
 }
 .lyrics-sheet .trim-draft .error {
-  background: #f0ded3;
-  color: #814d36;
+  background: var(--danger-surface);
+  color: var(--danger);
   max-height: 52px;
   overflow: auto;
   margin: 0;
 }
 
 .lyrics-display-panel { display:flex; flex-direction:column; gap:8px; }
-.lyrics-display-preview { padding:18px; background:#e7ede3; border-radius:16px; min-height:116px; display:flex; flex-direction:column; justify-content:center; gap:4px; }
+.lyrics-display-preview { padding:18px; background:var(--surface-raised); border-radius:16px; min-height:116px; display:flex; flex-direction:column; justify-content:center; gap:4px; }
 .lyrics-display-preview p { margin:0; overflow-wrap:anywhere; }
 .display-original { font-size:17px; line-height:1.6; font-weight:600; }
-.display-romaji { font-size:12px; line-height:1.6; color:#6b5946; }
-.display-translation { font-size:13px; line-height:1.6; color:#51685a; }
-.lyrics-display-toggle { display:flex; flex-direction:row; align-items:center; justify-content:space-between; gap:18px; min-height:72px; border-bottom:1px solid #dce3d8; }
+.display-romaji { font-size:12px; line-height:1.6; color:var(--accent); }
+.display-translation { font-size:13px; line-height:1.6; color:var(--ink-muted); }
+.lyrics-display-toggle { display:flex; flex-direction:row; align-items:center; justify-content:space-between; gap:18px; min-height:72px; border-bottom:1px solid var(--line); }
 .lyrics-display-toggle > span { display:flex; flex-direction:column; gap:5px; }
 .lyrics-display-toggle strong { font-size:16px; font-weight:600; }
-.lyrics-display-toggle small { font-size:12px; color:#5e7066; }
-.lyrics-display-toggle input { appearance:none; position:relative; flex-shrink:0; width:46px; height:28px; margin:0; padding:0; border:0; border-radius:16px; background:#bdc9bd; }
-.lyrics-display-toggle input::after { content:""; position:absolute; left:3px; top:3px; width:22px; height:22px; background:#fffdf7; border-radius:50%; transition:transform .16s; }
-.lyrics-display-toggle input:checked { background:#2d6650; }
+.lyrics-display-toggle small { font-size:12px; color:var(--ink-muted); }
+.lyrics-display-toggle input { appearance:none; position:relative; flex-shrink:0; width:46px; height:28px; margin:0; padding:0; border:0; border-radius:16px; background:var(--line); }
+.lyrics-display-toggle input::after { content:""; position:absolute; left:3px; top:3px; width:22px; height:22px; background:var(--ink); border-radius:50%; transition:transform .16s; }
+.lyrics-display-toggle input:checked { background:var(--accent); }
 .lyrics-display-toggle input:checked::after { transform:translateX(18px); }
 .lyrics-display-toggle input:disabled { opacity:.48; }
-.lyrics-display-panel > .primary { min-height:46px; background:#2d6650; color:#fffdf7; border-radius:14px; }
+.lyrics-display-panel > .primary { min-height:46px; background:var(--accent); color:var(--accent-ink); border-radius:14px; }

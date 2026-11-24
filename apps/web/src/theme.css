@@ -1,0 +1,31 @@
+:root {
+  color-scheme: dark;
+  --canvas: #142421;
+  --field: #172b25;
+  --surface: #23362e;
+  --surface-raised: #2c4137;
+  --surface-selected: #3e5041;
+  --line: #46594d;
+  --line-strong: #758878;
+  --ink: #f5f0e5;
+  --ink-muted: #c2cbbd;
+  --ink-subtle: #a4b1a4;
+  --accent: #eecea1;
+  --accent-ink: #2a2f25;
+  --accent-line: #9a8260;
+  --success: #c1dbbb;
+  --success-surface: #283f36;
+  --danger: #f4b6a8;
+  --danger-ink: #382722;
+  --danger-surface: #49342e;
+  --warning-surface: #423b2d;
+  --paper: #fbf5e6;
+  --paper-ink: #283829;
+  --paper-muted: #55674f;
+  --paper-accent: #45604a;
+  --scrim: #0b1815ad;
+  --canvas-gradient: radial-gradient(ellipse at 8% 0%, #354939 0%, transparent 55%),
+    linear-gradient(165deg, #20352c, var(--canvas) 68%);
+  --safe-top: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px));
+  --safe-bottom: max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px));
+}

@@ -28,6 +28,7 @@ import type {
 import { rememberSong, type Song } from "../../../../packages/core/song";
 import { isHaruhikage } from "../../../../packages/core/presets";
 import { Feedback } from "../components/Feedback";
+import { Cover } from "../components/Cover";
 import { OfficialReference } from "../components/OfficialReference";
 import { Keyboard } from "./Keyboard";
 import { ScoreView } from "./ScoreView";
@@ -678,26 +679,27 @@ export function PianoWorkspace({
       >
         {view === "materials" ? (
           <section className="material-panel">
-            <h2>乐谱 · MusicXML</h2>
-            <p className="helper">
-              {score
-                ? `${score.title} · ${part?.measures.length} 小节 / ${score.parts.length} 声部`
-                : "尚未关联乐谱。支持 .musicxml / .xml / .mxl，不支持图片与 PDF。"}
-            </p>
-            <label className="file-button">
-              ＋ 关联 / 替换乐谱
-              <input
-                aria-label="导入 MusicXML 或 MXL"
-                type="file"
-                accept=".musicxml,.xml,.mxl"
-                disabled={busy}
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) void importFile(f);
-                  e.target.value = "";
-                }}
-              />
-            </label>
+            <div className="material-item">
+              <Icon name="piano" />
+              <div>
+                <strong>乐谱</strong>
+                <small>{score ? `${score.title} · ${part?.measures.length} 小节 / ${score.parts.length} 声部` : "尚未关联 · MusicXML 或 MXL"}</small>
+              </div>
+              <label className="file-button">
+                {score ? "替换乐谱" : "导入乐谱"}
+                <input
+                  aria-label="导入 MusicXML 或 MXL"
+                  type="file"
+                  accept=".musicxml,.xml,.mxl"
+                  disabled={busy}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) void importFile(f);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+            </div>
             <details className="saved-score-details"><summary>已保存的乐谱与更多操作</summary>
             {isHaruhikage(song) && bundledScore && (
               <button disabled={busy} onClick={reloadBuiltIn}>
@@ -732,11 +734,8 @@ export function PianoWorkspace({
           </section>
         ) : view === "prepare" ? (
           <div className="piano-preparation">
-            <header className="preparation-header">
-              <h1>钢琴学谱</h1>
-            </header>
-            <p className="preparation-intro">选好一小段，开始练琴。</p>
-            <div className="preparation-song">
+            <div className="detail-hero preparation-song">
+              <Cover id={song.id} piano />
               <h2>{shortTitle}</h2>
               <p>
                 {score
@@ -754,6 +753,7 @@ export function PianoWorkspace({
                 aria-label={`练习方式：${modeTitle}`}
                 onClick={() => openSheet("mode")}
               >
+                <Icon name="piano" />
                 <span>
                   <strong>练习方式</strong>
                   <small>
@@ -764,7 +764,7 @@ export function PianoWorkspace({
                     }
                   </small>
                 </span>
-                <span>{modeTitle} ›</span>
+                <span>{modeTitle}</span>
               </button>
               <button
                 className="preparation-row"
@@ -772,6 +772,7 @@ export function PianoWorkspace({
                 disabled={!score}
                 onClick={() => openSheet("tracks")}
               >
+                <Icon name="file" />
                 <span>
                   <strong>声部与轨道</strong>
                   <small>
@@ -780,7 +781,7 @@ export function PianoWorkspace({
                       : "请先关联 MusicXML"}
                   </small>
                 </span>
-                <span aria-hidden="true">›</span>
+                <Icon name="right" />
               </button>
               <button
                 className="preparation-row"
@@ -788,28 +789,29 @@ export function PianoWorkspace({
                 disabled={!score}
                 onClick={() => openSheet("range")}
               >
+                <Icon name="segment" />
                 <span>
                   <strong>小节范围</strong>
                   <small>{rangeTitle}</small>
                 </span>
-                <span aria-hidden="true">›</span>
+                <Icon name="right" />
               </button>
               <button
                 className="preparation-row"
                 aria-label={`钢琴速度 ${state.speed} 倍`}
                 onClick={() => openSheet("speed")}
               >
+                <Icon name="settings" />
                 <span>
                   <strong>播放速度</strong>
                   <small>改变节奏，保留音高</small>
                 </span>
-                <span>{state.speed}× ›</span>
+                <span>{state.speed}×</span>
               </button>
             </section>
             {issues}
-            <p className="rotate-card">↔ 横过手机，看谱和琴键会同时展开。</p>
-            <button className="primary full" onClick={onEnter}>
-              进入钢琴练习 →
+            <button className="primary full action-with-icon" onClick={onEnter}>
+              <Icon name="play" />进入钢琴练习
             </button>
             <button className="quiet full" onClick={onMaterials}>
               关联 / 替换乐谱

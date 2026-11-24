@@ -170,6 +170,8 @@ export function LyricsPractice({
                   <div className="lyric-row" key={`${line.start}-${index}`}
                     data-current={current || undefined}
                     data-range={selected || undefined}
+                    data-range-start={rangePicker && selected && selection?.[0] === index || undefined}
+                    data-range-end={rangePicker && selected && selection?.[1] === index || undefined}
                     data-anchor={anchor === index || undefined}>
                     <button
                       data-line={index}
@@ -218,7 +220,7 @@ export function LyricsPractice({
         {coverView && (
           <div className="lyrics-cover-view">
             <div className="lyrics-record" data-playing={playing}>
-              <div className="lyrics-vinyl"><Cover id={songId} title={title} fallback={recordArtwork} /></div>
+              <div className="lyrics-vinyl"><Cover id={songId} fallback={recordArtwork} /></div>
               <button aria-label="点唱片查看歌词" onClick={() => { changeView(false); lyricsTab.current?.focus(); }} />
             </div>
             {lines[currentIndex] && <p>{lines[currentIndex].text}</p>}

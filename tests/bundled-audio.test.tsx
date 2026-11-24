@@ -12,14 +12,14 @@ it('loads the configured recording, defaults to original speed, and can play wit
  const engine=new TestEngine(), load=vi.spyOn(engine,'load'), c=new LoopController(engine);
  engine.load=load.mockResolvedValue(257.880816);
  const ui=render(<App initialSong={HARUHIKAGE} controller={c} bundledAudio={bundledAudio}/>);
- await waitFor(()=>expect(screen.getByRole('button',{name:'▶ 播放整曲'})).toBeEnabled());
+ await waitFor(()=>expect(screen.getByRole('button',{name:'播放整曲'})).toBeEnabled());
  expect(load).toHaveBeenCalledExactlyOnceWith('/private-media/haruhikage-crychic-fixture.mp3');
  expect(c.getSnapshot()).toMatchObject({duration:257.880816,selection:null,lines:[],range:{start:0,end:257.880816},phase:'paused',speed:1});
  expect(engine.playing).toBe(false);
  expect(screen.getByRole('button',{name:'上一句'})).toBeDisabled();
  expect(screen.getByRole('button',{name:'下一句'})).toBeDisabled();
  const user=userEvent.setup();
- await user.click(screen.getByRole('button',{name:'▶ 播放整曲'}));
+ await user.click(screen.getByRole('button',{name:'播放整曲'}));
  expect(engine.playing).toBe(true);
  fireEvent.change(screen.getByRole('slider',{name:'片段进度'}),{target:{value:'123.4'}});
  expect(engine.position).toBe(123.4);
@@ -29,6 +29,7 @@ it('loads the configured recording, defaults to original speed, and can play wit
  await user.click(screen.getByRole('button',{name:'0.5×'}));
  expect(engine.speed).toBe(.5);
  await user.click(screen.getByRole('button',{name:'反馈问题 ↗'}));
+ await user.click(await screen.findByRole('button',{name:'预览和提交'}));
  const report=(screen.getByRole('textbox',{name:'完整反馈报告'}) as HTMLTextAreaElement).value;
  expect(report).toContain('"selection": null');expect(report).toContain('257.880816');expect(report).not.toContain(bundledAudio.src);
  ui.unmount();c.dispose();

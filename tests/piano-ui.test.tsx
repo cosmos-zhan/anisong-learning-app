@@ -86,6 +86,7 @@ it("bar 5, reverse range, relative speed, wait judgement, snapshot feedback and 
   act(() => controller.press("right", 60));
   expect(controller.getSnapshot().step).toBe(1);
   await user.click(screen.getByRole("button", { name: "反馈 ↗" }));
+  await user.click(await screen.findByRole("button", { name: "预览和提交" }));
   const report = screen.getByRole("textbox", {
     name: "完整反馈报告",
   }) as HTMLTextAreaElement;
@@ -94,11 +95,13 @@ it("bar 5, reverse range, relative speed, wait judgement, snapshot feedback and 
   expect(report.value).toContain('"bars"');
   expect(report.value).not.toContain("<score-partwise");
   expect(report.value).not.toContain("晨光");
+  await user.click(screen.getByRole("button", { name: "返回编辑" }));
   const field = screen.getByRole("textbox", { name: "问题描述" });
   await user.click(field);
   act(() => controller.press("next", 64));
   expect(field).toHaveFocus();
   await user.click(screen.getByRole("checkbox"));
+  await user.click(screen.getByRole("button", { name: "预览和提交" }));
   expect(report.value).not.toContain('"piano"');
   await user.click(screen.getByRole("button", { name: "关闭反馈" }));
   Object.defineProperty(document, "hidden", {
