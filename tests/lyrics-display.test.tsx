@@ -70,9 +70,17 @@ it("follows real position changes, suspends for manual browsing, resumes, and le
   fireEvent.wheel(screen.getByLabelText("歌词列表")); scrollTo.mockClear(); tick(20);
   expect(scrollTo).not.toHaveBeenCalled();
   await user.click(screen.getByRole("button",{name:"回到当前句"})); expect(scrollTo).toHaveBeenCalled();
-  await user.click(screen.getByRole("button",{name:"自动滚动 开"})); scrollTo.mockClear(); tick(30);
+  const changeFollow = async () => {
+    await user.click(screen.getByRole("button", { name: "歌词显示" }));
+    const panel = screen.getByRole("dialog", { name: "歌词显示" });
+    await user.click(within(panel).getByRole("checkbox", { name: "自动滚动" }));
+    await user.click(within(panel).getByRole("button", { name: "完成" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  };
+  await changeFollow(); scrollTo.mockClear(); tick(30);
   expect(scrollTo).not.toHaveBeenCalled(); expect(lyricsDisplay().autoScroll).toBe(false);
-  await user.click(screen.getByRole("button",{name:"自动滚动 关"}));
+  await changeFollow();
+  await user.click(screen.getByRole("button", { name: "选段" }));
   await user.click(screen.getByRole("button",{name:"多句连续"}));
   await user.click(screen.getByRole("button",{name:"第 2 句 two"})); scrollTo.mockClear(); tick(0);
   expect(scrollTo).not.toHaveBeenCalled();

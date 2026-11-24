@@ -58,14 +58,21 @@ try {
   if (Math.abs(audio.plays.at(-1) - starts[1]) > 0.001) throw new Error('Clicked lyric did not seek before playing');
   if (Number(slider.min) !== starts[1] || Number(slider.max) !== starts[2]) throw new Error('Displayed lyric range differs from imported LRC');
   if (document.querySelectorAll('.lyrics-focus .lyric small').length || document.querySelector('.lyrics-focus .section-title')) throw new Error('Old timestamp/title clutter remains');
-  if (document.querySelectorAll('.lyrics-focus .play-options > button').length !== 3) throw new Error('Practice parameters are not grouped');
+  for (const label of ['0.75× 速度', '微调片段', '选段', '循环开']) {
+    if (!document.querySelector('.lyrics-player [aria-label="' + label + '"]')) throw new Error('Missing player control: ' + label);
+  }
+  const oldPosition = audio.currentTime, oldPlays = audio.plays.length;
+  click(exactButton('封面')); await until(() => document.querySelector('.lyrics-record'));
+  if (audio.paused || audio.currentTime !== oldPosition || audio.plays.length !== oldPlays) throw new Error('Cover view interrupted the clip');
+  click(document.querySelector('[aria-label="点唱片查看歌词"]'));
+  await until(() => !document.querySelector('.lyrics-view').hidden);
   const nativeValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
   nativeValue.call(slider, String(starts[1] + 1.2));
   slider.dispatchEvent(new Event('input', { bubbles: true }));
   slider.dispatchEvent(new Event('change', { bubbles: true }));
   await until(() => Math.abs(audio.currentTime - starts[1] - 1.2) < 0.001);
   if (!document.querySelector('[aria-label="片段内时间"]').textContent.includes('00:01.20')) throw new Error('Clip progress is not relative to its boundary');
-  click(exactButton('微调片段')); await until(() => document.querySelector('.trim-draft'));
+  click(document.querySelector('[aria-label="微调片段"]')); await until(() => document.querySelector('.trim-draft'));
   const plays = audio.plays.length, originalEnd = Number(slider.max);
   const priorPreview = document.querySelector('[aria-label="预览终点"]').textContent;
   click(document.querySelector('[aria-label="终点延后 0.1 秒"]'));

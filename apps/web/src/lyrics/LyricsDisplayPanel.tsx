@@ -21,6 +21,11 @@ export function LyricsDisplayPanel({ lines, value, onChange, onClose }: {
           onChange={event => onChange({ ...value, [key]: event.target.checked })} />
       </label>;
     })}
+    <label className="lyrics-display-toggle">
+      <span><strong>自动滚动</strong><small>播放时将当前句移到中间</small></span>
+      <input type="checkbox" aria-label="自动滚动" checked={value.autoScroll}
+        onChange={event => onChange({ ...value, autoScroll: event.target.checked })} />
+    </label>
     <p className="helper">原文始终显示。偏好保存在此设备。没有译文或罗马音时，可在歌曲资料中导入带学习文本的 LRC。</p>
     <button className="primary" onClick={onClose}>完成</button>
   </div>;

@@ -177,6 +177,7 @@ try {
       {
         identifier: url,
         context,
+        initializeImportMeta: (meta) => { meta.url = url; },
         importModuleDynamically: async (specifier, ref) => {
           const d = await module(new URL(specifier, ref.identifier).href);
           if (d.status === "unlinked")
