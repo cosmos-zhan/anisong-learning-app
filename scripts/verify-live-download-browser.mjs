@@ -68,7 +68,7 @@ try {
     // Free-play navigation is visible before IndexedDB restoration finishes.
     // Wait for the actual parsed score, not merely the preparation-page button.
     await page.waitForFunction(() => document.querySelector('.piano-preparation')?.textContent?.includes('140 小节'), undefined, { timeout: 30000 });
-    await page.getByRole('button', { name: '进入钢琴练习 →', exact: true }).waitFor();
+    await page.getByRole('button', { name: '进入钢琴练习', exact: true }).waitFor();
     assert.match(await page.locator('.piano-preparation').innerText(), /140/);
     }
     assert.equal(contactedAfterSave, 0, 'Offline practice must read saved materials');

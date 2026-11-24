@@ -66,21 +66,23 @@ export function AppUpdates() {
   };
   const active = status.state === 'downloading' || status.state === 'verifying';
   const ready = !!candidate && status.state === 'ready' && status.sha256 === candidate.apk.digest.slice(7) && status.total === candidate.apk.size;
-  return <section className="settings-card app-updates" aria-label="应用更新">
-    <h2>应用更新</h2><p className="helper">当前版本 {version.appVersion} · 包含 Alpha 测试版更新</p>
-    <button className="primary" disabled={busy || active} onClick={() => void check()}>{busy ? '请稍候…' : '检查更新'}</button>
+  return <section className="app-updates" aria-label="应用更新">
+    <div className="settings-card update-installed">
+      <div><p className="helper">当前安装</p><strong>{version.appVersion}</strong></div>
+      <button disabled={busy || active} onClick={() => void check()}>{busy ? '请稍候…' : '检查更新'}</button>
+    </div>
     {message && <p role="status" className="helper">{message}</p>}
     {(error || status.error) && <p role="alert" className="error">{error || status.error}</p>}
-    {candidate && !active && !ready && <div className="update-result">
-      <p>{candidate.version} · {size(candidate.apk.size)}</p>
-      {native ? <button disabled={busy} onClick={() => void download()}>下载安装包</button> : <a className="back-link" href={candidate.apk.browser_download_url} rel="noreferrer">下载 Android 安装包 ↗</a>}
+    {candidate && !active && !ready && <div className="settings-card update-result">
+      <p><strong>{candidate.version}</strong> · {size(candidate.apk.size)}</p>
+      {native ? <button className="primary full" disabled={busy} onClick={() => void download()}>下载安装包</button> : <a className="back-link" href={candidate.apk.browser_download_url} rel="noreferrer">下载 Android 安装包 ↗</a>}
       <a href={candidate.page} target="_blank" rel="noreferrer">查看更新说明 ↗</a>
     </div>}
-    {active && <div role="status"><p>{status.state === 'verifying' ? '正在校验安装包…' : `正在下载 ${size(status.received)} / ${size(status.total)}`}</p>
+    {active && <div role="status" className="settings-card"><p>{status.state === 'verifying' ? '正在校验安装包…' : `正在下载 ${size(status.received)} / ${size(status.total)}`}</p>
       <progress aria-label="安装包下载进度" max={status.total || 1} value={status.received}/>
-      <button onClick={() => void updates.cancel().then(() => updates.status()).then(setStatus).catch(() => setError('取消失败，请重试。'))}>取消下载更新</button>
+      <button className="quiet full" onClick={() => void updates.cancel().then(() => updates.status()).then(setStatus).catch(() => setError('取消失败，请重试。'))}>取消下载更新</button>
     </div>}
-    {ready && <div><p role="status">{candidate?.version} 安装包已下载并校验，可以覆盖安装。</p><button className="primary" disabled={busy} onClick={() => void install()}>安装更新</button></div>}
+    {ready && <div className="settings-card"><p role="status">{candidate?.version} 安装包已下载并校验，可以覆盖安装。</p><button className="primary full" disabled={busy} onClick={() => void install()}>安装更新</button></div>}
     <p className="helper">{native ? '安装由 Android 系统确认。下载期间请保持 App 开启；同签名覆盖更新会保留本机资料。' : '网页会随站点发布更新。Android 手机可在这里检查并下载安装包。'}</p>
     <section className="release-history" aria-label="版本更新说明"><h3>版本更新说明</h3>
       {!history.some(row => row.version === version.appVersion) && <article><strong>{version.appVersion} · 当前版本</strong><ul>{preview.changes.map(change => <li key={change}>{change}</li>)}</ul></article>}

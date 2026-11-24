@@ -63,8 +63,8 @@ try {
   await page.getByRole('heading',{name:'下载与导入',exact:true}).waitFor();
   await page.getByRole('button',{name:'返回曲库'}).click();
   holdAudio=false;releaseAudio();
-  await page.getByRole('button',{name:/下载管理 · 1 首已下载/}).waitFor();
-  await page.getByRole('button',{name:/下载管理 · 1 首已下载/}).click();
+  await page.getByRole('button',{name:/下载与导入.*1 首已下载/}).waitFor();
+  await page.getByRole('button',{name:/下载与导入.*1 首已下载/}).click();
   await page.getByRole('button',{name:'已下载',exact:true}).click();
   await page.getByRole('region',{name:'本地下载',exact:true}).getByRole('button',{name:'歌词学唱',exact:true}).waitFor();
   await page.getByRole('button',{name:'返回上一页'}).click();
@@ -100,7 +100,7 @@ try {
   await page.waitForFunction(()=>Number(document.querySelector('[aria-label="片段进度"]')?.value)>16.6);
   await page.getByRole('button',{name:'暂停',exact:true}).click();
   await page.goto('https://anisong.test/?song=demo-original#piano-prep');
-  await page.getByRole('button',{name:'进入钢琴练习 →',exact:true}).waitFor();
+  await page.getByRole('button',{name:'进入钢琴练习',exact:true}).waitFor();
   assert.equal(blocked,0,'Saved audio, LRC and score must load without contacting the media host after a page reload');
   blockMedia=false;
   await page.goto('https://anisong.test/?song=demo-original#downloads');

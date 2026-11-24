@@ -17,7 +17,8 @@ it('loads the private preset and enables an explicitly chosen projection with re
  await user.click(screen.getByRole('button',{name:'等待弹对'}));await user.click(screen.getByRole('button',{name:'练习此轨最高音（单音）'}));expect(c.track?.projection).toBe('highest');
  expect(screen.getByText(/单音简化：只演奏/)).toBeVisible();await user.click(screen.getByRole('button',{name:'等待弹对'}));await user.click(screen.getByRole('button',{name:'开始等待'}));
  act(()=>c.press('wrong',60));expect(c.getSnapshot().step).toBe(0);act(()=>c.press('right',67));expect(c.getSnapshot().step).toBe(1);
- await user.click(screen.getByRole('button',{name:'反馈 ↗'}));expect((screen.getByRole('textbox',{name:'完整反馈报告'}) as HTMLTextAreaElement).value).toContain('"practiceTrack": "highest"');
+ await user.click(screen.getByRole('button',{name:'反馈 ↗'}));await user.click(await screen.findByRole('button',{name:'预览和提交'}));
+ expect((screen.getByRole('textbox',{name:'完整反馈报告'}) as HTMLTextAreaElement).value).toContain('"practiceTrack": "highest"');
  await user.click(screen.getByRole('button',{name:'关闭反馈'}));await user.click(screen.getByRole('button',{name:'返回原轨'}));expect(c.track?.projection).toBeUndefined();
  ui.unmount();c.dispose();
 });

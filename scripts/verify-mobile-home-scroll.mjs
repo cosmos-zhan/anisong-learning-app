@@ -22,7 +22,7 @@ async function swipe(cdp, width, height) {
 }
 try {
   const cases = [[360,800,'normal'],[393,873,'normal'],[412,915,'normal'],[740,360,'normal']];
-  if (!live) cases.push([393,873,'oversized-visual-viewport']);
+  if (!live) cases.push([360,480,'normal'],[360,480,'oversized-visual-viewport']);
   for (const [width,height,scenario] of cases) {
     const context = await browser.newContext({viewport:{width,height},deviceScaleFactor:3,isMobile:true,hasTouch:true});
     if (scenario === 'oversized-visual-viewport') await context.addInitScript(()=>{
@@ -45,8 +45,9 @@ try {
       // Do not take a screenshot, read geometry, click, hover or navigate before
       // the first real touch: those actions can hide first-frame hit-test bugs.
       await swipe(cdp,width,height);
+      const needsScroll = await page.evaluate(() => document.scrollingElement.scrollHeight > document.scrollingElement.clientHeight + 20);
       let passed=true;
-      try {
+      if (live || needsScroll) try {
         await page.waitForFunction(()=>Math.max(document.querySelector('.shell-content')?.scrollTop ?? 0,document.scrollingElement?.scrollTop ?? 0)>20,undefined,{timeout:4000});
       } catch {passed=false;}
       const geometry=await page.evaluate(()=>({
@@ -56,8 +57,8 @@ try {
       // Evidence is captured after the gesture, never as a prerequisite to it.
       await page.screenshot({path:resolve(output,`mobile-home-${live?'live':'built'}-${scenario}-${entry}-${width}x${height}.png`)});
       const documentScrolled=geometry.nodes[0].top>20;
-      if (!live) assert(documentScrolled, 'Browser homepage must use native document scrolling for WebView hosts');
-      const result={check:'mobile-first-home-touch',live,scenario,entry,width,height,passed,documentScrolled,...geometry,errors};
+      if (!live && needsScroll) assert(documentScrolled, 'Browser homepage must use native document scrolling for WebView hosts');
+      const result={check:'mobile-first-home-touch',live,scenario,entry,width,height,passed,needsScroll,documentScrolled,...geometry,errors};
       results.push(result);console.log(JSON.stringify(result));
     }
     await context.close();

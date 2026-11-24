@@ -39,21 +39,27 @@ try {
     const frame = await page.locator('.shell-content').boundingBox();
     const cdp = await context.newCDPSession(page);
     console.log(JSON.stringify({check:'initial-touch-frame',width,height,frame,dom:await page.locator('.shell-content').evaluate(el=>({height:el.clientHeight,content:el.scrollHeight,top:el.scrollTop,touch:getComputedStyle(el).touchAction}))}));
-    await swipe(page, cdp, frame, width, height);
-    await page.waitForFunction(() => Math.max(document.scrollingElement.scrollTop,document.querySelector('.shell-content').scrollTop) > 20, undefined, { timeout: 5000 });
-    const firstScroll = await page.evaluate(() => Math.max(document.scrollingElement.scrollTop,document.querySelector('.shell-content').scrollTop));
-    assert(firstScroll > 20, 'First mobile touch scroll required navigation');
+    const checkFirstSwipe = async (frame) => {
+      const hasOverflow = await page.evaluate(() =>
+        document.scrollingElement.scrollHeight > document.scrollingElement.clientHeight + 20,
+      );
+      await swipe(page, cdp, frame, width, height);
+      if (hasOverflow) {
+        await page.waitForFunction(() => document.scrollingElement.scrollTop > 20, undefined, { timeout: 5000 });
+      }
+      return { hasOverflow, scroll: await page.evaluate(() => document.scrollingElement.scrollTop) };
+    };
+    const fresh = await checkFirstSwipe(frame);
     await page.reload();
     await page.locator('.page-home .shell-title').waitFor();
     await page.screenshot({ path: resolve(output, `home-reload-before-touch-${width}x${height}.png`) });
-    await swipe(page, cdp, await page.locator('.shell-content').boundingBox(), width, height);
-    await page.waitForFunction(() => Math.max(document.scrollingElement.scrollTop,document.querySelector('.shell-content').scrollTop) > 20, undefined, { timeout: 5000 });
-    results.push({ name: 'first-home-touch-scroll', width, height, firstScroll, reloadScroll: await page.evaluate(() => Math.max(document.scrollingElement.scrollTop,document.querySelector('.shell-content').scrollTop)) });
+    const reload = await checkFirstSwipe(await page.locator('.shell-content').boundingBox());
+    results.push({ name: 'first-home-touch-scroll', width, height, fresh, reload });
     for (const name of ["home", "library", "downloads", "song", "materials", "piano-prep", "settings", "updates", "recents", "about"]) {
       await page.goto(`https://anisong.test/?song=demo-original#${name}`);
       await page.locator(name === 'downloads' ? '.download-page-header' : '.shell-title').waitFor();
       await page.evaluate(() => document.fonts.ready);
-      if (name === "piano-prep") await page.getByRole("button", {name:"进入钢琴练习 →",exact:true}).waitFor();
+      if (name === "piano-prep") await page.getByRole("button", {name:"进入钢琴练习",exact:true}).waitFor();
       const headerLocator = page.locator(name === 'downloads' ? '.download-page-header' : '.shell-header');
       const header = await headerLocator.boundingBox();
       const back = page.locator(name === 'downloads' ? '.download-page-header button' : '.shell-back'); const before = await back.count() ? await back.boundingBox() : null;
@@ -69,11 +75,11 @@ try {
         assert.equal(await page.getByRole("button", {name:/^返回(歌曲|曲库|设置|练习)$/}).count(), 1, `${name}: duplicate back button`);
       }
       if (name === "song") {
-        const theme = await page.locator(".view-preview .play-button").evaluate(el => ({
+        const theme = await page.locator(".track-preview .play-button").evaluate(el => ({
           background: getComputedStyle(el).backgroundColor, color: getComputedStyle(el).color,
         }));
-        assert.equal(theme.background, "rgb(40, 102, 83)", "song preview kept legacy blue controls");
-        assert.equal(theme.color, "rgb(255, 253, 247)", "song preview play label contrast");
+        assert.equal(theme.background, "rgb(238, 206, 161)", "song preview must use the shared accent");
+        assert.equal(theme.color, "rgb(42, 47, 37)", "song preview play label contrast");
       }
       const geometry = await page.evaluate(() => ({ height:document.body.scrollHeight, width:document.body.scrollWidth, scroll:document.scrollingElement.scrollTop }));
       assert(geometry.width <= width+1, `${name}: horizontal document overflow ${JSON.stringify(geometry)}`);

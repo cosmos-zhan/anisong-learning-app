@@ -6,12 +6,12 @@
   height: 100%;
   min-width: 0;
   overflow: hidden;
-  background: #fcfbf4;
+  background: var(--paper);
   border-radius: inherit;
 }
 .score-fitted .score-page-controls {
   display: contents;
-  color: #75847d;
+  color: var(--paper-muted);
 }
 .score-fitted .score-page-controls > span {
   position: absolute;
@@ -31,7 +31,7 @@
   height: 44px;
   min-height: 44px;
   padding: 8px;
-  color: #286653;
+  color: var(--paper-accent);
   background: transparent;
   border: 0;
   border-radius: 10px;
@@ -65,7 +65,7 @@
   padding: 0;
   background: transparent;
   text-align: center;
-  color: #75847d;
+  color: var(--paper-muted);
   white-space: nowrap;
   z-index: 4;
 }
@@ -88,14 +88,14 @@
   max-width: none;
 }
 .score-fitted .note-label {
-  color: #75847d;
-  background: #fcfbf4e6;
+  color: var(--paper-muted);
+  background: color-mix(in srgb, var(--paper) 90%, transparent);
   font-size: 13px;
   font-weight: 500;
 }
 .score-fitted .note-label.current {
   color: #fffdf7;
-  background: #286653;
+  background: var(--paper-accent);
 }
 .piano-workspace .score-fitted .measure-hit {
   border-radius: 8px;
@@ -106,7 +106,7 @@
 }
 .piano-workspace .score-fitted .measure-hit.active-measure {
   background: #8fbc8f40;
-  box-shadow: inset 3px 0 #286653;
+  box-shadow: inset 3px 0 var(--paper-accent);
 }
 
 /* The compatibility notice shares the page caption, never the staff height. */

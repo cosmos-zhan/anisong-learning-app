@@ -33,7 +33,7 @@ try {
  await page.getByRole('button',{name:'返回上一页'}).click();await page.getByRole('heading',{name:'下载与导入',exact:true}).waitFor();
  await page.getByRole('button',{name:'下载任务',exact:true}).click();await page.getByRole('heading',{name:'下载任务',exact:true}).first().waitFor();await shot('10-download-tasks');
  await page.getByRole('button',{name:'返回上一页'}).click();await page.getByRole('button',{name:'下载源设置'}).click();await shot('11-source');
- await page.goto('https://anisong.test/?song=demo-original#materials');await page.getByRole('heading',{name:'添加歌曲资料'}).waitFor();await shot('05-materials');
+ await page.goto('https://anisong.test/?song=demo-original#materials');await page.getByRole('heading',{name:'歌曲资料'}).waitFor();await shot('05-materials');
  await page.goto('https://anisong.test/?song=demo-original#updates');await page.getByRole('region',{name:'版本更新说明'}).waitFor();await shot('09-updates');
  await page.goto('https://anisong.test/?song=demo-original#lyrics');
  await page.getByRole('button',{name:/^第 2 句 /}).waitFor();
@@ -41,7 +41,30 @@ try {
  const dialog=page.getByRole('dialog',{name:'语法解读'});
  await dialog.getByLabel('接口地址').fill('https://model.example/v1/chat/completions');await dialog.getByLabel('模型名称').fill('fixture');await dialog.getByLabel('API 密钥').fill('fixture-key');
  await shot('08-model-settings');await dialog.getByRole('button',{name:'保存并开始解读'}).click();await dialog.getByText('想继续唱歌').waitFor();await shot('06-reading');
- await dialog.getByRole('button',{name:'围绕这句追问'}).click();await dialog.getByLabel('对当前句子的追问').fill('这句是什么意思？');await shot('07-chat');
+ await dialog.getByRole('button',{name:'围绕这句追问'}).click();
+ const question=dialog.getByLabel('对当前句子的追问');
+ await question.fill('这句是什么意思？');
+ await shot('07-chat');
+ const keyboardViewport=540;
+ await page.evaluate(height=>{
+  Object.defineProperty(visualViewport,'height',{configurable:true,value:height});
+  visualViewport.dispatchEvent(new Event('resize'));
+ },keyboardViewport);
+ const composer=await dialog.getByRole('region',{name:'继续问这一句'}).boundingBox();
+ assert.ok(composer.y>=0&&composer.y+composer.height<=keyboardViewport+1,'The composer must remain above the reduced visual viewport');
+ assert.equal(await question.inputValue(),'这句是什么意思？');
+ assert.equal(await question.evaluate(input=>input===document.activeElement),true);
+ await page.goto('https://anisong.test/?song=demo-original#settings');
+ await page.getByRole('button',{name:/反馈与建议/}).click();
+ const feedback=page.getByRole('dialog',{name:'反馈与建议'});
+ await feedback.getByRole('textbox',{name:'问题描述'}).fill('试听控件示例');
+ await shot('12-feedback');
+ await feedback.getByRole('button',{name:'预览和提交'}).click();
+ const preview=page.getByRole('dialog',{name:'预览反馈'});
+ assert.match(await preview.getByRole('textbox',{name:'完整反馈报告'}).inputValue(),/试听控件示例/);
+ await preview.getByRole('button',{name:'关闭反馈'}).click();
+ await preview.waitFor({state:'hidden'});
+ assert.ok(page.url().endsWith('#settings'));
  await c.close();
  const native=await context(true),n=await native.newPage();
  await n.goto('https://anisong.test/?song=demo-original#downloads');
@@ -51,5 +74,5 @@ try {
  await n.getByRole('button',{name:/网易云账号/}).click();await n.getByRole('tab',{name:'短信登录'}).waitFor();
  await n.screenshot({path:resolve(output,'04-netease-account.png')});
  await n.getByRole('button',{name:'返回上一页'}).click();assert.equal(await n.getByLabel('分享链接或歌曲 ID').inputValue(),'https://music.163.com/song?id=123');
- await native.close();console.log(JSON.stringify({check:'redesign-acceptance',screens:11,native:'simulated Capacitor, no real device'}));
+ await native.close();console.log(JSON.stringify({check:'redesign-acceptance',screens:12,keyboardViewport,feedbackPreview:true,native:'simulated Capacitor, no real device'}));
 }finally{await browser.close();}

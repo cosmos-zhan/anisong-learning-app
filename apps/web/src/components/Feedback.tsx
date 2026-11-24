@@ -6,6 +6,7 @@ import {
 } from "../../../../packages/core/feedback";
 import type { PlayerState } from "../../../../packages/core/types";
 import version from "../version.json";
+import { Sheet } from "./Sheet";
 
 export function Feedback({
   state,
@@ -24,6 +25,7 @@ export function Feedback({
   });
   const [diagnostics, setDiagnostics] = useState(true);
   const [report, setReport] = useState("");
+  const [preview, setPreview] = useState(false);
   const [copied, setCopied] = useState(false);
   const textArea = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
@@ -45,18 +47,6 @@ export function Feedback({
     );
     setCopied(false);
   }, [fields, state, context, diagnostics]);
-  useEffect(() => {
-    const focus = document.activeElement as HTMLElement | null;
-    const escape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", escape);
-    textArea.current?.focus();
-    return () => {
-      document.removeEventListener("keydown", escape);
-      focus?.focus();
-    };
-  }, [onClose]);
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(report);
@@ -67,23 +57,8 @@ export function Feedback({
     }
   };
   return (
-    <div className="modal-backdrop">
-      <section
-        className="feedback-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="feedback-title"
-      >
-        <div className="section-title">
-          <h2 id="feedback-title">把问题留下来</h2>
-          <button aria-label="关闭反馈" onClick={onClose}>
-            ✕
-          </button>
-        </div>
-        <p>
-          不会附带音频、歌词、原始谱文件或文件路径。报告可编辑；GitHub
-          需要你确认后提交。
-        </p>
+    <Sheet title={preview ? "预览反馈" : "反馈与建议"} className="feedback-modal" closeLabel="关闭反馈" onClose={onClose}>
+      <div hidden={preview}>
         <label>
           反馈类型
           <select
@@ -110,6 +85,7 @@ export function Feedback({
                     : "预期行为"
               }
               value={fields[key]}
+              rows={key === "description" ? 3 : 2}
               onChange={(e) => setFields({ ...fields, [key]: e.target.value })}
               maxLength={1000}
             />
@@ -121,8 +97,11 @@ export function Feedback({
             checked={diagnostics}
             onChange={(e) => setDiagnostics(e.target.checked)}
           />
-          包含版本、设备和练习设置（点击反馈时的快照）
+          <span><strong>附带诊断信息</strong><small>版本、设备和当前练习设置</small></span>
         </label>
+        <button className="primary full" onClick={() => setPreview(true)}>预览和提交</button>
+      </div>
+      <div hidden={!preview}>
         <label>
           完整报告（可删除任意信息）
           <textarea
@@ -146,10 +125,10 @@ export function Feedback({
           </a>
         </div>
         <small>
-          报告仅在你提交 Issue 后上传。截图可在 GitHub
-          提交页面添加；复制失败时可长按报告全选。
+          报告可编辑。请在 GitHub 确认后提交，音频、歌词和原始谱文件不会随报告上传。
         </small>
-      </section>
-    </div>
+        <button className="quiet full" onClick={() => setPreview(false)}>返回编辑</button>
+      </div>
+    </Sheet>
   );
 }

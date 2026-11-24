@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { Capacitor } from '@capacitor/core';
 import * as netease from '../packages/core/netease';
@@ -22,11 +22,18 @@ it('loads existing NetEase song artwork by exact id, deduplicates and caches it'
   expect(String(fetcher.mock.calls[0][0])).toContain('id=123');
 });
 it('renders artwork and falls back when the image fails; other songs remain placeholders', async () => {
-  const ui = render(<Cover id="haruhikage-crychic" title="春日影" />);
-  const img = document.querySelector('.art-cover img'); expect(img).toBeTruthy();
-  fireEvent.error(img!); expect(document.querySelector('.art-cover img')).toBeNull();
-  expect(screen.getByText('♪')).toBeInTheDocument();
-  ui.rerender(<Cover id="demo-original" title="原创" />);
+  const ui = render(<Cover id="haruhikage-crychic" />);
+  const remote = document.querySelector('.art-cover img');
+  expect(remote).toBeTruthy();
+  const remoteSource = remote?.getAttribute('src');
+  fireEvent.error(remote!);
+  const fallback = document.querySelector('.art-cover img');
+  expect(fallback?.getAttribute('src')).toMatch(/record-artwork/);
+  expect(fallback?.getAttribute('src')).not.toBe(remoteSource);
+  fireEvent.error(fallback!);
+  expect(document.querySelector('.art-cover img')).toBeNull();
+  expect(document.querySelector('.art-cover svg')).toBeInTheDocument();
+  ui.rerender(<Cover id="demo-original" />);
   await waitFor(() => expect(document.querySelector('.art-cover img')).toBeNull());
 });
 it('does not fetch by guessed title or render an unrelated response', async () => {

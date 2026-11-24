@@ -44,16 +44,17 @@ it("home, library, new song association and settings use the same song without a
   const user = userEvent.setup(),
     ui = render(<Workspace />);
   expect(
-    screen.getByRole("heading", { name: "今天，练一小段。" }),
+    screen.getByRole("heading", { name: "首页" }),
   ).toBeVisible();
   expect(practiceRecords()).toEqual([]);
   await user.click(screen.getByRole("button", { name: "曲库" }));
-  await user.click(screen.getByRole("button", { name: "＋ 导入" }));
+  await user.click(screen.getByRole("button", { name: "新建歌曲" }));
   await user.type(
     screen.getByRole("textbox", { name: "新歌曲名称" }),
     "My local score",
   );
-  await user.click(screen.getByRole("button", { name: "新建歌曲" }));
+  await user.click(screen.getByRole("button", { name: "创建歌曲" }));
+  await screen.findByRole("combobox", { name: "关联歌曲" });
   expect(screen.getByRole("combobox", { name: "关联歌曲" })).toHaveDisplayValue(
     "My local score",
   );
@@ -66,7 +67,7 @@ it("home, library, new song association and settings use the same song without a
     target: { value: "0.5" },
   });
   expect(preferences().speed).toBe(0.5);
-  await user.click(screen.getByRole("button", { name: "练习" }));
+  await user.click(screen.getByRole("button", { name: "首页" }));
   expect(screen.getByRole("navigation", { name: "主导航" })).toBeVisible();
   ui.unmount();
 });
@@ -206,6 +207,7 @@ it("bottom navigation disappears in practice and feedback returns to paused cont
   expect(screen.queryByRole("navigation", { name: "主导航" })).toBeNull();
   await user.click(screen.getByRole("button", { name: "更多钢琴操作" }));
   await user.click(screen.getByRole("button", { name: "反馈 ↗" }));
+  await user.click(await screen.findByRole("button", { name: "预览和提交" }));
   await waitFor(() =>
     expect(
       (

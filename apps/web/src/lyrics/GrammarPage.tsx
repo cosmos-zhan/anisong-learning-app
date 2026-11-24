@@ -80,6 +80,22 @@ export function GrammarPage({ line, lines = [line], songId = "demo-original", so
   }, []);
   useEffect(() => { if (tab === 'chat' && showHistory && contentRef.current) contentRef.current.scrollTop = contentRef.current.scrollHeight; }, [tab, entries, showHistory]);
   useEffect(() => {
+    const viewport = window.visualViewport;
+    const panel = contentRef.current?.closest<HTMLElement>(".grammar-panel");
+    if (!viewport || !panel) return;
+    const fit = () => {
+      panel.style.setProperty("--grammar-height", `${viewport.height}px`);
+      panel.style.setProperty("--grammar-bottom-inset", `${Math.max(0, document.documentElement.clientHeight - viewport.height - viewport.offsetTop)}px`);
+    };
+    fit();
+    viewport.addEventListener("resize", fit);
+    viewport.addEventListener("scroll", fit);
+    return () => {
+      viewport.removeEventListener("resize", fit);
+      viewport.removeEventListener("scroll", fit);
+    };
+  }, []);
+  useEffect(() => {
     if (!result) return;
     try { localStorage.setItem(storageKey, JSON.stringify({ raw: result.raw, entries: entries.slice(-30) })); setStorageError(false); }
     catch { setStorageError(true); }
@@ -97,7 +113,9 @@ export function GrammarPage({ line, lines = [line], songId = "demo-original", so
     setAudioError('');
     void onPlayLine((phase, message) => { if (!mounted.current) return; setAudioPhase(phase); if (phase === 'error') setAudioError(message ?? '本句播放失败，请重试。'); });
   };
-  return <Sheet title="语法解读" subtitle={page === 'settings' ? '模型与上下文' : page === 'chat' ? '本句追问' : '一句，慢慢读懂'} backButton onNavigateBack={() => { if (page === 'reading') return false; if (history.state?.anisongGrammarPage) back(); else replace('reading'); return true; }} onClose={onClose} className="grammar-panel">
+  return <Sheet title="语法解读" subtitle={editing ? "模型与上下文" : undefined}
+    headerAction={!editing && <button aria-label="模型与上下文" onClick={() => open("settings")}><Icon name="settings" /></button>}
+    backButton onNavigateBack={() => { if (page === 'reading') return false; if (history.state?.anisongGrammarPage) back(); else replace('reading'); return true; }} onClose={onClose} className="grammar-panel">
     {page !== 'settings' && <div className="grammar-tabs" role="tablist" aria-label="本句学习">
       <button role="tab" aria-selected={tab === 'reading'} onClick={() => { if(page !== 'reading') replace('reading'); }}>解读</button>
       <button role="tab" aria-selected={tab === 'chat'} disabled={!result} onClick={() => open('chat')}>本句追问{entries.length ? ` ${entries.length}` : ''}</button>
@@ -111,14 +129,17 @@ export function GrammarPage({ line, lines = [line], songId = "demo-original", so
       <div className="grammar-line-actions"><button className="grammar-play" aria-label={audioPhase === 'playing' ? '停止本句' : '播放本句'} disabled={!audioAvailable || audioPhase === 'starting'} onClick={playLine}><Icon name={audioPhase === 'playing' ? 'pause' : 'play'} />{audioPhase === 'starting' ? '准备音频…' : audioPhase === 'playing' ? '停止本句' : '播放本句'}</button><span>只播放这一句</span></div>
       {audioError && <p className="grammar-error" role="alert">{audioError}</p>}</>}
       {page !== 'settings' && <button className="grammar-context-summary" onClick={() => open('settings')}>上下文：{scope === 'nearby' ? '前后各三句' : '全文'} <span>调整 ›</span></button>}
-      {editing && <div className="grammar-context-controls"><label>发送歌词上下文 <select value={scope} onChange={e => setScope(e.target.value as 'nearby' | 'full')} disabled={busy}><option value="nearby">前后各三句</option><option value="full">全文（最多 16000 字）</option></select></label><p>解读和追问会将所选范围、歌名及本句对话发送给模型服务商。</p></div>}
       {editing && <form className="grammar-settings" onSubmit={save}>
         <label>接口地址<input type="url" required value={config.endpoint} onChange={e => setConfig({ ...config, endpoint: e.target.value })} autoComplete="url" /></label>
         <label>模型名称<input required value={config.model} onChange={e => setConfig({ ...config, model: e.target.value })} /></label>
         <label>API 密钥<input type="password" required autoComplete="off" value={config.key} onChange={e => setConfig({ ...config, key: e.target.value })} /></label>
-        <p>兼容 OpenAI 格式的聊天接口。密钥仅保存在本次会话内，关闭应用后需重新输入；接口和模型名称会保存在本机。</p>
-        <p>开始解读或追问时，所选范围的歌词、歌名及本句对话会发送至上面的服务商，可能产生费用。</p>
-        <button className="grammar-primary" type="submit" disabled={busy}>保存并{result ? '返回' : '开始解读'}</button>
+        <fieldset className="grammar-context-controls" disabled={busy}>
+          <legend>发送歌词上下文</legend>
+          <label><span><strong>前后各三句</strong><small>围绕当前句解读</small></span><input type="radio" name="grammar-scope" checked={scope === "nearby"} onChange={() => setScope("nearby")} /></label>
+          <label><span><strong>全文</strong><small>最多发送 16,000 字</small></span><input type="radio" name="grammar-scope" checked={scope === "full"} onChange={() => setScope("full")} /></label>
+        </fieldset>
+        <p>接口和模型名称保存在本机，密钥仅在本次会话使用。解读和追问会将所选歌词、歌名及本句对话发送给模型服务商，可能产生费用。</p>
+        <button className="grammar-primary full" type="submit" disabled={busy}>保存并{result ? '返回' : '开始解读'}</button>
       </form>}
       {page === 'reading' && !result && !busy && <div className="grammar-empty"><p>解读会围绕这句的词义、变形和语法展开。</p><button className="grammar-primary" onClick={() => void run(config)}>开始解读</button></div>}
       {busy && <div className="grammar-status" role="status">正在请求模型… <button onClick={stop}>停止生成</button></div>}
@@ -130,6 +151,7 @@ export function GrammarPage({ line, lines = [line], songId = "demo-original", so
         <p className="grammar-disclaimer">AI 解读可能有误；语境不明确时请结合上下文理解。</p><button className="grammar-primary grammar-chat-entry" onClick={() => open('chat')}>围绕这句追问</button>
       </>}
       {page === 'chat' && result && <section className="grammar-thread" aria-live="polite">
+        <p className="grammar-eyebrow">第 {index + 1} 句 · {line.text}</p>
         <div className="grammar-history-heading"><span>对话记录{entries.length ? ` · ${entries.length} 条` : ''}</span>{!!entries.length && <button onClick={() => setShowHistory(!showHistory)} aria-pressed={showHistory}>{showHistory ? '隐藏历史' : '显示历史'}</button>}</div>{!!entries.length && <p className="grammar-history-note">记录保存在本机；隐藏后仍会作为对话上下文发送（最多最近 6 轮）。</p>}
         {storageError && <p className="grammar-error" role="alert">本机存储不可用或空间不足，历史可能无法保存。</p>}
         {!entries.length && <p className="grammar-empty">从一个没懂的地方，接着问下去。</p>}

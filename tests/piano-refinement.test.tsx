@@ -170,7 +170,7 @@ it("browser Back closes the range panel first; a second Back returns to preparat
   await waitFor(() =>
     expect(screen.getByRole("button", { name: /练习范围/ })).toBeEnabled(),
   );
-  await user.click(screen.getByRole("button", { name: "进入钢琴练习 →" }));
+  await user.click(screen.getByRole("button", { name: "进入钢琴练习" }));
   await user.click(screen.getByRole("button", { name: /第 1 小节 ▾/ }));
   expect(screen.getByRole("dialog")).toBeVisible();
   act(() => history.back());
@@ -179,9 +179,9 @@ it("browser Back closes the range panel first; a second Back returns to preparat
   expect(screen.getByLabelText("钢琴播放控制")).toBeVisible();
   act(() => history.back());
   await waitFor(() => expect(location.hash).toBe("#piano-prep"));
-  expect(screen.getByRole("button", { name: "进入钢琴练习 →" })).toBeVisible();
+  expect(screen.getByRole("button", { name: "进入钢琴练习" })).toBeVisible();
   expect(screen.queryByRole("dialog")).toBeNull();
-  await user.click(screen.getByRole("button", { name: "进入钢琴练习 →" }));
+  await user.click(screen.getByRole("button", { name: "进入钢琴练习" }));
   expect(screen.queryByRole("dialog")).toBeNull();
   ui.unmount();
 });
@@ -192,7 +192,7 @@ it("explicit panel close consumes its history entry, so the next Back changes th
   await waitFor(() =>
     expect(screen.getByRole("button", { name: /练习范围/ })).toBeEnabled(),
   );
-  await user.click(screen.getByRole("button", { name: "进入钢琴练习 →" }));
+  await user.click(screen.getByRole("button", { name: "进入钢琴练习" }));
   await user.click(screen.getByRole("button", { name: "钢琴速度 0.75 倍" }));
   await user.click(screen.getByRole("button", { name: "关闭练习速度" }));
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
@@ -319,6 +319,7 @@ it("label panel changes the actual keyboard, persists session and includes the r
     screen.queryByRole("button", { name: "模式 / 声部 / 速度 / 标记" }),
   ).toBeNull();
   await user.click(screen.getByRole("button", { name: "反馈 ↗" }));
+  await user.click(await screen.findByRole("button", { name: "预览和提交" }));
   await waitFor(() =>
     expect(
       (
@@ -494,7 +495,7 @@ it("preparation uses left aligned list rows rather than nested generic button ca
       );
       expect(getComputedStyle(row).borderRadius).toBe("0");
     }
-    expect(screen.getByRole("heading", { name: "钢琴学谱" })).toBeVisible();
+    expect(screen.getByRole("main", { name: "钢琴学谱" })).toBeVisible();
   } finally {
     ui.unmount();
     controller.dispose();

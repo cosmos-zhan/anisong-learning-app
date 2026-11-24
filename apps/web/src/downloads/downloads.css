@@ -1,11 +1,205 @@
-.downloads-page{display:grid;gap:20px;min-width:0}.download-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.download-heading h1{margin:6px 0 10px;font-size:30px;color:#203c34}.download-heading p:last-child{margin:0;color:#6b8073;font-size:12px}.download-source-toggle{font-size:12px;min-height:44px;padding:10px 12px;border:1px solid #dce4d7;border-radius:12px;flex-shrink:0;color:#286653}.download-tabs{display:flex;gap:4px;padding:5px;background:#e7ede3;border-radius:16px}.download-tabs button{display:flex;gap:6px;justify-content:center;align-items:center;flex:1;min-width:0;min-height:44px;padding:8px 4px;font-size:13px;white-space:nowrap;border-radius:12px;color:#6a7e71}.download-tabs button[aria-selected=true]{background:#fffdf7;color:#235b49;box-shadow:0 2px 8px #183e2710;font-weight:700}.download-tabs span{font-size:11px;background:#dce7d7;border-radius:12px;min-width:20px;padding:2px 4px;color:#3e6856}.download-section-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 18px}.download-section-title h2{font-size:18px;margin:0 0 8px;color:#203c34}.download-section-title p{font-size:12px;color:#6d8073;margin:0}.download-section-title button{min-height:44px;font-size:13px}.download-source{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:18px;border:1px solid #dce4d7;border-radius:18px;background:#fffdf7}.download-source h2,.download-source .helper,.download-source label{grid-column:1/-1}.download-source h2{font-size:18px;margin:0}.download-source label{display:grid;gap:8px;font-size:13px;color:#426357}.download-source input{width:100%;min-width:0;min-height:48px;font-size:16px;padding:12px;border:1px solid #d7dfd4;border-radius:12px;background:#f8f8f0;color:#203c34}.download-source>button{min-height:44px}.download-source>.helper{margin:0;font-size:12px;line-height:1.8}.download-notice{padding:14px 16px;background:#e3eddf;border-radius:14px;font-size:13px;line-height:1.7;color:#285d49}.download-row{display:flex;align-items:center;gap:14px;padding:20px 0;border-bottom:1px solid #dce3d8}.download-cover{width:48px;height:54px;display:grid;place-items:center;border-radius:12px;background:linear-gradient(150deg,#c7dcc5,#e7e7d4);color:#52785e;font-size:25px;flex-shrink:0}.download-row-info{min-width:0;flex:1;overflow-wrap:anywhere}.download-row h3,.download-local h3{margin:0 0 8px;font-size:17px;color:#203c34}.download-row p,.download-row small,.download-local p,.download-local small{font-size:12px;color:#6a7d70;margin:0 0 8px}.download-row small,.download-local small{color:#286653}.download-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.download-actions button{min-height:44px;padding:10px 14px;border-radius:12px;font-size:13px}.download-actions .primary{background:#286653;color:#fffdf7}.download-actions>button:not(.primary){background:#e6ede1;color:#355e4b}.download-task{padding:18px;margin:12px 0;background:#fffdf7;border:1px solid #dce4d7;border-radius:18px}.download-task-title{display:flex;justify-content:space-between;gap:12px;margin-bottom:14px;overflow-wrap:anywhere}.download-task-title strong{font-size:15px}.download-task-title span,.download-task>p{font-size:12px;color:#698170}.download-task progress{width:100%;accent-color:#286653;height:8px;display:block}.download-task .download-actions{justify-content:flex-end}.download-local{padding:18px;margin:12px 0;border-radius:18px;background:#fffdf7;border:1px solid #dce4d7}.download-local-title{display:flex;align-items:center;gap:14px;min-width:0;margin-bottom:14px}.download-local-title>div:last-child{min-width:0;overflow-wrap:anywhere}.download-local .download-actions{justify-content:flex-end}.download-remove{margin-top:14px;padding:14px;background:#f2e7dd;border-radius:12px;font-size:13px;line-height:1.8}.download-remove button{min-height:44px;margin-right:8px}.download-empty{padding:32px 16px;text-align:center;display:grid;justify-items:center;gap:12px;background:#ebeee4;border-radius:20px;margin-top:18px;color:#5e7766}.download-empty>span{font-size:28px}.download-empty p{margin:0;color:#254936}.download-empty small{line-height:1.8}.download-empty button{min-height:44px;margin-top:4px}.download-extras{border-top:1px solid #dce4d7;padding-top:18px;color:#67806f}.download-extras summary{font-size:13px;min-height:44px;cursor:pointer}.download-package{padding:18px;background:#e8eee3;border-radius:16px;display:grid;gap:12px;margin:6px 0 14px}.download-package h2{margin:0;font-size:16px}.download-package .helper{margin:0;line-height:1.8}.download-package-import,.download-package-export{min-height:48px;display:flex;align-items:center;justify-content:center;padding:12px;border-radius:12px;font-size:13px;text-decoration:none;text-align:center;background:#286653;color:#fffdf7;position:relative;cursor:pointer}.download-package-export{background:#fffdf7;color:#286653;border:1px solid #b8ccbb}.download-package-import input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}.download-package-import:focus-within{outline:3px solid #85b8a5;outline-offset:3px}.download-package-import.is-disabled{opacity:.55}.download-library-entry{width:100%;min-height:48px;margin-bottom:16px;background:#e4ede2;border-radius:14px;color:#286653;font-size:14px}.downloads-page .helper{line-height:1.8;font-size:12px}
-@media(max-width:560px){.download-row{display:grid;grid-template-columns:48px minmax(0,1fr)}.download-row>.download-actions{grid-column:1/-1;justify-content:flex-end}.download-heading h1{font-size:28px}.download-heading .eyebrow{font-size:10px}}@media(max-width:360px){.download-source{grid-template-columns:minmax(0,1fr)}.download-local{padding:14px}.download-actions{gap:6px}.download-actions button{padding:10px 12px}.download-tabs button{font-size:12px}}
-.download-netease{border:1px solid var(--line,#dce4d8);border-radius:16px;background:var(--surface,#fffefa);padding:0 18px;margin:18px 0}.download-netease>summary{cursor:pointer;min-height:50px;align-content:center;font-weight:600}.download-netease>section{padding:0 0 18px}.download-netease h2{font-size:18px}.download-netease form{display:flex;gap:12px;align-items:end;flex-wrap:wrap}.download-netease label{flex:1;min-width:200px;font-size:13px}.download-netease input{display:block;width:100%;min-height:46px;margin-top:8px;border:1px solid var(--line,#dce4d8);border-radius:10px;background:var(--surface,#fffefa);padding:10px 12px;font-size:16px;color:inherit}.download-netease-result{margin-top:16px;padding:16px;border-radius:12px;background:var(--soft,#f0f4e8)}.download-netease-result h3{margin:0;font-size:17px;overflow-wrap:anywhere}.download-netease-result p{font-size:13px;line-height:1.8;overflow-wrap:anywhere}.download-netease button{min-height:44px}
-
-.netease-account{padding:14px 0;margin:12px 0;border-top:1px solid #d8ded8;border-bottom:1px solid #d8ded8}.netease-account-heading{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.netease-account summary{cursor:pointer;padding:12px 0}.netease-login-form{display:flex;align-items:end;gap:10px;flex-wrap:wrap;margin:12px 0}.netease-login-form label{display:flex;flex-direction:column;gap:5px;min-width:0;flex:1 1 145px}.netease-login-form input{width:100%;min-height:42px;box-sizing:border-box;padding:8px 10px;border:1px solid #bcc9c0;border-radius:8px;background:#fff;color:#23382d}.netease-login-qr{display:flex;flex-direction:column;align-items:center;gap:8px;margin:12px 0}.netease-login-qr img{width:min(280px,100%);height:auto}.netease-account button{min-height:40px}
-
-.download-cover { overflow: hidden; }
-.download-cover img { display: block; width: 100%; height: 100%; object-fit: cover; }
-.download-page-header{display:flex;align-items:center;gap:12px;padding:0 0 14px;border-bottom:1px solid #dce4d7}.download-page-header>button{font-size:30px;min-width:40px;color:#286653}.download-page-header h1{font-size:20px;margin:0}.download-page-header p{font-size:12px;color:#71867a;margin:3px 0 0}.download-hub h2{margin:4px 0;font-size:19px}.download-hub>button{width:100%;display:grid;grid-template-columns:1fr auto;text-align:left;gap:4px;padding:18px;border:1px solid #dce4d7;border-radius:15px;background:#fffdf7;margin:10px 0}.download-hub>button:first-of-type{background:#e7f0e7}.download-hub>button strong{font-size:15px}.download-hub>button small{grid-column:1;color:#71867a;font-size:12px}.download-hub>button span{grid-column:2;grid-row:1/3;align-self:center;color:#71867a}.download-hub h3{color:#71867a;font-size:12px;margin:24px 0 4px}.download-page-header+section{min-width:0}.download-account-link{display:flex;justify-content:space-between;width:100%;padding:14px;background:#e7f0e7;border-radius:12px;text-align:left;color:#285d49}.download-netease[open]{border:0;padding:0;background:transparent}.download-netease summary[hidden],.downloads-page [hidden]{display:none!important}.download-netease section{padding:0}.download-source{margin-top:0}.download-source>button{padding:10px 12px;background:#e7f0e7}.download-source>button.primary{background:#286653;color:#fff}.download-extras>h2{font-size:19px}.netease-account details[open]>summary[hidden]{display:none}.netease-account:has(summary[hidden]){border:0;margin:0;padding:0}.netease-account:has(summary[hidden]) .netease-login-form{display:grid;grid-template-columns:1fr 1fr}.netease-account:has(summary[hidden]) .netease-login-form label{min-width:0}.netease-account:has(summary[hidden]) .netease-login-form button{padding:8px;background:#e7f0e7;border-radius:10px}
-.download-account-link span:first-child{display:grid;gap:4px}.download-account-link small{font-size:12px;color:#71867a}.netease-login-tabs{display:flex;gap:4px;background:#e7f0e7;padding:4px;border-radius:12px}.netease-login-tabs button{flex:1}.netease-login-tabs button[aria-selected=true]{background:#fffdf7;color:#286653;font-weight:600;border-radius:9px}
-.download-page-header { justify-content: flex-start; }
+.downloads-page { display: grid; gap: 13px; min-width: 0; }
+.download-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  min-height: calc(56px + var(--safe-top));
+  margin: 0 -20px;
+  padding: var(--safe-top) 12px 0;
+}
+.download-page-header > button {
+  display: grid;
+  place-items: center;
+  flex: 0 0 44px;
+  height: 44px;
+  padding: 0;
+}
+.download-page-header h1 {
+  flex: 1;
+  margin: 0 52px 0 0;
+  text-align: center;
+  font-size: 19px;
+}
+.download-hub .group-title { margin-top: 13px; }
+.download-hub .group-title:first-child { margin-top: 0; }
+.download-hub-row { min-height: 64px; }
+.download-tabs, .netease-login-tabs {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  border-bottom: 1px solid var(--line);
+}
+.download-tabs button, .netease-login-tabs button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex: 1;
+  gap: 4px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 7px 3px;
+  white-space: nowrap;
+  color: var(--ink-muted);
+  border-radius: 0;
+  font-size: 13px;
+}
+.download-tabs button[aria-selected="true"], .netease-login-tabs button[aria-selected="true"] {
+  color: var(--ink);
+  border-bottom-color: var(--accent);
+  font-weight: 700;
+}
+.download-tabs span {
+  padding: 1px 5px;
+  border-radius: 10px;
+  background: var(--surface-raised);
+  color: var(--ink-muted);
+  font-size: 11px;
+}
+.download-section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 0 12px;
+}
+.download-section-title h2 { margin: 0 0 4px; }
+.download-section-title p { margin: 0; color: var(--ink-muted); font-size: 12px; }
+.download-section-title button { color: var(--accent); }
+.download-source, .download-package, .download-netease-result, .netease-account-heading {
+  display: grid;
+  gap: 9px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+}
+.download-source h2, .download-package h2 { margin: 0; font-size: 16px; }
+.download-source label, .download-netease label, .netease-login-form label { display: grid; gap: 5px; font-size: 13px; }
+.download-source input, .download-netease form input {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--field);
+  color: var(--ink);
+  font-size: 16px;
+}
+.download-source button:not(.primary), .download-actions button:not(.primary, .quiet), .netease-account button:not(.primary, [role="tab"]) {
+  color: var(--accent);
+  border-color: var(--line);
+  background: var(--surface-raised);
+}
+.download-source .helper, .download-package .helper { margin: 0; }
+.download-notice {
+  margin: 0;
+  padding: 11px 13px;
+  border-radius: 12px;
+  color: var(--success);
+  background: var(--success-surface);
+}
+.download-row, .download-task, .download-local {
+  margin: 10px 0;
+  padding: 13px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+.download-row {
+  display: grid;
+  align-items: center;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 9px 10px;
+}
+.download-row .download-actions { grid-column: 1 / -1; }
+.download-row-info, .download-local-title > div:last-child { min-width: 0; overflow-wrap: anywhere; }
+.download-row h3, .download-local h3, .download-netease-result h3 { margin: 0 0 4px; font-size: 15px; }
+.download-row p, .download-local p { margin: 0; color: var(--ink-muted); font-size: 12px; }
+.download-row small, .download-local small { display: block; margin: 4px 0 0; color: var(--success); }
+.download-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; }
+.download-actions button { flex: 1 0 auto; font-size: 13px; }
+.download-actions .quiet { flex: 0 0 auto; padding-inline: 0; }
+.download-local .quiet { flex-basis: 100%; text-align: left; }
+.download-task-title { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 9px; overflow-wrap: anywhere; }
+.download-task-title span, .download-task > p:not(.error) { color: var(--ink-muted); font-size: 12px; }
+.download-task progress, .app-updates progress { width: 100%; height: 8px; accent-color: var(--accent); }
+.download-local-title { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.download-remove-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+.danger-action { background: var(--danger); color: var(--danger-ink); font-weight: 700; }
+.download-remove-sheet .quiet { border-color: var(--line-strong); }
+.download-empty {
+  display: grid;
+  justify-items: center;
+  gap: 9px;
+  padding: 20px 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--ink-muted);
+  text-align: center;
+}
+.download-empty > span { font-size: 20px; color: var(--accent); }
+.download-empty p { margin: 0; color: var(--ink); }
+.download-empty button:not(.primary) { color: var(--accent); }
+.download-library-entry {
+  width: 100%;
+  margin-bottom: 12px;
+  background: var(--surface-raised);
+  color: var(--accent);
+}
+.download-package-import, .download-package-export {
+  display: grid;
+  place-items: center;
+  position: relative;
+  min-height: 44px;
+  padding: 8px 11px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  text-align: center;
+  color: var(--accent);
+  cursor: pointer;
+}
+.download-package-import {
+  color: var(--accent-ink);
+  background: var(--accent);
+  font-weight: 700;
+}
+.download-package-import input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.download-package-import:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.download-package-import.is-disabled { opacity: .48; }
+.download-extras > button:last-child { color: var(--accent); }
+.download-netease { min-width: 0; }
+.download-netease > summary { min-height: 44px; }
+.download-netease h2 { margin-bottom: 7px; }
+.download-netease form { display: flex; align-items: end; flex-wrap: wrap; gap: 8px; }
+.download-netease form label { flex: 1 1 190px; min-width: 0; }
+.download-netease-result { margin-top: 13px; overflow-wrap: anywhere; }
+.download-netease-result p { margin: 0; }
+.download-account-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 13px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  text-align: left;
+}
+.download-account-link span:first-child { display: grid; gap: 4px; }
+.download-account-link small { color: var(--ink-muted); }
+.netease-account-heading { grid-template-columns: 1fr auto; align-items: center; }
+.netease-account-heading span { color: var(--ink-muted); }
+.netease-account-heading button { grid-column: 1 / -1; }
+.netease-account details { margin-top: 10px; }
+.netease-account form.netease-login-form { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); align-items: end; margin: 10px 0; }
+.netease-login-form label:nth-of-type(2), .netease-login-form button[type="submit"] { grid-column: 1 / -1; }
+.netease-login-qr { display: grid; justify-items: center; gap: 8px; margin: 12px 0; }
+.netease-login-qr img { width: min(244px, 100%); height: auto; padding: 8px; background: white; border-radius: 10px; }
+@media (max-width: 360px) {
+  .download-tabs button { font-size: 12px; }
+  .download-actions button { padding-inline: 9px; }
+}

@@ -9,11 +9,19 @@ export function Sheet({
   children,
   className = "",
   backButton = false,
+  alertDialog = false,
+  dismissDisabled = false,
+  closeLabel,
+  headerAction,
   subtitle,
   onNavigateBack,
 }: {
   className?: string;
   backButton?: boolean;
+  alertDialog?: boolean;
+  dismissDisabled?: boolean;
+  closeLabel?: string;
+  headerAction?: ReactNode;
   subtitle?: string;
   onNavigateBack?: () => boolean;
   title: string;
@@ -23,6 +31,8 @@ export function Sheet({
   const ref = useRef<HTMLElement>(null),
     close = useRef(onClose);
   close.current = onClose;
+  const locked = useRef(dismissDisabled);
+  locked.current = dismissDisabled;
   const navigateBack = useRef(onNavigateBack);
   navigateBack.current = onNavigateBack;
   const navigation = useRef<{
@@ -33,6 +43,7 @@ export function Sheet({
     after?: () => void;
   } | null>(null);
   const dismiss = useCallback<DismissSheet>((afterClose) => {
+    if (locked.current && !afterClose) return;
     if (!afterClose && navigateBack.current?.()) return;
     const entry = navigation.current;
     if (entry?.closing) return;
@@ -88,10 +99,10 @@ export function Sheet({
         dismiss();
       }
       if (e.key === "Tab") {
-        const nodes = ref.current?.querySelectorAll<HTMLElement>(
-          'button:not(:disabled),a[href],input:not(:disabled),select,textarea,[tabindex="0"]',
-        );
-        if (!nodes?.length) return;
+        const nodes = Array.from(ref.current?.querySelectorAll<HTMLElement>(
+          'button:not(:disabled),a[href],input:not(:disabled),select:not(:disabled),textarea:not(:disabled),[tabindex="0"]',
+        ) ?? []).filter((node) => !node.closest("[hidden]"));
+        if (!nodes.length) return;
         const first = nodes[0],
           last = nodes[nodes.length - 1];
         if (
@@ -131,15 +142,16 @@ export function Sheet({
       <section
         ref={ref}
         tabIndex={-1}
-        role="dialog"
+        role={alertDialog ? "alertdialog" : "dialog"}
         aria-modal="true"
         aria-label={title}
         className={`app-sheet ${className}`}
       >
         <div className={`sheet-title ${backButton ? "sheet-title-back" : ""}`}>
-          {backButton && <button aria-label={`关闭${title}`} onClick={() => dismiss()}><Icon name="back" /></button>}
+          {backButton && <button aria-label={closeLabel ?? `关闭${title}`} disabled={dismissDisabled} onClick={() => dismiss()}><Icon name="back" /></button>}
           <div><h2>{title}</h2>{subtitle && <p>{subtitle}</p>}</div>
-          {!backButton && <button aria-label={`关闭${title}`} onClick={() => dismiss()}>✕</button>}
+          {headerAction}
+          {!backButton && <button aria-label={closeLabel ?? `关闭${title}`} disabled={dismissDisabled} onClick={() => dismiss()}><Icon name="close" /></button>}
         </div>
         {typeof children === "function" ? children(dismiss) : children}
       </section>
